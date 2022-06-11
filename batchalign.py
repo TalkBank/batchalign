@@ -33,6 +33,9 @@ import xml.etree.ElementTree as ET
 # Also, include regex
 import re
 
+# Import a progress bar
+from tqdm import tqdm
+
 # Oneliner of directory-based glob
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 
@@ -59,7 +62,7 @@ def chat2praat(directory):
     # get all files in that directory
     files = globase(directory, "*.cha")
     # praat2chatit!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat')} +e.wav {' '.join(files)}"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat')} +e.wav {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
     # delete any error logs
@@ -83,7 +86,7 @@ def chat2elan(directory):
     # get all files in that directory
     files = globase(directory, "*.cha")
     # praat2chatit!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +e.wav {' '.join(files)}"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +e.wav {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
     # delete any error logs
@@ -196,3 +199,37 @@ def mp32wav(directory):
     # convert each file
     for f in mp3s:
         os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
+
+
+# Align a whole directory
+def align_directory(directory):
+    """Given a directory of .wav and .txt, align them
+
+    Arguments:
+        directory (string): string directory filled with .wav and .txt files with same name
+
+    Returns:
+        none
+    """
+
+    # find the paired wave files and transcripts
+    wavs = globase(directory, "*.wav")
+    txts = globase(directory, "*.txt")
+
+    # pair them up
+    pairs = zip(sorted(wavs), sorted(txts))
+
+    # and then align them!
+    for wav, text in tqdm(list(pairs)):
+        # Get output file name
+        output_filename = wav.replace("wav", "textGrid")
+        # Generate align!
+        align(wav, text, output_filename)
+
+mp32wav("../data")
+chat2transcript("../data")
+align_directory("../data")
+
+
+
+
