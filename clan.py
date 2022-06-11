@@ -26,6 +26,15 @@ CLAN_PATH=os.path.join(CURRENT_PATH, "./opt/clan")
 
 # chat2praat a whole path
 def chat2praat(directory):
+    """Convert a folder of CLAN .cha files to corresponding textGrid files
+
+    Attributes:
+        directory (string): the string directory in which .cha is in
+
+    Returns:
+        None
+    """
+   
     # get all files in that directory
     files = globase(directory, "*.cha")
     # praat2chatit!
@@ -39,9 +48,26 @@ def chat2praat(directory):
     for f in globase(directory, "*.textGrid"):
         os.rename(f, f.replace(".c2praat", ""))
 
+# chat2elan a whole path
+def chat2elan(directory):
+    """Convert a folder of CLAN .cha files to corresponding ELAN XMLs
 
+    files:
+        directory (string): the string directory in which .cha is in
 
-
-    
-chat2praat("../data")
-
+    Returns:
+        None
+    """
+   
+    # get all files in that directory
+    files = globase(directory, "*.cha")
+    # praat2chatit!
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +e.wav {' '.join(files)}"
+    # run!
+    os.system(CMD)
+    # delete any error logs
+    for f in globase(directory, "*.err.cex"):
+        os.remove(f)
+    # and rename the files
+    for f in globase(directory, "*.eaf"):
+        os.rename(f, f.replace(".c2elan", ""))
