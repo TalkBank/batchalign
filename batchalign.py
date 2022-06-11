@@ -120,6 +120,11 @@ def eaf2transcript(file_path):
         # get the name of the tier
         tier_id = tier.attrib.get("TIER_ID","")
 
+        # we ignore anything that's a "@S*" tier
+        # because those are metadata
+        if "@" in tier_id:
+            continue
+
         # For each annotation
         for annotation in tier:
             # Get the text of the transcript
@@ -137,7 +142,11 @@ def eaf2transcript(file_path):
             # Remove any pauses
             transcript = transcript.replace("(.)","")
             # And timeslot ID
-            timeslot_id = int(annotation[0].attrib.get("TIME_SLOT_REF1", "0")[2:])
+            try: 
+                timeslot_id = int(annotation[0].attrib.get("TIME_SLOT_REF1", "0")[2:])
+            except ValueError:
+                print(file_path)
+            
 
             # and append the metadata + transcript to the annotations
             annotations.append((timeslot_id, tier_id, transcript))
@@ -226,10 +235,7 @@ def align_directory(directory):
         # Generate align!
         align(wav, text, output_filename)
 
-mp32wav("../data")
+# mp32wav("../data")
 chat2transcript("../data")
 align_directory("../data")
-
-
-
 
