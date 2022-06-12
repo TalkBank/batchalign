@@ -49,29 +49,29 @@ P2FA_PATH=os.path.join(CURRENT_PATH, "./opt/p2fa")
 # import p2fa
 from opt.p2fa.align import align
 
-# chat2praat a whole path
-def chat2praat(directory):
-    """Convert a folder of CLAN .cha files to corresponding textGrid files
+# chat2elan a whole path
+def elan2chat(directory):
+    """Convert a folder of CLAN .eaf files to corresponding CHATs
 
-    Attributes:
-        directory (string): the string directory in which .cha is in
+    files:
+        directory (string): the string directory in which .elans are in
 
     Returns:
         None
     """
    
     # get all files in that directory
-    files = globase(directory, "*.cha")
+    files = globase(directory, "*.eaf")
     # praat2chatit!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat')} +e.wav {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'elan2chat')} {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
     # delete any error logs
     for f in globase(directory, "*.err.cex"):
         os.remove(f)
     # and rename the files
-    for f in globase(directory, "*.textGrid"):
-        os.rename(f, f.replace(".c2praat", ""))
+    for f in globase(directory, "*.elan.cha"):
+        os.rename(f, f.replace(".elan.cha", ".cha"))
 
 # chat2elan a whole path
 def chat2elan(directory):
@@ -421,6 +421,7 @@ def eafalign(file_path, alignments, output_path):
     tree.write(output_path)
 
 
+elan2chat("../data/")
 # mp32wav("../data")
 # chat2transcript("../data")
 # align_directory("../data/")
