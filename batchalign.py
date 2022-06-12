@@ -420,9 +420,12 @@ def eafalign(file_path, alignments, output_path):
     # And write tit to file
     tree.write(output_path)
 
+
 # mp32wav("../data")
 # chat2transcript("../data")
 # align_directory("../data/")
+# alignments = transcript_word_alignment("../data/13-1174.txt", "../data/13-1174.textGrid")
+# eafalign("../data/13-1174.eaf", alignments, "../data/13-1174.aligned.eaf")
 
 
 # align("../data/les385su007.wav", "../data/les385su007.txt", "../data/les385su007.textGrid", wave_start="0.0", wave_end="21.0", verbose=1)
