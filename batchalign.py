@@ -97,7 +97,7 @@ def chat2elan(directory):
     for f in globase(directory, "*.eaf"):
         os.rename(f, f.replace(".c2elan", ""))
 
-def eaf2transcript(file_path):
+def elan2transcript(file_path):
     """convert an eaf XML file to tiered transcripts
 
     Attributes:
@@ -187,7 +187,7 @@ def chat2transcript(directory):
     elan = globase(directory, "*.eaf")
 
     # and get transcripts from that
-    transcripts = [eaf2transcript(i)["transcript"] for i in elan]
+    transcripts = [elan2transcript(i)["transcript"] for i in elan]
 
     # finally, get the zipped file titles and trascripts
     # and dump each one to file
@@ -420,16 +420,51 @@ def eafalign(file_path, alignments, output_path):
     # And write tit to file
     tree.write(output_path)
 
+def do_align(in_directory, out_directory):
+    """Align a whole directory of .cha files
 
-elan2chat("../data/")
-# mp32wav("../data")
-# chat2transcript("../data")
-# align_directory("../data/")
-# alignments = transcript_word_alignment("../data/13-1174.txt", "../data/13-1174.textGrid")
-# eafalign("../data/13-1174.eaf", alignments, "../data/13-1174.aligned.eaf")
+    Attributes:
+        directory (string)
+    """
 
 
-# align("../data/les385su007.wav", "../data/les385su007.txt", "../data/les385su007.textGrid", wave_start="0.0", wave_end="21.0", verbose=1)
- # delete the EAF files
-# for eaf_file in elan:
-#     os.remove(eaf_file)
+    # convert all mp3s to wavs
+    mp32wav(in_directory)
+
+    # convert all chats to transcripts
+    chat2transcript(in_directory)
+
+    # align to generate textgrids 
+    align_directory(in_directory)
+
+    # generate utterance-level alignments
+    transcripts = globase(in_directory, "*.txt")
+    alignments = globase(in_directory, "*.textGrid")
+
+    # zip the results and dump into neaw eafs
+    for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
+        # Align the alignment results
+        aligned_result = transcript_word_alignment(transcript, alignment)
+        # Calculate the path to the old and new eaf
+        old_eaf_path = os.path.join(in_directory,
+                                    pathlib.Path(transcript).name.replace("txt", "eaf"))
+        new_eaf_path = os.path.join(out_directory,
+                                    pathlib.Path(transcript).name.replace("txt", "eaf"))
+        # Dump the aligned result into the new eaf
+        eafalign(old_eaf_path, aligned_result, new_eaf_path)
+
+    # convert the aligned eafs back into chat
+    elan2chat(out_directory)
+
+    # Cleaning up
+    # Removing all the eaf files generated
+    for eaf_file in globase(in_directory, "*.eaf"):
+        os.remove(eaf_file)
+    for eaf_file in globase(out_directory, "*.eaf"):
+        os.remove(eaf_file)
+
+    # Removing all the transcript files generated
+    for eaf_file in globase(in_directory, "*.txt"):
+        os.remove(eaf_file)
+
+do_align("../data", "../data_out")
