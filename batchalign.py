@@ -37,6 +37,9 @@ import re
 # Import a progress bar
 from tqdm import tqdm
 
+# Argument parser
+import argparse
+
 # Oneliner of directory-based glob
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 
@@ -236,7 +239,8 @@ def align_directory(directory):
     pairs = zip(sorted(wavs), sorted(txts))
 
     # and then align them!
-    for wav, text in tqdm(list(pairs)):
+    for wav, text in pairs:
+        print(f"aligning {wav}")
         # Get output file name
         output_filename = wav.replace("wav", "textGrid")
         # Generate align!
@@ -467,4 +471,12 @@ def do_align(in_directory, out_directory):
     for eaf_file in globase(in_directory, "*.txt"):
         os.remove(eaf_file)
 
-do_align("../data", "../data_out")
+
+# manloop to take input
+parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with P2FA")
+parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
+parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
+
+if __name__=="__main__":
+    args = parser.parse_args()
+    do_align(args.in_dir, args.out_dir)
