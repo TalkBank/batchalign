@@ -26,6 +26,7 @@ import os
 
 # Import pathing utilities
 import glob
+from typing import ContextManager
 
 # XML facilities
 import xml.etree.ElementTree as ET
@@ -135,6 +136,15 @@ def eaf2transcript(file_path):
             # used when we are coping time back
             # Remove any disfluency marks
             transcript = re.sub(r"<(.*?)> *?\[.*?\]", r"\1", transcript)
+            # Remove any other additions
+            transcript = re.sub(r"\[.*?\]",r"", transcript)
+            # Remove any additional annotation marks
+            transcript = re.sub(r"⌊.*?⌋",r"", transcript)
+            transcript = re.sub(r"⌈.*?⌉",r"", transcript)
+            transcript = re.sub(r"&=[\w:]*",r"", transcript)
+            transcript = re.sub(r"xxx",r"", transcript)
+            transcript = re.sub(r"yyy",r"", transcript)
+            transcript = re.sub(r"\(.*?\)",r"", transcript)
             # Remove any interruptive marks
             transcript = transcript.replace("+/.","")
             # Remove any quote marks
@@ -233,9 +243,48 @@ def align_directory(directory):
         # Get output file name
         output_filename = wav.replace("wav", "textGrid")
         # Generate align!
-        align(wav, text, output_filename)
+        align(wav, text, output_filename, verbose=1)
+
+# Parse a TextGrid file for word tier
+def parse_textgrid(file_path):
+    """Parse a TextGrid file for the word tier
+
+    Arguments:
+        file_path (string): name of the TextGrid file
+
+    Returns:
+        none
+    """
+
+# Open the file
+with open("../data/13-1174.textGrid", "r") as df:
+    content = df.readlines()
+
+# Clean up newlines and spaces
+content = [i.strip() for i in content]
+# Find the IntervalTier line
+enumerated_line = enumerate(content)
+enumerated_line = list(filter(lambda x:x[1]=='"IntervalTier"', enumerated_line))
+# The word tier is the second IntervalTier
+word_tier = enumerated_line[1][0]
+# We then cut the content to the word tier (skipping the top label and line count)
+content = content[word_tier+5:]
+# Then, we iterate through three-line chunks and append to the wordlist
+wordlist_alignments = []
+# For each of the wordlist
+for i in range(0, len(content), 3):
+    # We skip any spaces
+    if content[i+2] != '"sp"':
+        # And append the words in paris
+        wordlist_alignments.append((content[i+2][1:-1], (float(content[i]), float(content[i+1]))))
+
+wordlist_alignments[2]
+
+
+parse_textgrid()
 
 # mp32wav("../data")
-chat2transcript("../data")
-align_directory("../data")
+# chat2transcript("../data")
+# align_directory("../data/")
 
+# align("../data/les385su007.wav", "../data/les385su007.txt", "../data/les385su007.textGrid", wave_start="0.0", wave_end="21.0", verbose=1)
