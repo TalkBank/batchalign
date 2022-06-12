@@ -197,10 +197,7 @@ def chat2transcript(directory):
             # write to file
             df.writelines([i+"\n" for i in transcript])
 
-    # delete the EAF files
-    for eaf_file in elan:
-        os.remove(eaf_file)
-    
+   
 # optionally convert mp3 to wav files
 def mp32wav(directory):
     """Generate wav files from mp3
@@ -292,7 +289,7 @@ def parse_transcript(file_path):
     """
 
     # Open the transcript file
-    with open("../data/13-1174.txt", "r") as df:
+    with open(file_path, "r") as df:
         data = df.read()
     # Split the lines of the data 
     lines = data.split("\n")
@@ -307,15 +304,15 @@ def transcript_word_alignment(transcript, alignments):
     """Align the output of parse_transcript and parse_textgrid together
 
     Arguments:
-        transcript (list): output of parse_transcript wordlist
-        alignments (list): output of parse_alignments
+        transcript (string): path of parse_transcript wordlist
+        alignments (string): path of parse_alignments
 
     Returns:
         ((start, end)...*num_lines
     """
 
-    transcript = parse_transcript("../data/13-1174.txt")
-    wordlist_alignments = parse_textgrid("../data/13-1174.textGrid")
+    transcript = parse_transcript(transcript)
+    wordlist_alignments = parse_textgrid(alignments)
 
     # Get the top word to be aligned
     current_word = wordlist_alignments.pop(0)
@@ -349,13 +346,86 @@ def transcript_word_alignment(transcript, alignments):
     # Return the fimal alignments
     return alignments
 
+def eafalign(file_path, alignments, output_path):
+    """get an unaligned eaf file to be aligned
+
+    Attributes:
+        file_path (string): file path of the .eaf file
+        alignments (list): output of transcript word alignment
+        output_path (string): output path of the aligned .eaf file
+
+    Returns:
+        None
+    """
+
+    # Load the file
+    tree = ET.parse(file_path)
+    root =  tree.getroot()
+    tiers = root[2:]
+
+    # create an array for annotations
+    annotations = []
+
+    # For each tier 
+    for tier in tiers:
+        # get the name of the tier
+        tier_id = tier.attrib.get("TIER_ID","")
+
+        # we ignore anything that's a "@S*" tier
+        # because those are metadata
+        if "@" in tier_id:
+            continue
+
+        # For each annotation
+        for annotation in tier:
+
+            # Parse timeslot ID
+            try: 
+                timeslot_id_1 = int(annotation[0].attrib.get("TIME_SLOT_REF1", "0")[2:])
+                timeslot_id_2 = int(annotation[0].attrib.get("TIME_SLOT_REF2", "0")[2:])
+            except ValueError:
+                print(file_path)
+
+            # and append the metadata + transcript to the annotations
+            annotations.append(((timeslot_id_1,timeslot_id_2), tier_id))
+
+    # we will sort annotations by timeslot ref
+    annotations.sort(key=lambda x:x[0])
+
+    # Remove the old time slot IDs
+    root[1].clear()
+
+    # For each of the resulting annotations, dump the time values
+    # Remember that time values dumped in milliseconds so we
+    # multiply the result by 1000 and round to int
+    for annotation, alignment in zip(annotations, alignments):
+        # Create the beginning time slot
+        element_start = ET.Element("TIME_SLOT")
+        # Set the time slot ID to the correct beginning
+        element_start.set("TIME_SLOT_ID", f"ts{annotation[0][0]}")
+        # Set the time slot ID to the correct end
+        element_start.set("TIME_VALUE", f"{int(alignment[0]*1000)}")
+
+        # Create the beginning time slot
+        element_end = ET.Element("TIME_SLOT")
+        # Set the time slot ID to the correct beginning
+        element_end.set("TIME_SLOT_ID", f"ts{annotation[0][1]}")
+        # Set the time slot ID to the correct end
+        element_end.set("TIME_VALUE", f"{int(alignment[1]*1000)}")
+
+        # Appending the element
+        root[1].append(element_start)
+        root[1].append(element_end)
+
+    # And write tit to file
+    tree.write(output_path)
 
 # mp32wav("../data")
 # chat2transcript("../data")
 # align_directory("../data/")
-alignments = parse_textgrid("../data/13-1174.textGrid")
-transcript = parse_transcript("../data/13-1174.txt")
-final_alignments = transcript_word_alignment(transcript, alignments)
 
 
 # align("../data/les385su007.wav", "../data/les385su007.txt", "../data/les385su007.textGrid", wave_start="0.0", wave_end="21.0", verbose=1)
+ # delete the EAF files
+# for eaf_file in elan:
+#     os.remove(eaf_file)
