@@ -253,38 +253,109 @@ def parse_textgrid(file_path):
         file_path (string): name of the TextGrid file
 
     Returns:
-        none
+        a list of ((word, (start_time, end_time))... x number_words)
     """
 
-# Open the file
-with open("../data/13-1174.textGrid", "r") as df:
-    content = df.readlines()
+    # Open the file
+    with open("../data/13-1174.textGrid", "r") as df:
+        content = df.readlines()
 
-# Clean up newlines and spaces
-content = [i.strip() for i in content]
-# Find the IntervalTier line
-enumerated_line = enumerate(content)
-enumerated_line = list(filter(lambda x:x[1]=='"IntervalTier"', enumerated_line))
-# The word tier is the second IntervalTier
-word_tier = enumerated_line[1][0]
-# We then cut the content to the word tier (skipping the top label and line count)
-content = content[word_tier+5:]
-# Then, we iterate through three-line chunks and append to the wordlist
-wordlist_alignments = []
-# For each of the wordlist
-for i in range(0, len(content), 3):
-    # We skip any spaces
-    if content[i+2] != '"sp"':
-        # And append the words in paris
-        wordlist_alignments.append((content[i+2][1:-1], (float(content[i]), float(content[i+1]))))
+    # Clean up newlines and spaces
+    content = [i.strip() for i in content]
+    # Find the IntervalTier line
+    enumerated_line = enumerate(content)
+    enumerated_line = list(filter(lambda x:x[1]=='"IntervalTier"', enumerated_line))
+    # The word tier is the second IntervalTier
+    word_tier = enumerated_line[1][0]
+    # We then cut the content to the word tier (skipping the top label and line count)
+    content = content[word_tier+5:]
+    # Then, we iterate through three-line chunks and append to the wordlist
+    wordlist_alignments = []
+    # For each of the wordlist
+    for i in range(0, len(content), 3):
+        # We skip any spaces
+        if content[i+2] != '"sp"':
+            # And append the words in paris
+            wordlist_alignments.append((content[i+2][1:-1], (float(content[i]), float(content[i+1]))))
 
-wordlist_alignments[2]
+    return wordlist_alignments
 
+# Parse a generated transcript
+def parse_transcript(file_path):
+    """Parse a transcript file
 
-parse_textgrid()
+    Arguments:
+        file_path (string): name of the transcript file
+
+    Returns:
+        A list of [[word... * words]... * utterances]
+    """
+
+    # Open the transcript file
+    with open("../data/13-1174.txt", "r") as df:
+        data = df.read()
+    # Split the lines of the data 
+    lines = data.split("\n")
+    # Split each line (replacing all punctuations with spaces and split
+    # by spaces
+    lines_split = [[j.upper() for j in re.compile("[ .,?!-]+").split(i)[:-1]] for i in lines]
+
+    return lines_split[:-1]
+
+# Align the alignments!
+def transcript_word_alignment(transcript, alignments):
+    """Align the output of parse_transcript and parse_textgrid together
+
+    Arguments:
+        transcript (list): output of parse_transcript wordlist
+        alignments (list): output of parse_alignments
+
+    Returns:
+        ((start, end)...*num_lines
+    """
+
+    transcript = parse_transcript("../data/13-1174.txt")
+    wordlist_alignments = parse_textgrid("../data/13-1174.textGrid")
+
+    # Get the top word to be aligned
+    current_word = wordlist_alignments.pop(0)
+
+    # Create a list of start and end results
+    alignments = []
+
+    # For each sentence
+    for current_sentence in transcript:
+        # Set start and end for the current interval
+        start = current_word[1][0]
+        end = current_word[1][1] # create template ending in case the end doesn't exist
+
+        # for the current word in the current sentence
+        # check if it is the current word. If it is, move
+        # on and update end interval. If not, ignore the wrod
+        for word in current_sentence:
+            # If we got the current word, move on to the next
+            if word == current_word[0]:
+                try: 
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
+
+        # The end should be the beginning of the "next" word
+        end = current_word[1][0]
+
+        # Append the start and end intervals we aligned
+        alignments.append((start,end))
+
+    # Return the fimal alignments
+    return alignments
+
 
 # mp32wav("../data")
 # chat2transcript("../data")
 # align_directory("../data/")
+alignments = parse_textgrid("../data/13-1174.textGrid")
+transcript = parse_transcript("../data/13-1174.txt")
+final_alignments = transcript_word_alignment(transcript, alignments)
+
 
 # align("../data/les385su007.wav", "../data/les385su007.txt", "../data/les385su007.textGrid", wave_start="0.0", wave_end="21.0", verbose=1)
