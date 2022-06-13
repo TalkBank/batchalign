@@ -46,7 +46,8 @@ globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 # Get the default path of UnitCLAN installation
 # from the path of the current file
 CURRENT_PATH=pathlib.Path(__file__).parent.resolve()
-CLAN_PATH=os.path.join(CURRENT_PATH, "./opt/clan")
+# CLAN_PATH=os.path.join(CURRENT_PATH, "./opt/clan")
+CLAN_PATH=""
 P2FA_PATH=os.path.join(CURRENT_PATH, "./opt/p2fa")
 
 # import p2fa
@@ -439,7 +440,7 @@ def do_align(in_directory, out_directory):
     chat2transcript(in_directory)
 
     # align to generate textgrids 
-    align_directory(in_directory)
+    # align_directory(in_directory)
 
     # generate utterance-level alignments
     transcripts = globase(in_directory, "*.txt")
