@@ -56,7 +56,7 @@ the =.cha= files with the same name.
   python3 batchalign.py input_folder empty_output_folder
 
   The input folder will briefly populate with some supplemental files,
-  before begin aligned. Aligned .cha files will be in the output
-  directory specified, whereas aligned .textGrid (compressed form)
-  will be in the original input folder.
+  before begining to be aligned. Aligned .cha files will be in the
+  output directory specified, whereas aligned .textGrid (compressed
+  form) will be in the original input folder.
 
