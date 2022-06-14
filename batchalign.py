@@ -590,7 +590,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
     dict_path = os.path.join(in_directory, "dictionary.txt")
     # Move it to the data dir too
     if os.path.exists(dict_path):
-        os.rename(f, repath_file(f, DATA_DIR))
+        os.rename(dict_path, repath_file(dict_path, DATA_DIR))
 
     # Cleaning up
     # Removing all the eaf files generated
