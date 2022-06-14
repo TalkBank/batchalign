@@ -277,7 +277,7 @@ def align_directory_mfa(directory, data_dir):
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
-        CMD = f"mfa g2p english_us_arpa {directory} {dictionary}"
+        CMD = f"mfa g2p --clean english_us_arpa {directory} {dictionary}"
         os.system(CMD)
 
     # and finally, align!
