@@ -21,7 +21,6 @@ batchalign is a Python script that uses the Penn Phonetics Forced Aligner and th
     Follow its instructions for installation. chat2praat, for instance,
     should be callable.
 
-
   == ffmpeg ==
 
     ffmpeg is used for audio conversion. Download it using your package
