@@ -67,6 +67,7 @@ the =.cha= files with the same name.
 
   The input folder will briefly populate with some supplemental files,
   before begining to be aligned. Aligned .cha files will be in the
-  output directory specified, whereas aligned .textGrid (compressed
-  form) will be in the original input folder.
+  output directory specified, whereas aligned .textGrid, .lab
+  transcripts, and generated .wav files will be in a subfolder
+  named "data" in the output directory.
 
