@@ -28,6 +28,7 @@ import os
 import glob
 from shutil import move
 from typing import ContextManager
+from typing_extensions import dataclass_transform
 
 # XML facilities
 import xml.etree.ElementTree as ET
@@ -242,11 +243,12 @@ def align_directory_p2fa(directory):
         # Generate align!
         align(wav, text, output_filename, verbose=1)
 
-def align_directory_mfa(directory):
+def align_directory_mfa(directory, data_dir):
     """Given a directory of .wav and .lab, align them
 
     Arguments:
         directory (string): string directory filled with .wav and .lab files with same name
+        data_dir (string): output directory for textgrids
 
     Returns:
         none
@@ -265,14 +267,16 @@ def align_directory_mfa(directory):
         CMD = "mfa model download acoustic english_us_arpa"
         os.system(CMD)
 
-    # generate dictionary
+    # define dictionary path
     dictionary = os.path.join(directory, 'dictionary.txt')
-    CMD = f"mfa g2p english_us_arpa {directory} {dictionary}"
-    # run!
-    os.system(CMD)
+
+    # generate dictionary if needed
+    if not os.path.exists(dictionary):
+        CMD = f"mfa g2p english_us_arpa {directory} {dictionary}"
+        os.system(CMD)
 
     # and finally, align!
-    CMD = f"mfa align {directory} {dictionary} english_us_arpa {directory}"
+    CMD = f"mfa align --clean {directory} {dictionary} english_us_arpa {data_dir}"
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
@@ -468,6 +472,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
         none
     """
 
+    # Define the data_dir
+    DATA_DIR = os.path.join(out_directory, data_directory)
+
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
     mp32wav(in_directory)
@@ -477,15 +484,13 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
 
     # P2FA/Montreal time
     if method.lower()=="mfa":
-        align_directory_mfa(in_directory)
+        align_directory_mfa(in_directory, DATA_DIR)
     elif method.lower()=="p2fa":
         align_directory_p2fa(in_directory)
     else:
         raise Exception(f'Unknown forced alignment method {method}.')
 
     ### CLEANUP OPS ###
-    # DATA_DIR = os.path.join(out_directory, data_directory)
-
     # # Move the data directory if needed
     # if not os.path.exists(DATA_DIR):
     #     os.mkdir(DATA_DIR)
