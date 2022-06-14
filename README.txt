@@ -29,7 +29,7 @@ batchalign is a Python script that uses the Penn Phonetics Forced Aligner and th
 === Running ===
 
 This program comes with a copy of P2FA and the requisite models.
-Therefore, it can be simply ran as a Python script.
+Therefore, it can be simply run as a Python script.
 
 The input folder has to be organized in a very specific way. Inside
 it, place ONLY =.cha= files and =.mp3= or =.wav= files to align with
