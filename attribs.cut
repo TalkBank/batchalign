@@ -1,0 +1,7 @@
+@UTF8
+@Window:	222_1101_694_685_-1_-1_130_0_130_0
+;"Praat Speaker tag"	"Chat Speaker"	"Role"
+words			*SPK:		Speaker
+
+;"Praat Dep. Tier tag"	"Chat tier"	"Associated with tag"
+phones			%pho		*SPK:
