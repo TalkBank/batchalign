@@ -258,7 +258,7 @@ def parse_textgrid(file_path):
     """
 
     # Open the file
-    with open("../data/13-1174.textGrid", "r") as df:
+    with open(file_path, "r") as df:
         content = df.readlines()
 
     # Clean up newlines and spaces
