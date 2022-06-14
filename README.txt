@@ -1,8 +1,8 @@
-batchalign is a Python script that uses the Penn Phonetics Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
+batchalign is a Python script that uses the Montreal Forced Aligner OR Penn Phonetics Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
 
 === Software Installation ===
 
-  == HTK ==
+  == For P2FA: Download HTK ==
 
   Download HTK
   (https://htk.eng.cam.ac.uk/ftp/software/HTK-3.5.beta-2.tar.gz).
@@ -14,6 +14,16 @@ batchalign is a Python script that uses the Penn Phonetics Forced Aligner and th
 
     Finally, compile and install HTK Binaries. HVite, for instance,
     should be callable.
+
+  == For MFA: Download MFA ==
+
+    Install anaconda
+    (https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+
+    Then, type the following commands
+    conda config --add channels conda-forge
+    conda install montreal-forced-aligner
+    conda install pynini
 
   == UnixCLAN ==
 
