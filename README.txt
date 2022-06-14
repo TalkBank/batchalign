@@ -8,31 +8,32 @@ batchalign is a Python script that uses the Penn Phonetics Forced Aligner and th
     HTK version 3.5.1 doesn't always play nice with p2fa. We provided
     here in this folder a patch to install it on macOS.
 
-    Hence, download HTK. Deflate it, then, in the working directory of the
-    HTK source type "git apply < THIS_FOLDER/htk.patch".
+    Hence, download HTK. Deflate it, then, in the working directory
+    of the HTK source type "git apply < THIS_FOLDER/htk.patch".
 
-    Finally, compile and install HTK Binaries. HVite, for instance, should
-    be callable.
+    Finally, compile and install HTK Binaries. HVite, for instance,
+    should be callable.
 
   == UnixCLAN ==
 
-    Download UnixCLAN (https://dali.talkbank.org/clan/unix-clan.zip). Follow
-    its instructions for installation. chat2praat, for instance, should be
-    callable.
+    Download UnixCLAN (https://dali.talkbank.org/clan/unix-clan.zip).
+    Follow its instructions for installation. chat2praat, for instance,
+    should be callable.
 
 
   == ffmpeg ==
 
-    ffmpeg is used for audio conversion. Download it using your package manager
+    ffmpeg is used for audio conversion. Download it using your package
+    manager.
 
 === Running ===
 
-This program comes with a copy of P2FA and the requisite models. Therefore, it
-can be simply ran as a Python script.
+This program comes with a copy of P2FA and the requisite models.
+Therefore, it can be simply ran as a Python script.
 
-The input folder has to be organized in a very specific way. Inside it, place ONLY
-=.cha= files and =.mp3= or =.wav= files to align with the =.cha= files with the same
-name.
+The input folder has to be organized in a very specific way. Inside it,
+place ONLY =.cha= files and =.mp3= or =.wav= files to align with the =.cha=
+files with the same name.
 
   Therefore, a successful placement of the input folder would look like
 
@@ -54,8 +55,8 @@ name.
 
   python3 batchalign.py input_folder empty_output_folder
 
-  The input folder will briefly populate with some supplemental files, before
-  begin aligned. Aligned .cha files will be in the output directory specified,
-  whereas aligned .textGrid (compressed form) will be in the original input
-  folder.
+  The input folder will briefly populate with some supplemental files,
+  before begin aligned. Aligned .cha files will be in the output directory
+  specified, whereas aligned .textGrid (compressed form) will be in the
+  original input folder.
 
