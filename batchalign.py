@@ -612,5 +612,4 @@ parser.add_argument("--method", type=str, default="mfa", help='method to use to 
 
 if __name__=="__main__":
     args = parser.parse_args()
-    print(args.in_dir, args.out_dir, args.data_dir, args.method)
-    # do_align(args.in_dir, args.out_dir, args.data_dir, args.method)
+    do_align(args.in_dir, args.out_dir, args.data_dir, args.method)
