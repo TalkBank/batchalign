@@ -26,6 +26,7 @@ import os
 
 # Import pathing utilities
 import glob
+from shutil import move
 from typing import ContextManager
 
 # XML facilities
@@ -39,9 +40,10 @@ from tqdm import tqdm
 
 # Argument parser
 import argparse
-
-# Oneliner of directory-based glob
+ 
+# Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
+repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
 
 # Get the default path of UnitCLAN installation
 # from the path of the current file
@@ -183,23 +185,17 @@ def chat2transcript(directory):
         none
     """
 
-    # begin by chat2elanning a whole path
-    chat2elan(directory)
+    # then, finding all the cha files
+    files = globase(directory, "*.cha")
 
-    # then, finding all the elan files
-    elan = globase(directory, "*.eaf")
+    # use flo to convert chat files to text
+    CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cr +t*')} {' '.join(files)} >/dev/null 2>&1"
+    # run!
+    os.system(CMD)
 
-    # and get transcripts from that
-    transcripts = [elan2transcript(i)["transcript"] for i in elan]
-
-    # finally, get the zipped file titles and trascripts
-    # and dump each one to file
-    for file_title, transcript in zip(elan, transcripts):
-        # open the data file
-        with open(file_title.replace("eaf","txt"), "w") as df:
-            # write to file
-            df.writelines([i+"\n" for i in transcript])
-
+    # and rename the files to lab files, which are essentially the same thing
+    for f in globase(directory, "*.flo.cex"):
+        os.rename(f, f.replace(".flo.cex", ".lab"))
    
 # optionally convert mp3 to wav files
 def mp32wav(directory):
@@ -221,8 +217,8 @@ def mp32wav(directory):
 
 
 # Align a whole directory
-def align_directory(directory):
-    """Given a directory of .wav and .txt, align them
+def align_directory_p2fa(directory):
+    """Given a directory of .wav and .lab, align them
 
     Arguments:
         directory (string): string directory filled with .wav and .txt files with same name
@@ -233,7 +229,7 @@ def align_directory(directory):
 
     # find the paired wave files and transcripts
     wavs = globase(directory, "*.wav")
-    txts = globase(directory, "*.txt")
+    txts = globase(directory, "*.lab")
 
     # pair them up
     pairs = zip(sorted(wavs), sorted(txts))
@@ -245,6 +241,39 @@ def align_directory(directory):
         output_filename = wav.replace("wav", "textGrid")
         # Generate align!
         align(wav, text, output_filename, verbose=1)
+
+def align_directory_mfa(directory):
+    """Given a directory of .wav and .lab, align them
+
+    Arguments:
+        directory (string): string directory filled with .wav and .lab files with same name
+
+    Returns:
+        none
+    """
+
+    # TODO for non-macOS systems
+    # check if the g2p model exists, if not, download them
+    if not os.path.exists("~/Documents/MFA/extracted_models/g2p/english_us_arpa"):
+        # Get and download the model
+        CMD = "mfa model download g2p english_us_arpa"
+        os.system(CMD)
+
+    # check if the acoustic model exists, if not, download them
+    if not os.path.exists("~/Documents/MFA/extracted_models/acoustic/english_us_arpa"):
+        # Get and download the model
+        CMD = "mfa model download acoustic english_us_arpa"
+        os.system(CMD)
+
+    # generate dictionary
+    dictionary = os.path.join(directory, 'dictionary.txt')
+    CMD = f"mfa g2p english_us_arpa {directory} {dictionary}"
+    # run!
+    os.system(CMD)
+
+    # and finally, align!
+    CMD = f"mfa align {directory} {dictionary} english_us_arpa {directory}"
+    os.system(CMD)
 
 # Parse a TextGrid file for word tier
 def parse_textgrid(file_path):
@@ -424,59 +453,100 @@ def eafalign(file_path, alignments, output_path):
     # And write tit to file
     tree.write(output_path)
 
-def do_align(in_directory, out_directory):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
     """Align a whole directory of .cha files
 
     Attributes:
-        directory (string)
+        in_directory (string): the directory containing .cha and .wav/.mp3 file
+        out_directory (string): the directory for the output files
+        data_directory (string): the subdirectory (rel. to out_directory) which the misc.
+                                 outputs go
+
+        method (string): your choice of 'mfa' or 'p2fa' for alignment
+
+    Returns:
+        none
     """
 
-
+    ### PREPATORY OPS ###
     # convert all mp3s to wavs
     mp32wav(in_directory)
 
     # convert all chats to transcripts
     chat2transcript(in_directory)
 
-    # align to generate textgrids 
-    align_directory(in_directory)
+    # P2FA/Montreal time
+    if method.lower()=="mfa":
+        align_directory_mfa(in_directory)
+    elif method.lower()=="p2fa":
+        align_directory_p2fa(in_directory)
+    else:
+        raise Exception(f'Unknown forced alignment method {method}.')
 
-    # generate utterance-level alignments
-    transcripts = globase(in_directory, "*.txt")
-    alignments = globase(in_directory, "*.textGrid")
+    ### CLEANUP OPS ###
+    # DATA_DIR = os.path.join(out_directory, data_directory)
 
-    # zip the results and dump into neaw eafs
-    for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
-        # Align the alignment results
-        aligned_result = transcript_word_alignment(transcript, alignment)
-        # Calculate the path to the old and new eaf
-        old_eaf_path = os.path.join(in_directory,
-                                    pathlib.Path(transcript).name.replace("txt", "eaf"))
-        new_eaf_path = os.path.join(out_directory,
-                                    pathlib.Path(transcript).name.replace("txt", "eaf"))
-        # Dump the aligned result into the new eaf
-        eafalign(old_eaf_path, aligned_result, new_eaf_path)
+    # # Move the data directory if needed
+    # if not os.path.exists(DATA_DIR):
+    #     os.mkdir(DATA_DIR)
 
-    # convert the aligned eafs back into chat
-    elan2chat(out_directory)
+    # # And, move all the files that we generated there
+    # # if we generated the .wavs, move the wavs
+    # mp3files = globase(in_directory, "*.mp3")
+    # if len(mp3files) > 0:
+    #     # Rename each of the generated wavs
+    #     for f in mp3files:
+    #         os.rename(f.replace("mp3", "wav"), repath_file(f.replace("mp3", "wav"), DATA_DIR)) 
 
-    # Cleaning up
-    # Removing all the eaf files generated
-    for eaf_file in globase(in_directory, "*.eaf"):
-        os.remove(eaf_file)
-    for eaf_file in globase(out_directory, "*.eaf"):
-        os.remove(eaf_file)
+    # # move all the lab files 
+    # labfiles = globase(in_directory, "*.lab")
+    # # Rename each one
+    # for f in labfiles:
+    #     os.rename(f, repath_file(f, DATA_DIR)) 
 
-    # Removing all the transcript files generated
-    for eaf_file in globase(in_directory, "*.txt"):
-        os.remove(eaf_file)
+    # # align to generate textgrids 
+    # align_directory(in_directory)
 
+    # # generate utterance-level alignments
+    # transcripts = globase(in_directory, "*.txt")
+    # alignments = globase(in_directory, "*.textGrid")
 
-# manloop to take input
-parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with P2FA")
-parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
-parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
+    # # zip the results and dump into neaw eafs
+    # for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
+    #     # Align the alignment results
+    #     aligned_result = transcript_word_alignment(transcript, alignment)
+    #     # Calculate the path to the old and new eaf
+    #     old_eaf_path = os.path.join(in_directory,
+    #                                 pathlib.Path(transcript).name.replace("txt", "eaf"))
+    #     new_eaf_path = os.path.join(out_directory,
+    #                                 pathlib.Path(transcript).name.replace("txt", "eaf"))
+    #     # Dump the aligned result into the new eaf
+    #     eafalign(old_eaf_path, aligned_result, new_eaf_path)
 
-if __name__=="__main__":
-    args = parser.parse_args()
-    do_align(args.in_dir, args.out_dir)
+    # # Clean up the dictionary, if exists
+    # dict_path = os.path.join(in_directory, "dictionary.txt")
+    # # Move it to the data dir too
+    # if os.path.exists(dict_path):
+    #     os.rename(f, repath_file(f, DATA_DIR))
+
+    # # Cleaning up
+    # # Removing all the eaf files generated
+    # for eaf_file in globase(in_directory, "*.eaf"):
+    #     os.remove(eaf_file)
+    # for eaf_file in globase(out_directory, "*.eaf"):
+    #     os.remove(eaf_file)
+
+    # # Removing all the transcript files generated
+    # for eaf_file in globase(in_directory, "*.txt"):
+    #     os.remove(eaf_file)
+
+do_align("../ENNI/SLI/in/", "../ENNI/SLI/out/")
+
+# # manloop to take input
+# parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with P2FA")
+# parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
+# parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
+
+# if __name__=="__main__":
+#     args = parser.parse_args()
+#     do_align(args.in_dir, args.out_dir)
