@@ -4,8 +4,8 @@ batchalign is a Python script that uses the Montreal Forced Aligner OR Penn Phon
 
   == For P2FA: Download HTK ==
 
-  Download HTK
-  (https://htk.eng.cam.ac.uk/ftp/software/HTK-3.5.beta-2.tar.gz).
+    Download HTK.
+    (https://htk.eng.cam.ac.uk/ftp/software/HTK-3.5.beta-2.tar.gz)
     HTK version 3.5.1 doesn't always play nice with p2fa. We provided
     here in this folder a patch to install it on macOS.
 
