@@ -9,8 +9,8 @@
 ## INSTALLING PENN ALIGNER ##
 # an htk installation should be present on the system.
 # For instance, HVite should be executable. Furthermore
-# a full python3 version of p2fa should be placed in ./opt/p2fa
-# for instance, ./opt/p2fa/align.py should exist 
+# a full python3 version of p2fa should be placed in ./opt/p2fa_py3/p2fa
+# for instance, ./opt/p2fa_py3/p2fa/align.py should exist 
 #
 ## INSTALLING FFMPEG ##
 # the penn aligner only aligns wav files. Therefore, we use
@@ -47,10 +47,10 @@ globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 # from the path of the current file
 CURRENT_PATH=pathlib.Path(__file__).parent.resolve()
 CLAN_PATH=""
-P2FA_PATH=os.path.join(CURRENT_PATH, "./opt/p2fa")
+P2FA_PATH=os.path.join(CURRENT_PATH, "./opt/p2fa_py3/p2fa")
 
 # import p2fa
-from opt.p2fa.align import align
+from opt.p2fa_py3.p2fa.align import align
 
 # chat2elan a whole path
 def elan2chat(directory):

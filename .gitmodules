@@ -1,0 +1,3 @@
+[submodule "opt/p2fa_py3"]
+	path = opt/p2fa_py3
+	url = git@github.com:jaekookang/p2fa_py3.git
