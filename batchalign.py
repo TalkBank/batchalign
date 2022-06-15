@@ -545,12 +545,16 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
         # Convert to chat files
         mfa2chat(in_directory, out_directory, DATA_DIR)
     elif method.lower()=="p2fa":
+        # Generate elan elan elan elan
+        chat2elan(in_directory)
+
         # Align files
         align_directory_p2fa(in_directory)
 
         # generate utterance-level alignments
-        transcripts = globase(in_directory, "*.txt")
+        transcripts = globase(in_directory, "*.lab")
         alignments = globase(in_directory, "*.textGrid")
+
 
         # zip the results and dump into neaw eafs
         for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
@@ -558,9 +562,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
             aligned_result = transcript_word_alignment(transcript, alignment)
             # Calculate the path to the old and new eaf
             old_eaf_path = os.path.join(in_directory,
-                                        pathlib.Path(transcript).name.replace("txt", "eaf"))
+                                        pathlib.Path(transcript).name.replace("lab", "eaf"))
             new_eaf_path = os.path.join(out_directory,
-                                        pathlib.Path(transcript).name.replace("txt", "eaf"))
+                                        pathlib.Path(transcript).name.replace("lab", "eaf"))
             # Dump the aligned result into the new eaf
             eafalign(old_eaf_path, aligned_result, new_eaf_path)
         
@@ -579,6 +583,12 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
         # Rename each of the generated wavs
         for f in mp3files:
             os.rename(f.replace("mp3", "wav"), repath_file(f.replace("mp3", "wav"), DATA_DIR)) 
+
+    # move all the lab files 
+    tgfiles = globase(in_directory, "*.textGrid")
+    # Rename each one
+    for f in tgfiles:
+        os.rename(f, repath_file(f, DATA_DIR)) 
 
     # move all the lab files 
     labfiles = globase(in_directory, "*.lab")
