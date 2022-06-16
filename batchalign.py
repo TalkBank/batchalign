@@ -390,12 +390,80 @@ def parse_transcript(file_path):
     lines = data.split("\n")
     # Split each line (replacing all punctuations with spaces and split
     # by spaces
-    lines_split = [[j.upper() for j in re.compile("[ .,?!-]+").split(i)[:-1]] for i in lines]
+    lines_split = [[j for j in re.compile("[ .,?!-]+").split(i)[:-1]] for i in lines]
 
     return lines_split[:-1]
 
 # Align the alignments!
-def transcript_word_alignment(transcript, alignments):
+def transcript_word_alignment_long(transcript, alignments):
+    """Align the output of parse_transcript and parse_textgrid_short together
+
+    Arguments:
+        transcript (string): path of parse_transcript wordlist
+        alignments (string): path of parse_alignments
+
+    Returns:
+        ((start, end)...*num_lines
+    """
+
+    transcript = parse_transcript(transcript)
+    wordlist_alignments, phoneme_alignments = parse_textgrid_long(alignments)
+
+    # Get the top word to be aligned
+    current_word = wordlist_alignments.pop(0)
+
+    # Create a list of start and end results
+    alignments = []
+    # Create a list of results
+    results = []
+
+    # For each sentence
+    for current_sentence in transcript:
+        # Set start and end for the current interval
+        start = current_word[1][0]
+        end = current_word[1][1] # create template ending in case the end doesn't exist
+
+        # create a running buffer
+        buff = []
+
+        # for the current word in the current sentence
+        # check if it is the current word. If it is, move
+        # on and update end interval. If not, ignore the wrod
+        for word in current_sentence:
+            # If we got the current word, move on to the next
+            if word.lower() == current_word[0].lower():
+                # append current word
+                buff.append(current_word)
+                try: 
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
+
+            # TODO HACKY!!
+            # I am carveout. I'm is parsed differently in
+            # MFA for no good reason
+            elif (word.lower() == "i'm" and current_word[0].lower() == "i" and wordlist_alignments[0][0] =="'m"):
+                # append current word up until the end of the 'm
+                buff.append(("I'm", current_word[1][0], wordlist_alignments[0][1][1]))
+                # Ignore the am
+                wordlist_alignments.pop(0)
+                # and append as usual
+                try: 
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
+
+        # The end should be the beginning of the "next" word
+        end = current_word[1][0]
+
+        # Append the start and end intervals we aligned
+        alignments.append((start,end))
+        results.append(buff.copy())
+
+    # Return the fimal alignments
+    return alignments, results
+
+def transcript_word_alignment_short(transcript, alignments):
     """Align the output of parse_transcript and parse_textgrid_short together
 
     Arguments:
@@ -426,7 +494,7 @@ def transcript_word_alignment(transcript, alignments):
         # on and update end interval. If not, ignore the wrod
         for word in current_sentence:
             # If we got the current word, move on to the next
-            if word == current_word[0]:
+            if word.lower() == current_word[0].lower():
                 try: 
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -594,10 +662,24 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
     # Generate elan elan elan elan
     chat2elan(in_directory)
 
+    # NOTE FOR FUTURE EDITORS
+    # TextGrid != textGrid. P2FA and MFA generate different results
+    # in terms of capitalization.
+
     # P2FA/Montreal time
     if method.lower()=="mfa":
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR)
+        # align_directory_mfa(in_directory, DATA_DIR)
+
+        # generate utterance and word-level alignments
+        transcripts = globase(in_directory, "*.lab")
+        alignments = globase(DATA_DIR, "*.TextGrid")
+        # zip the results and dump into neaw eafs
+        for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
+            # Align the alignment results
+            aligned_result = transcript_word_alignment_long(transcript, alignment)
+            # TODO tomorrow
+
         # Convert to chat files
         # mfa2chat(in_directory, out_directory, DATA_DIR)
     elif method.lower()=="p2fa":
@@ -605,15 +687,14 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         wavconformation(in_directory)
         # Align files
         align_directory_p2fa(in_directory)
+
         # generate utterance-level alignments
         transcripts = globase(in_directory, "*.lab")
         alignments = globase(in_directory, "*.textGrid")
-
-
         # zip the results and dump into neaw eafs
         for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
             # Align the alignment results
-            aligned_result = transcript_word_alignment(transcript, alignment)
+            aligned_result = transcript_word_alignment_short(transcript, alignment)
             # Calculate the path to the old and new eaf
             old_eaf_path = os.path.join(in_directory,
                                         pathlib.Path(transcript).name.replace("lab", "eaf"))
