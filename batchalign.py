@@ -49,7 +49,7 @@ import argparse
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
-bullet = lambda start,end: f" {start*1000}_{end*1000} " # start and end should be float seconds
+bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))} " # start and end should be float seconds
 
 # Get the default path of UnitCLAN installation
 # from the path of the current file
@@ -383,7 +383,7 @@ def transcript_word_alignment_long(elan, alignments):
         alignments (string): path of parse_alignments
 
     Returns:
-        ((start, end)...*num_lines
+        {"alignments": ((start, end)...*num_lines, "terms": [bulleted results: string]}
     """
 
     transcript = elan2transcript(elan)["transcript"]
@@ -454,7 +454,7 @@ def transcript_word_alignment_long(elan, alignments):
         for i in sentence:
             # if alignable, append a bullet
             if i[1]:
-                sentence_bulleted.append(i[0]+bullet(i[1][0], i[1][1]))
+                sentence_bulleted.append(i[0].strip()+bullet(i[1][0], i[1][1]))
             else:
                 sentence_bulleted.append(i[0])
         # concat and append to bulleted results
@@ -554,14 +554,37 @@ def eafalign(file_path, alignments, output_path):
             annotations.append(((timeslot_id_1,timeslot_id_2), tier_id, annotation[0].attrib.get("ANNOTATION_ID", "0")))
 
     # we will sort annotations by timeslot ref
-    annotations.sort(key=lambda x:x[-1])
+    annotations.sort(key=lambda x:int(x[-1][1:]))
 
     # if we are doing long-form alignment
     if type(alignments) == dict:
         # create a lookup dict 
         terms_flattened = list(zip([i[-1] for i in annotations], alignments["terms"]))
-        print(terms_flattened)
-        raise Exception()
+        terms_dict = dict(terms_flattened)
+
+        # set alignment back to what the rest of the function would expect
+        alignments = alignments["alignments"]
+
+        # replace content with the bulleted version
+        # For each tier 
+        for tier in tiers:
+            # get the name of the tier
+            tier_id = tier.attrib.get("TIER_ID","")
+
+            # we ignore anything that's a "@S*" tier
+            # because those are metadata
+            if "@" in tier_id:
+                continue
+
+            # For each annotation
+            for annotation in tier:
+                # get annotation
+                annotation = annotation[0]
+                # get ID
+                annot_id = annotation.attrib.get("ANNOTATION_ID", "0")
+
+                # set annotation text
+                annotation[0].text = terms_dict.get(annot_id)
 
     # Remove the old time slot IDs
     root[1].clear()
@@ -638,7 +661,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=False):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -677,7 +700,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
     # P2FA/Montreal time
     if method.lower()=="mfa":
         # Align the files
-        # align_directory_mfa(in_directory, DATA_DIR)
+        align_directory_mfa(in_directory, DATA_DIR)
 
         # generate utterance and word-level alignments
         elans = globase(in_directory, "*.eaf")
@@ -693,9 +716,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
                                         pathlib.Path(elan).name)
             # Dump the aligned result into the new eaf
             eafalign(old_eaf_path, aligned_result, new_eaf_path)
+        # convert the aligned eafs back into chat
+        elan2chat(out_directory)
 
-        # Convert to chat files
-        # mfa2chat(in_directory, out_directory, DATA_DIR)
     elif method.lower()=="p2fa":
         # conforms wavs
         wavconformation(in_directory)
