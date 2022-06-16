@@ -60,6 +60,9 @@ ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 # import p2fa
 from opt.p2fa_py3.p2fa.align import align
 
+# import textgrid
+from opt.textgrid.textgrid import TextGrid
+
 # chat2elan a whole path
 def elan2chat(directory):
     """Convert a folder of CLAN .eaf files to corresponding CHATs
@@ -285,7 +288,36 @@ def align_directory_mfa(directory, data_dir):
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
-def parse_textgrid(file_path):
+def parse_textgrid_long(file_path):
+    """Parse a TextGrid file for the word tier
+
+    Arguments:
+        file_path (string): name of the TextGrid file
+
+    Returns:
+        a list of (((word, (start_time, end_time))... x number_words),
+                   ((phoneme, (start_time, end_time))... x number_phones))
+    """
+
+    # Load files
+    text_grid = TextGrid.fromFile(file_path)
+
+    # Get tiers
+    word = text_grid[0]
+    pho = text_grid[1]
+
+    # Convert pho and word tiers
+    word_tiers = [(i.mark, (i.minTime, i.maxTime)) for i in word]
+    phone_tiers = [(i.mark, (i.minTime, i.maxTime)) for i in pho]
+
+    # Skip all blanks
+    word_tiers = list(filter(lambda x:x[0]!="", word_tiers))
+    phone_tiers = list(filter(lambda x:x[0]!="", phone_tiers))
+
+    # return the result
+    return (word_tiers, phone_tiers)
+
+def parse_textgrid_short(file_path):
     """Parse a TextGrid file for the word tier
 
     Arguments:
@@ -343,7 +375,7 @@ def parse_transcript(file_path):
 
 # Align the alignments!
 def transcript_word_alignment(transcript, alignments):
-    """Align the output of parse_transcript and parse_textgrid together
+    """Align the output of parse_transcript and parse_textgrid_short together
 
     Arguments:
         transcript (string): path of parse_transcript wordlist
@@ -354,7 +386,7 @@ def transcript_word_alignment(transcript, alignments):
     """
 
     transcript = parse_transcript(transcript)
-    wordlist_alignments = parse_textgrid(alignments)
+    wordlist_alignments = parse_textgrid_short(alignments)
 
     # Get the top word to be aligned
     current_word = wordlist_alignments.pop(0)
@@ -509,7 +541,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=False):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -517,8 +549,8 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
         out_directory (string): the directory for the output files
         data_directory (string): the subdirectory (rel. to out_directory) which the misc.
                                  outputs go
-
         method (string): your choice of 'mfa' or 'p2fa' for alignment
+        cleanup (bool): whether to clean up, used for debugging
 
     Returns:
         none
@@ -543,7 +575,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
         # Align the files
         align_directory_mfa(in_directory, DATA_DIR)
         # Convert to chat files
-        mfa2chat(in_directory, out_directory, DATA_DIR)
+        # mfa2chat(in_directory, out_directory, DATA_DIR)
     elif method.lower()=="p2fa":
         # Generate elan elan elan elan
         chat2elan(in_directory)
@@ -576,42 +608,43 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa"):
 
     ### CLEANUP OPS ###
 
-    # And, move all the files that we generated there
-    # if we generated the .wavs, move the wavs
-    mp3files = globase(in_directory, "*.mp3")
-    if len(mp3files) > 0:
-        # Rename each of the generated wavs
-        for f in mp3files:
-            os.rename(f.replace("mp3", "wav"), repath_file(f.replace("mp3", "wav"), DATA_DIR)) 
+    if cleanup:
+        # And, move all the files that we generated there
+        # if we generated the .wavs, move the wavs
+        mp3files = globase(in_directory, "*.mp3")
+        if len(mp3files) > 0:
+            # Rename each of the generated wavs
+            for f in mp3files:
+                os.rename(f.replace("mp3", "wav"), repath_file(f.replace("mp3", "wav"), DATA_DIR)) 
 
-    # move all the lab files 
-    tgfiles = globase(in_directory, "*.textGrid")
-    # Rename each one
-    for f in tgfiles:
-        os.rename(f, repath_file(f, DATA_DIR)) 
+        # move all the lab files 
+        tgfiles = globase(in_directory, "*.textGrid")
+        # Rename each one
+        for f in tgfiles:
+            os.rename(f, repath_file(f, DATA_DIR)) 
 
-    # move all the lab files 
-    labfiles = globase(in_directory, "*.lab")
-    # Rename each one
-    for f in labfiles:
-        os.rename(f, repath_file(f, DATA_DIR)) 
+        # move all the lab files 
+        labfiles = globase(in_directory, "*.lab")
+        # Rename each one
+        for f in labfiles:
+            os.rename(f, repath_file(f, DATA_DIR)) 
 
-    # Clean up the dictionary, if exists
-    dict_path = os.path.join(in_directory, "dictionary.txt")
-    # Move it to the data dir too
-    if os.path.exists(dict_path):
-        os.rename(dict_path, repath_file(dict_path, DATA_DIR))
+        # Clean up the dictionary, if exists
+        dict_path = os.path.join(in_directory, "dictionary.txt")
+        # Move it to the data dir too
+        if os.path.exists(dict_path):
+            os.rename(dict_path, repath_file(dict_path, DATA_DIR))
 
-    # Cleaning up
-    # Removing all the eaf files generated
-    for eaf_file in globase(in_directory, "*.eaf"):
-        os.remove(eaf_file)
-    for eaf_file in globase(out_directory, "*.eaf"):
-        os.remove(eaf_file)
+        # Cleaning up
+        # Removing all the eaf files generated
+        for eaf_file in globase(in_directory, "*.eaf"):
+            os.remove(eaf_file)
+        for eaf_file in globase(out_directory, "*.eaf"):
+            os.remove(eaf_file)
 
-    # Removing all the transcript files generated
-    for eaf_file in globase(in_directory, "*.txt"):
-        os.remove(eaf_file)
+        # Removing all the transcript files generated
+        for eaf_file in globase(in_directory, "*.txt"):
+            os.remove(eaf_file)
 
 # manloop to take input
 parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
@@ -623,3 +656,5 @@ parser.add_argument("--method", type=str, default="mfa", help='method to use to 
 if __name__=="__main__":
     args = parser.parse_args()
     do_align(args.in_dir, args.out_dir, args.data_dir, args.method)
+
+# ((word, (start_time, end_time))... x number_words)
