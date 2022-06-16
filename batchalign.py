@@ -410,10 +410,15 @@ def transcript_word_alignment_long(elan, alignments):
         # check if it is the current word. If it is, move
         # on and update end interval. If not, ignore the wrod
         for word in current_sentence.split(" "):
+            # clean the word
+            cleaned_word = word.lower().replace("(","").replace(")","")
+            cleaned_word = word.lower().replace("[","").replace("]","")
+            cleaned_word = re.sub(r"@.", '', cleaned_word)
+            # cleaned_word = re.sub(r"[^\w\s\-]*", '', cleaned_word)
             # If we got the current word, move on to the next
             # you will notice we replace the parenthese because those are in-text
             # disfluency adjustments
-            if word.lower().replace("(","").replace(")","") == current_word[0].lower():
+            if cleaned_word == current_word[0].lower():
                 # append current word
                 buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
                 try: 
