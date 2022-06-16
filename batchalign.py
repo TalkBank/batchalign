@@ -224,6 +224,27 @@ def mp32wav(directory):
     for f in mp3s:
         os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
 
+def wavconformation(directory):
+    """Reconform wav files
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    wavs = globase(directory, "*.wav")
+
+    # convert each file
+    for f in wavs:
+        # Conforming the wav
+        os.system(f"ffmpeg -i {f} temp.wav")
+        # move the original
+        os.remove(f)
+        # and move the new back
+        os.rename("temp.wav", f)
 
 # Align a whole directory
 def align_directory_p2fa(directory):
@@ -570,6 +591,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
     # convert all chats to transcripts
     chat2transcript(in_directory)
 
+    # Generate elan elan elan elan
+    chat2elan(in_directory)
+
     # P2FA/Montreal time
     if method.lower()=="mfa":
         # Align the files
@@ -577,12 +601,10 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         # Convert to chat files
         # mfa2chat(in_directory, out_directory, DATA_DIR)
     elif method.lower()=="p2fa":
-        # Generate elan elan elan elan
-        chat2elan(in_directory)
-
+        # conforms wavs
+        wavconformation(in_directory)
         # Align files
         align_directory_p2fa(in_directory)
-
         # generate utterance-level alignments
         transcripts = globase(in_directory, "*.lab")
         alignments = globase(in_directory, "*.textGrid")
@@ -627,6 +649,12 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         labfiles = globase(in_directory, "*.lab")
         # Rename each one
         for f in labfiles:
+            os.rename(f, repath_file(f, DATA_DIR)) 
+
+        # move all the wav files 
+        wavfiles = globase(in_directory, "*.orig.wav")
+        # Rename each one
+        for f in wavfiles:
             os.rename(f, repath_file(f, DATA_DIR)) 
 
         # Clean up the dictionary, if exists
