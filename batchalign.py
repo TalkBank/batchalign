@@ -49,6 +49,7 @@ import argparse
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
+bullet = lambda start,end: f" {start*1000}_{end*1000} " # start and end should be float seconds
 
 # Get the default path of UnitCLAN installation
 # from the path of the current file
@@ -144,28 +145,7 @@ def elan2transcript(file_path):
         for annotation in tier:
             # Get the text of the transcript
             transcript = annotation[0][0].text
-            # we will now perform some replacements
-            # note that the text here is only to help
-            # the aligner, because the text is not 
-            # used when we are coping time back
-            # Remove any disfluency marks
-            transcript = re.sub(r"<(.*?)> *?\[.*?\]", r"\1", transcript)
-            # Remove any other additions
-            transcript = re.sub(r"\[.*?\]",r"", transcript)
-            # Remove any additional annotation marks
-            transcript = re.sub(r"⌊.*?⌋",r"", transcript)
-            transcript = re.sub(r"⌈.*?⌉",r"", transcript)
-            transcript = re.sub(r"&=[\w:]*",r"", transcript)
-            transcript = re.sub(r"xxx",r"", transcript)
-            transcript = re.sub(r"yyy",r"", transcript)
-            transcript = re.sub(r"\(.*?\)",r"", transcript)
-            # Remove any interruptive marks
-            transcript = transcript.replace("+/.","")
-            # Remove any quote marks
-            transcript = transcript.replace("+\"/","")
-            # Remove any pauses
-            transcript = transcript.replace("(.)","")
-            # And timeslot ID
+            # and append and sort by the time slot references
             try: 
                 timeslot_id = int(annotation[0].attrib.get("TIME_SLOT_REF1", "0")[2:])
             except ValueError:
@@ -395,18 +375,18 @@ def parse_transcript(file_path):
     return lines_split[:-1]
 
 # Align the alignments!
-def transcript_word_alignment_long(transcript, alignments):
+def transcript_word_alignment_long(elan, alignments):
     """Align the output of parse_transcript and parse_textgrid_short together
 
     Arguments:
-        transcript (string): path of parse_transcript wordlist
+        elan (string): path of elan files
         alignments (string): path of parse_alignments
 
     Returns:
         ((start, end)...*num_lines
     """
 
-    transcript = parse_transcript(transcript)
+    transcript = elan2transcript(elan)["transcript"]
     wordlist_alignments, phoneme_alignments = parse_textgrid_long(alignments)
 
     # Get the top word to be aligned
@@ -429,11 +409,13 @@ def transcript_word_alignment_long(transcript, alignments):
         # for the current word in the current sentence
         # check if it is the current word. If it is, move
         # on and update end interval. If not, ignore the wrod
-        for word in current_sentence:
+        for word in current_sentence.split(" "):
             # If we got the current word, move on to the next
-            if word.lower() == current_word[0].lower():
+            # you will notice we replace the parenthese because those are in-text
+            # disfluency adjustments
+            if word.lower().replace("(","").replace(")","") == current_word[0].lower():
                 # append current word
-                buff.append(current_word)
+                buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
                 try: 
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -444,7 +426,7 @@ def transcript_word_alignment_long(transcript, alignments):
             # MFA for no good reason
             elif (word.lower() == "i'm" and current_word[0].lower() == "i" and wordlist_alignments[0][0] =="'m"):
                 # append current word up until the end of the 'm
-                buff.append(("I'm", current_word[1][0], wordlist_alignments[0][1][1]))
+                buff.append(("I'm", (current_word[1][0], wordlist_alignments[0][1][1])))
                 # Ignore the am
                 wordlist_alignments.pop(0)
                 # and append as usual
@@ -452,6 +434,9 @@ def transcript_word_alignment_long(transcript, alignments):
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
+            else:
+                # just append a non-bulleted word 
+                buff.append((word, None))
 
         # The end should be the beginning of the "next" word
         end = current_word[1][0]
@@ -460,8 +445,23 @@ def transcript_word_alignment_long(transcript, alignments):
         alignments.append((start,end))
         results.append(buff.copy())
 
+    bulleted_results = []
+    # Convert bulleted results
+    for sentence in results:
+        # bullet the sentence
+        sentence_bulleted = []
+        # for each term
+        for i in sentence:
+            # if alignable, append a bullet
+            if i[1]:
+                sentence_bulleted.append(i[0]+bullet(i[1][0], i[1][1]))
+            else:
+                sentence_bulleted.append(i[0])
+        # concat and append to bulleted results
+        bulleted_results.append(" ".join(sentence_bulleted).strip())
+
     # Return the fimal alignments
-    return alignments, results
+    return {"alignments": alignments, "terms": bulleted_results}
 
 def transcript_word_alignment_short(transcript, alignments):
     """Align the output of parse_transcript and parse_textgrid_short together
@@ -514,7 +514,8 @@ def eafalign(file_path, alignments, output_path):
 
     Attributes:
         file_path (string): file path of the .eaf file
-        alignments (list): output of transcript word alignment
+        alignments (list or dict): output of transcript word alignment
+                                   long or short form will generate diff. results
         output_path (string): output path of the aligned .eaf file
 
     Returns:
@@ -550,10 +551,17 @@ def eafalign(file_path, alignments, output_path):
                 print(file_path)
 
             # and append the metadata + transcript to the annotations
-            annotations.append(((timeslot_id_1,timeslot_id_2), tier_id))
+            annotations.append(((timeslot_id_1,timeslot_id_2), tier_id, annotation[0].attrib.get("ANNOTATION_ID", "0")))
 
     # we will sort annotations by timeslot ref
-    annotations.sort(key=lambda x:x[0])
+    annotations.sort(key=lambda x:x[-1])
+
+    # if we are doing long-form alignment
+    if type(alignments) == dict:
+        # create a lookup dict 
+        terms_flattened = list(zip([i[-1] for i in annotations], alignments["terms"]))
+        print(terms_flattened)
+        raise Exception()
 
     # Remove the old time slot IDs
     root[1].clear()
@@ -672,13 +680,19 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         # align_directory_mfa(in_directory, DATA_DIR)
 
         # generate utterance and word-level alignments
-        transcripts = globase(in_directory, "*.lab")
+        elans = globase(in_directory, "*.eaf")
         alignments = globase(DATA_DIR, "*.TextGrid")
         # zip the results and dump into neaw eafs
-        for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
+        for elan, alignment in zip(sorted(elans), sorted(alignments)):
             # Align the alignment results
-            aligned_result = transcript_word_alignment_long(transcript, alignment)
-            # TODO tomorrow
+            aligned_result = transcript_word_alignment_long(elan, alignment)
+            # Calculate the path to the old and new eaf
+            old_eaf_path = os.path.join(in_directory,
+                                        pathlib.Path(elan).name)
+            new_eaf_path = os.path.join(out_directory,
+                                        pathlib.Path(elan).name)
+            # Dump the aligned result into the new eaf
+            eafalign(old_eaf_path, aligned_result, new_eaf_path)
 
         # Convert to chat files
         # mfa2chat(in_directory, out_directory, DATA_DIR)
