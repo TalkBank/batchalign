@@ -375,19 +375,28 @@ def parse_transcript(file_path):
     return lines_split[:-1]
 
 # Align the alignments!
-def transcript_word_alignment_long(elan, alignments):
-    """Align the output of parse_transcript and parse_textgrid_short together
+def transcript_word_alignment(elan, alignments, alignment_form="long"):
+    """Align the output of parse_transcript and parse_textgrid_* together
 
     Arguments:
         elan (string): path of elan files
         alignments (string): path of parse_alignments
+        alignment_form (string): long or short (MFA or P2FA textGrid)
 
     Returns:
-        {"alignments": ((start, end)...*num_lines, "terms": [bulleted results: string]}
+        {"alignments": ((start, end)...*num_lines), "terms": [bulleted results: string...*num_utterances]}
     """
 
     transcript = elan2transcript(elan)["transcript"]
-    wordlist_alignments, phoneme_alignments = parse_textgrid_long(alignments)
+
+    # Get alignment form
+    if alignment_form == "long":
+        wordlist_alignments, _ = parse_textgrid_long(alignments)
+    elif alignment_form == "short":
+        wordlist_alignments = parse_textgrid_short(alignments)
+    else:
+        raise Exception(f"unknown alignment_form {alignment_form}")
+    
 
     # Get the top word to be aligned
     current_word = wordlist_alignments.pop(0)
@@ -412,7 +421,7 @@ def transcript_word_alignment_long(elan, alignments):
         for word in current_sentence.split(" "):
             # clean the word
             cleaned_word = word.lower().replace("(","").replace(")","")
-            cleaned_word = word.lower().replace("[","").replace("]","")
+            cleaned_word = cleaned_word.replace("[","").replace("]","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             # cleaned_word = re.sub(r"[^\w\s\-]*", '', cleaned_word)
             # If we got the current word, move on to the next
@@ -467,52 +476,6 @@ def transcript_word_alignment_long(elan, alignments):
 
     # Return the fimal alignments
     return {"alignments": alignments, "terms": bulleted_results}
-
-def transcript_word_alignment_short(transcript, alignments):
-    """Align the output of parse_transcript and parse_textgrid_short together
-
-    Arguments:
-        transcript (string): path of parse_transcript wordlist
-        alignments (string): path of parse_alignments
-
-    Returns:
-        ((start, end)...*num_lines
-    """
-
-    transcript = parse_transcript(transcript)
-    wordlist_alignments = parse_textgrid_short(alignments)
-
-    # Get the top word to be aligned
-    current_word = wordlist_alignments.pop(0)
-
-    # Create a list of start and end results
-    alignments = []
-
-    # For each sentence
-    for current_sentence in transcript:
-        # Set start and end for the current interval
-        start = current_word[1][0]
-        end = current_word[1][1] # create template ending in case the end doesn't exist
-
-        # for the current word in the current sentence
-        # check if it is the current word. If it is, move
-        # on and update end interval. If not, ignore the wrod
-        for word in current_sentence:
-            # If we got the current word, move on to the next
-            if word.lower() == current_word[0].lower():
-                try: 
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    break # we have reached the end
-
-        # The end should be the beginning of the "next" word
-        end = current_word[1][0]
-
-        # Append the start and end intervals we aligned
-        alignments.append((start,end))
-
-    # Return the fimal alignments
-    return alignments
 
 def eafalign(file_path, alignments, output_path):
     """get an unaligned eaf file to be aligned
@@ -698,70 +661,52 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
     # Generate elan elan elan elan
     chat2elan(in_directory)
 
+    # generate utterance and word-level alignments
+    elans = globase(in_directory, "*.eaf")
+
     # NOTE FOR FUTURE EDITORS
     # TextGrid != textGrid. P2FA and MFA generate different results
     # in terms of capitalization.
 
-    # P2FA/Montreal time
     if method.lower()=="mfa":
         # Align the files
         align_directory_mfa(in_directory, DATA_DIR)
 
-        # generate utterance and word-level alignments
-        elans = globase(in_directory, "*.eaf")
+        # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
-        # zip the results and dump into neaw eafs
-        for elan, alignment in zip(sorted(elans), sorted(alignments)):
-            # Align the alignment results
-            aligned_result = transcript_word_alignment_long(elan, alignment)
-            # Calculate the path to the old and new eaf
-            old_eaf_path = os.path.join(in_directory,
-                                        pathlib.Path(elan).name)
-            new_eaf_path = os.path.join(out_directory,
-                                        pathlib.Path(elan).name)
-            # Dump the aligned result into the new eaf
-            eafalign(old_eaf_path, aligned_result, new_eaf_path)
-        # convert the aligned eafs back into chat
-        elan2chat(out_directory)
-
     elif method.lower()=="p2fa":
         # conforms wavs
         wavconformation(in_directory)
         # Align files
         align_directory_p2fa(in_directory)
 
-        # generate utterance-level alignments
-        transcripts = globase(in_directory, "*.lab")
+        # find textgrid files
         alignments = globase(in_directory, "*.textGrid")
-        # zip the results and dump into neaw eafs
-        for transcript, alignment in zip(sorted(transcripts), sorted(alignments)):
-            # Align the alignment results
-            aligned_result = transcript_word_alignment_short(transcript, alignment)
-            # Calculate the path to the old and new eaf
-            old_eaf_path = os.path.join(in_directory,
-                                        pathlib.Path(transcript).name.replace("lab", "eaf"))
-            new_eaf_path = os.path.join(out_directory,
-                                        pathlib.Path(transcript).name.replace("lab", "eaf"))
-            # Dump the aligned result into the new eaf
-            eafalign(old_eaf_path, aligned_result, new_eaf_path)
-        
-        # convert the aligned eafs back into chat
-        elan2chat(out_directory)
-
     else:
         raise Exception(f'Unknown forced alignment method {method}.')
+
+    # zip the results and dump into neaw eafs
+    for elan, alignment in zip(sorted(elans), sorted(alignments)):
+        # Align the alignment results
+        if method.lower()=="mfa":
+            # MFA TextGrids are long form
+            aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long")
+        elif method.lower()=="p2fa":
+            # P2FA TextGrids are short form
+            aligned_result = transcript_word_alignment(elan, alignment, alignment_form="short")
+        # Calculate the path to the old and new eaf
+        old_eaf_path = os.path.join(in_directory,
+                                    pathlib.Path(elan).name)
+        new_eaf_path = os.path.join(out_directory,
+                                    pathlib.Path(elan).name)
+        # Dump the aligned result into the new eaf
+        eafalign(old_eaf_path, aligned_result, new_eaf_path)
+    # convert the aligned eafs back into chat
+    elan2chat(out_directory)
 
     ### CLEANUP OPS ###
 
     if cleanup:
-        # And, move all the files that we generated there
-        # if we generated the .wavs, move the wavs
-        mp3files = globase(in_directory, "*.mp3")
-        if len(mp3files) > 0:
-            # Rename each of the generated wavs
-            for f in mp3files:
-                os.rename(f.replace("mp3", "wav"), repath_file(f.replace("mp3", "wav"), DATA_DIR)) 
-
         # move all the lab files 
         tgfiles = globase(in_directory, "*.textGrid")
         # Rename each one
@@ -778,6 +723,18 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         wavfiles = globase(in_directory, "*.orig.wav")
         # Rename each one
         for f in wavfiles:
+            os.rename(f, repath_file(f, DATA_DIR)) 
+
+        # move all the rest of wav files 
+        mp3files = globase(in_directory, "*.mp3")
+        # Rename each one
+        for f in mp3files:
+            os.rename(f, repath_file(f, DATA_DIR)) 
+
+        # clean up the elans
+        elanfiles = globase(out_directory, "*.eaf")
+        # Rename each one
+        for f in elanfiles:
             os.rename(f, repath_file(f, DATA_DIR)) 
 
         # Clean up the dictionary, if exists
