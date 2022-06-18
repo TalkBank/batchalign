@@ -78,7 +78,7 @@ def elan2chat(directory):
     # get all files in that directory
     files = globase(directory, "*.eaf")
     # praat2chatit!
-    CMD = f"{os.path.join(CLAN_PATH, 'elan2chat')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
     # delete any error logs
