@@ -673,7 +673,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=False):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -720,9 +720,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         alignments = globase(DATA_DIR, "*.TextGrid")
     elif method.lower()=="p2fa":
         # conforms wavs
-        # wavconformation(in_directory)
+        wavconformation(in_directory)
         # Align files
-        # align_directory_p2fa(in_directory)
+        align_directory_p2fa(in_directory)
 
         # find textgrid files
         alignments = globase(in_directory, "*.textGrid")
