@@ -418,6 +418,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # for the current word in the current sentence
         # check if it is the current word. If it is, move
         # on and update end interval. If not, ignore the wrod
+        #
+        # HACKY we also remove the space in front of brackets so that
+        # the annotations there can be aligned
         for word in current_sentence.split(" "):
             # clean the word
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -462,13 +465,29 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     bulleted_results = []
     # Convert bulleted results
     for sentence in results:
+        # skip (use for bracket change)
+        skip = False
         # bullet the sentence
         sentence_bulleted = []
         # for each term
-        for i in sentence:
-            # if alignable, append a bullet
-            if i[1]:
-                sentence_bulleted.append(i[0].strip()+bullet(i[1][0], i[1][1]))
+        for indx,i in enumerate(sentence):
+            # if asked to skip, skip
+            if skip:
+                skip = False
+                continue
+            # if alignable and next is a bracket, append a bracket
+            # and then the bullet
+            if i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0] == "[":
+                sentence_bulleted.append(i[0].strip() +
+                                         " " +
+                                         sentence[indx+1][0].strip() +
+                                         bullet(i[1][0], i[1][1]))
+                # also skip the next iteration as its already appended
+                skip = True
+            # else, just append the element and bullet
+            elif i[1]:
+                # appending the current word and chorresponding bullet
+                sentence_bulleted.append(i[0].strip() + bullet(i[1][0], i[1][1]))
             else:
                 sentence_bulleted.append(i[0])
         # concat and append to bulleted results
@@ -519,7 +538,9 @@ def eafalign(file_path, alignments, output_path):
                 print(file_path)
 
             # and append the metadata + transcript to the annotations
-            annotations.append(((timeslot_id_1,timeslot_id_2), tier_id, annotation[0].attrib.get("ANNOTATION_ID", "0")))
+            annotations.append(((timeslot_id_1,timeslot_id_2),
+                                tier_id,
+                                annotation[0].attrib.get("ANNOTATION_ID", "0")))
 
     # we will sort annotations by timeslot ref
     annotations.sort(key=lambda x:int(x[-1][1:]))
@@ -533,11 +554,22 @@ def eafalign(file_path, alignments, output_path):
         # set alignment back to what the rest of the function would expect
         alignments = alignments["alignments"]
 
+        # Create the xword annotation ID index
+        id_indx = 0
+
         # replace content with the bulleted version
         # For each tier 
         for tier in tiers:
             # get the name of the tier
             tier_id = tier.attrib.get("TIER_ID","")
+
+            # create new xword tier
+            xwor_tier = ET.SubElement(root, "TIER")
+            xwor_tier.set("TIER_ID", f"xwor@{tier_id}")
+            xwor_tier.set("PARTICIPANT", tier_id)
+            xwor_tier.set("LINGUISTIC_TYPE_REF", "dependency")
+            xwor_tier.set("DEFAULT_LOCALE", "us")
+            xwor_tier.set("PARENT_REF", tier_id)
 
             # we ignore anything that's a "@S*" tier
             # because those are metadata
@@ -551,8 +583,20 @@ def eafalign(file_path, alignments, output_path):
                 # get ID
                 annot_id = annotation.attrib.get("ANNOTATION_ID", "0")
 
-                # set annotation text
-                annotation[0].text = terms_dict.get(annot_id)
+                # append annotation line
+                # create two element
+                xwor_annot = ET.SubElement(xwor_tier, 'ANNOTATION')
+                xwor_annot_cont = ET.SubElement(xwor_annot, 'REF_ANNOTATION')
+
+                # adding annotation metadata
+                xwor_annot_cont.set("ANNOTATION_ID", f"xw{id_indx}")
+                xwor_annot_cont.set("ANNOTATION_REF", annot_id)
+
+                # and add content
+                xwor_word_cont = ET.SubElement(xwor_annot_cont, "ANNOTATION_VALUE")
+
+                # with the bulleted content
+                xwor_word_cont.text = terms_dict.get(annot_id)
 
     # Remove the old time slot IDs
     root[1].clear()
@@ -629,7 +673,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=True):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=False):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -676,9 +720,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         alignments = globase(DATA_DIR, "*.TextGrid")
     elif method.lower()=="p2fa":
         # conforms wavs
-        wavconformation(in_directory)
+        # wavconformation(in_directory)
         # Align files
-        align_directory_p2fa(in_directory)
+        # align_directory_p2fa(in_directory)
 
         # find textgrid files
         alignments = globase(in_directory, "*.textGrid")
