@@ -252,12 +252,13 @@ def align_directory_p2fa(directory):
         # Generate align!
         align(wav, text, output_filename, verbose=1)
 
-def align_directory_mfa(directory, data_dir):
+def align_directory_mfa(directory, data_dir, beam=100):
     """Given a directory of .wav and .lab, align them
 
     Arguments:
         directory (string): string directory filled with .wav and .lab files with same name
         data_dir (string): output directory for textgrids
+        beam (int): beam width for initial MFA alignment
 
     Returns:
         none
@@ -285,7 +286,7 @@ def align_directory_mfa(directory, data_dir):
         os.system(CMD)
 
     # and finally, align!
-    CMD = f"mfa align --clean {directory} {dictionary} english_us_arpa {data_dir}"
+    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam}"
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
@@ -673,7 +674,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", cleanup=True):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, cleanup=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -682,6 +683,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
         data_directory (string): the subdirectory (rel. to out_directory) which the misc.
                                  outputs go
         method (string): your choice of 'mfa' or 'p2fa' for alignment
+        beam (int): beam width for initial MFA alignment
         cleanup (bool): whether to clean up, used for debugging
 
     Returns:
@@ -714,7 +716,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", c
 
     if method.lower()=="mfa":
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR)
+        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
@@ -804,9 +806,10 @@ parser.add_argument("in_dir", type=str, help='input directory containing .cha an
 parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
 parser.add_argument("--method", type=str, default="mfa", help='method to use to perform alignment')
+parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
 
 if __name__=="__main__":
     args = parser.parse_args()
-    do_align(args.in_dir, args.out_dir, args.data_dir, args.method)
+    do_align(args.in_dir, args.out_dir, args.data_dir, args.method, args.beam)
 
 # ((word, (start_time, end_time))... x number_words)
