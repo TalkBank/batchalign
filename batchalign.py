@@ -407,6 +407,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     # Create a list of results
     results = []
 
+    # emergency pop
+    emergency = 0
+
     # For each sentence
     for current_sentence in transcript:
         # Set start and end for the current interval
@@ -422,16 +425,23 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         #
         # HACKY we also remove the space in front of brackets so that
         # the annotations there can be aligned
+        # HACKY dashes are spaces, apparently
         for word in current_sentence.split(" "):
-            # clean the word
+            # skip blank spaces
+            if word == '':
+                continue
+
+            # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
             cleaned_word = cleaned_word.replace("[","").replace("]","")
+            cleaned_word = cleaned_word.replace("<","").replace(">","")
+            cleaned_word = cleaned_word.replace("“","").replace("”","")
+            cleaned_word = cleaned_word.replace("\"","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
-            # cleaned_word = re.sub(r"[^\w\s\-]*", '', cleaned_word)
             # If we got the current word, move on to the next
             # you will notice we replace the parenthese because those are in-text
             # disfluency adjustments
-            if cleaned_word == current_word[0].lower():
+            if cleaned_word.lower() == current_word[0].lower():
                 # append current word
                 buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
                 try: 
@@ -440,11 +450,29 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     break # we have reached the end
 
             # TODO HACKY!!
-            # I am carveout. I'm is parsed differently in
+            # dashes carveout. Dashes is parsed inconsistently
+            # where sometimes dashed tokens are parsed as
+            # one token and sometimes two. Therefore, if we made
+            # a mistake, we split the dashes and try again
+            elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower():
+                # split the word
+                word_split = cleaned_word.split("-")
+                # enumerate over the split word
+                for i in word_split:
+                    # go through the results and append
+                    while i.lower() == current_word[0].lower():
+                        # append current word
+                        buff.append((i.lower(), (current_word[1][0], current_word[1][1])))
+                        try: 
+                            current_word = wordlist_alignments.pop(0)
+                        except IndexError:
+                            break # we have reached the end
+            # TODO HACKY!!
+            # apostrophie carveout. Apostrophies are parsed differently sometimes
             # MFA for no good reason
-            elif (word.lower() == "i'm" and current_word[0].lower() == "i" and wordlist_alignments[0][0] =="'m"):
+            elif "'" in word.lower() and current_word[0].lower() == word.split("'")[0].lower() and wordlist_alignments[0][0] == "'"+word.split("'")[1]:
                 # append current word up until the end of the 'm
-                buff.append(("I'm", (current_word[1][0], wordlist_alignments[0][1][1])))
+                buff.append((word.lower(), (current_word[1][0], wordlist_alignments[0][1][1])))
                 # Ignore the am
                 wordlist_alignments.pop(0)
                 # and append as usual
@@ -452,9 +480,20 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
+            # TODO HACKY!
+            # yet another apostrophie carveout. If the above didn't work, we remove
+            # apostrophie and try again
+            elif cleaned_word.replace("'", "").lower() == current_word[0].lower():
+               # append current word
+                buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
+                try: 
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
             else:
-                # just append a non-bulleted word 
+                # append the current word 
                 buff.append((word, None))
+
 
         # The end should be the beginning of the "next" word
         end = current_word[1][0]
@@ -674,7 +713,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, cleanup=True):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, cleanup=False):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -716,7 +755,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
