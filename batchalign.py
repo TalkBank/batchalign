@@ -419,6 +419,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # create a running buffer
         buff = []
 
+        # remove extra delimiters
+        current_sentence = current_sentence.replace("+"," ")
+        current_sentence = current_sentence.replace("↫"," ")
+        current_sentence = current_sentence.replace("_"," ")
+        current_sentence = current_sentence.replace("xxx","")
+        current_sentence = current_sentence.replace("yyy","")
+
         # for the current word in the current sentence
         # check if it is the current word. If it is, move
         # on and update end interval. If not, ignore the wrod
@@ -426,6 +433,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # HACKY we also remove the space in front of brackets so that
         # the annotations there can be aligned
         # HACKY dashes are spaces, apparently
+        # HACKY plus signs are spaces, appranetly
         for word in current_sentence.split(" "):
             # skip blank spaces
             if word == '':
@@ -437,7 +445,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("<","").replace(">","")
             cleaned_word = cleaned_word.replace("“","").replace("”","")
             cleaned_word = cleaned_word.replace("\"","")
+            cleaned_word = cleaned_word.replace(":","")
+            cleaned_word = cleaned_word.replace("^","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
+
             # If we got the current word, move on to the next
             # you will notice we replace the parenthese because those are in-text
             # disfluency adjustments
@@ -468,6 +479,19 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                         except IndexError:
                             break # we have reached the end
             # TODO HACKY!!
+            # underscore carveout. Underscore is parsed inconsistently
+            # where sometimes underscores exists in the lab transcript
+            # one token and sometimes two. Therefore, if we made
+            # a mistake, we split the dashes and try again
+            elif '_' in current_word[0].lower() and current_word[0].split("_")[0].lower() == cleaned_word.lower():
+                # split the word
+                word_split = current_word[0].split("_")
+                buff.append((current_word[0].lower(), (current_word[1][0], current_word[1][1])))
+                try: 
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
+
             # apostrophie carveout. Apostrophies are parsed differently sometimes
             # MFA for no good reason
             elif "'" in word.lower() and current_word[0].lower() == word.split("'")[0].lower() and wordlist_alignments[0][0] == "'"+word.split("'")[1]:
@@ -501,6 +525,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # Append the start and end intervals we aligned
         alignments.append((start,end))
         results.append(buff.copy())
+
+    # print(results)
 
     bulleted_results = []
     # Convert bulleted results
@@ -713,7 +739,70 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, cleanup=True):
+def cleanup(in_directory, out_directory, data_directory="data"):
+    """Clean up alignment results so that workspace is clear
+
+    Attributes:
+        in_directory (string): the input directory containing files
+        out_directory (string): the output directory containing possible output files
+        data_directory (string): a subdirectory which the misc. outputs go
+
+    Returns:
+        none
+    """
+
+    # Define the data_dir
+    DATA_DIR = os.path.join(out_directory, data_directory)
+
+    # move all the lab files 
+    tgfiles = globase(in_directory, "*.textGrid")
+    # Rename each one
+    for f in tgfiles:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # move all the lab files 
+    labfiles = globase(in_directory, "*.lab")
+    # Rename each one
+    for f in labfiles:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # move all the wav files 
+    wavfiles = globase(in_directory, "*.orig.wav")
+    # Rename each one
+    for f in wavfiles:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # move all the rest of wav files 
+    mp3files = globase(in_directory, "*.mp3")
+    # Rename each one
+    for f in mp3files:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # clean up the elans
+    elanfiles = globase(out_directory, "*.eaf")
+    # Rename each one
+    for f in elanfiles:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # Clean up the dictionary, if exists
+    dict_path = os.path.join(in_directory, "dictionary.txt")
+    # Move it to the data dir too
+    if os.path.exists(dict_path):
+        os.rename(dict_path, repath_file(dict_path, DATA_DIR))
+
+    # Cleaning up
+    # Removing all the eaf files generated
+    for eaf_file in globase(in_directory, "*.eaf"):
+        os.remove(eaf_file)
+    for eaf_file in globase(out_directory, "*.eaf"):
+        os.remove(eaf_file)
+
+    # Removing all the transcript files generated
+    for eaf_file in globase(in_directory, "*.txt"):
+        os.remove(eaf_file)
+
+
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -723,7 +812,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
                                  outputs go
         method (string): your choice of 'mfa' or 'p2fa' for alignment
         beam (int): beam width for initial MFA alignment
-        cleanup (bool): whether to clean up, used for debugging
+        clean (bool): whether to clean up, used for debugging
 
     Returns:
         none
@@ -791,53 +880,8 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     ### CLEANUP OPS ###
 
-    if cleanup:
-        # move all the lab files 
-        tgfiles = globase(in_directory, "*.textGrid")
-        # Rename each one
-        for f in tgfiles:
-            os.rename(f, repath_file(f, DATA_DIR)) 
-
-        # move all the lab files 
-        labfiles = globase(in_directory, "*.lab")
-        # Rename each one
-        for f in labfiles:
-            os.rename(f, repath_file(f, DATA_DIR)) 
-
-        # move all the wav files 
-        wavfiles = globase(in_directory, "*.orig.wav")
-        # Rename each one
-        for f in wavfiles:
-            os.rename(f, repath_file(f, DATA_DIR)) 
-
-        # move all the rest of wav files 
-        mp3files = globase(in_directory, "*.mp3")
-        # Rename each one
-        for f in mp3files:
-            os.rename(f, repath_file(f, DATA_DIR)) 
-
-        # clean up the elans
-        elanfiles = globase(out_directory, "*.eaf")
-        # Rename each one
-        for f in elanfiles:
-            os.rename(f, repath_file(f, DATA_DIR)) 
-
-        # Clean up the dictionary, if exists
-        dict_path = os.path.join(in_directory, "dictionary.txt")
-        # Move it to the data dir too
-        if os.path.exists(dict_path):
-            os.rename(dict_path, repath_file(dict_path, DATA_DIR))
-
-        # Cleaning up
-        # Removing all the eaf files generated
-        for eaf_file in globase(in_directory, "*.eaf"):
-            os.remove(eaf_file)
-        for eaf_file in globase(out_directory, "*.eaf"):
-            os.remove(eaf_file)
-
-        # Removing all the transcript files generated
-        for eaf_file in globase(in_directory, "*.txt"):
-            os.remove(eaf_file)
+    if clean:
+        cleanup(in_directory, out_directory, data_directory)
 
 # manloop to take input
 parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
@@ -846,9 +890,14 @@ parser.add_argument("out_dir", type=str, help='output directory to store aligned
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
 parser.add_argument("--method", type=str, default="mfa", help='method to use to perform alignment')
 parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
+parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":
     args = parser.parse_args()
-    do_align(args.in_dir, args.out_dir, args.data_dir, args.method, args.beam)
+
+    if args.clean:
+        cleanup(args.in_dir, args.out_dir, args.data_dir)
+    else: 
+        do_align(args.in_dir, args.out_dir, args.data_dir, args.method, args.beam)
 
 # ((word, (start_time, end_time))... x number_words)
