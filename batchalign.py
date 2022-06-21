@@ -713,7 +713,7 @@ def mfa2chat(in_dir, out_dir, data_dir):
     for cha_file in cha_files:
         os.rename(repath_file(cha_file, data_dir), cha_file)
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, cleanup=False):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, cleanup=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -755,7 +755,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
