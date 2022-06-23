@@ -456,6 +456,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 # append current word
                 buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
                 try: 
+                    # The end should be the beginning of the "next" word
+                    end = current_word[1][1]
+                    # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
@@ -475,6 +478,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                         # append current word
                         buff.append((i.lower(), (current_word[1][0], current_word[1][1])))
                         try: 
+                            # The end should be the beginning of the "next" word
+                            end = current_word[1][1]
+                            # pop the current word
                             current_word = wordlist_alignments.pop(0)
                         except IndexError:
                             break # we have reached the end
@@ -488,6 +494,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 word_split = current_word[0].split("_")
                 buff.append((current_word[0].lower(), (current_word[1][0], current_word[1][1])))
                 try: 
+                    # The end should be the beginning of the "next" word
+                    end = current_word[1][1]
+                    # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
@@ -501,6 +510,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 wordlist_alignments.pop(0)
                 # and append as usual
                 try: 
+                    # The end should be the beginning of the "next" word
+                    end = current_word[1][1]
+                    # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
@@ -511,6 +523,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                # append current word
                 buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
                 try: 
+                    # The end should be the beginning of the "next" word
+                    end = current_word[1][1]
+                    # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
@@ -519,8 +534,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
 
 
-        # The end should be the beginning of the "next" word
-        end = current_word[1][0]
 
         # Append the start and end intervals we aligned
         alignments.append((start,end))
