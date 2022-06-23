@@ -77,10 +77,12 @@ def elan2chat(directory):
    
     # get all files in that directory
     files = globase(directory, "*.eaf")
-    # praat2chatit!
-    CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {' '.join(files)} >/dev/null 2>&1"
-    # run!
-    os.system(CMD)
+    # process each file
+    for fl in files:
+        # elan2chatit!
+        CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} >/dev/null 2>&1"
+        # run!
+        os.system(CMD)
     # delete any error logs
     for f in globase(directory, "*.err.cex"):
         os.remove(f)
@@ -873,7 +875,9 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
         raise Exception(f'Unknown forced alignment method {method}.')
 
     # zip the results and dump into neaw eafs
-    for elan, alignment in zip(sorted(elans), sorted(alignments)):
+    for alignment in sorted(alignments):
+        # Find the relative elan file
+        elan = repath_file(alignment, "in").replace("TextGrid", "eaf").replace("textGrid", "eaf")
         # Align the alignment results
         if method.lower()=="mfa":
             # MFA TextGrids are long form
