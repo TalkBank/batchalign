@@ -707,53 +707,6 @@ def eafalign(file_path, alignments, output_path):
     # And write tit to file
     tree.write(output_path)
 
-def mfa2chat(in_dir, out_dir, data_dir):
-    """Align mfa to chat files
-
-    Attributes:
-        in_dir (string): in directory 
-        out_dir (string): out directory
-        data_dir (string): in directory of data
-
-    """
-
-    # Move all the audio files to the data_dir
-    wav_files = globase(in_dir, "*.wav")
-    for wav_file in wav_files:
-        os.rename(wav_file, repath_file(wav_file, data_dir))
-    
-    # Move all the cha file to the data dir
-    cha_files = globase(in_dir, "*.cha")
-    for cha_file in cha_files:
-        os.rename(cha_file, repath_file(cha_file, data_dir))
-
-    # Move all the lab file to the data dir
-    lab_files = globase(in_dir, "*.lab")
-    for lab_file in lab_files:
-        os.rename(lab_file, repath_file(lab_file, data_dir))
-
-    # mfa2chat the results
-    tg_files = globase(data_dir, "*.TextGrid")
-    # For each file
-    for tg_file in tg_files:
-        # mfa2chat command and run!
-        CMD=f"mfa2chat +opcl +d{ATTRIBS_PATH} {tg_file}"
-        os.system(CMD)
-
-    # Move all the .mfa.cha to out directory as .cha
-    mfa_files = globase(data_dir, "*.mfa.cha")
-    for mfa_file in mfa_files:
-        os.rename(mfa_file, repath_file(mfa_file.replace(".mfa.cha", ".cha"), out_dir))
-
-    # Move all the cha and wav file back
-    # Move all the audio files to the in_dir
-    for wav_file in wav_files:
-        os.rename(repath_file(wav_file, data_dir), wav_file)
-    
-    # Move all the cha file to the data dir
-    for cha_file in cha_files:
-        os.rename(repath_file(cha_file, data_dir), cha_file)
-
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
 
