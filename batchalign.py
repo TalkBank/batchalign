@@ -314,9 +314,9 @@ def parse_textgrid_long(file_path):
     word_tiers = [(i.mark, (i.minTime, i.maxTime)) for i in word]
     phone_tiers = [(i.mark, (i.minTime, i.maxTime)) for i in pho]
 
-    # Skip all blanks
-    word_tiers = list(filter(lambda x:x[0]!="", word_tiers))
-    phone_tiers = list(filter(lambda x:x[0]!="", phone_tiers))
+    # Skip all blanks (to reinsert spaces)
+    # word_tiers = list(filter(lambda x:x[0]!="", word_tiers))
+    # phone_tiers = list(filter(lambda x:x[0]!="", phone_tiers))
 
     # return the result
     return (word_tiers, phone_tiers)
@@ -428,6 +428,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         current_sentence = current_sentence.replace("xxx","")
         current_sentence = current_sentence.replace("yyy","")
 
+        # split results
+        splits = current_sentence.split(" ")
+        split_length = len(splits)
+
+        i = 0
+
         # for the current word in the current sentence
         # check if it is the current word. If it is, move
         # on and update end interval. If not, ignore the wrod
@@ -436,10 +442,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # the annotations there can be aligned
         # HACKY dashes are spaces, apparently
         # HACKY plus signs are spaces, appranetly
-        for word in current_sentence.split(" "):
-            # skip blank spaces
-            if word == '':
-                continue
+        # we use while to rewind the loop
+        
+        while i < split_length:
+            # define word
+            word = splits[i]
+            i += 1
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -451,20 +459,45 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("^","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
 
-            # If we got the current word, move on to the next
-            # you will notice we replace the parenthese because those are in-text
-            # disfluency adjustments
-            if cleaned_word.lower() == current_word[0].lower():
-                # append current word
-                buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
+            # include annotated spaces
+            if current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
+                # append a pause mark
+                buff.append((word, (current_word[1][0], current_word[1][1])))
+                # append the next 
                 try: 
-                    # The end should be the beginning of the "next" word
+                    # The end should be the end of the current word
                     end = current_word[1][1]
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
                     break # we have reached the end
 
+            # include spaces 
+            elif current_word[0].strip() == '':
+                # append a pause mark
+                buff.append(("(.)", (current_word[1][0], current_word[1][1])))
+                # Rewind
+                i -= 1
+                try: 
+                    # The end should be the end of the current word
+                    end = current_word[1][1]
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
+            # If we got the current word, move on to the next
+            # you will notice we replace the parenthese because those are in-text
+            # disfluency adjustments
+            elif cleaned_word.lower() == current_word[0].lower():
+                # append current word
+                buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
+                try: 
+                    # The end should be the end of the current word
+                    end = current_word[1][1]
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    break # we have reached the end
             # TODO HACKY!!
             # dashes carveout. Dashes is parsed inconsistently
             # where sometimes dashed tokens are parsed as
@@ -480,7 +513,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                         # append current word
                         buff.append((i.lower(), (current_word[1][0], current_word[1][1])))
                         try: 
-                            # The end should be the beginning of the "next" word
+                            # The end should be the end of the current word
                             end = current_word[1][1]
                             # pop the current word
                             current_word = wordlist_alignments.pop(0)
@@ -496,7 +529,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 word_split = current_word[0].split("_")
                 buff.append((current_word[0].lower(), (current_word[1][0], current_word[1][1])))
                 try: 
-                    # The end should be the beginning of the "next" word
+                    # The end should be the end of the current word
                     end = current_word[1][1]
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
@@ -505,14 +538,17 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # apostrophie carveout. Apostrophies are parsed differently sometimes
             # MFA for no good reason
-            elif "'" in word.lower() and current_word[0].lower() == word.split("'")[0].lower() and wordlist_alignments[0][0] == "'"+word.split("'")[1]:
+            elif "'" in word.lower() and current_word[0].lower() == word.split("'")[0].lower():
                 # append current word up until the end of the 'm
                 buff.append((word.lower(), (current_word[1][0], wordlist_alignments[0][1][1])))
                 # Ignore the am
-                wordlist_alignments.pop(0)
+                current_word = wordlist_alignments.pop(0)
+                # Ignore any spaces
+                while current_word[0].strip() == "":
+                    current_word = wordlist_alignments.pop(0)
                 # and append as usual
-                try: 
-                    # The end should be the beginning of the "next" word
+                try:
+                    # The end should be the end of the current word
                     end = current_word[1][1]
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
@@ -525,7 +561,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                # append current word
                 buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
                 try: 
-                    # The end should be the beginning of the "next" word
+                    # The end should be the end of the current word
                     end = current_word[1][1]
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
@@ -537,11 +573,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
 
 
+
         # Append the start and end intervals we aligned
         alignments.append((start,end))
         results.append(buff.copy())
-
-    # print(results)
 
     bulleted_results = []
     # Convert bulleted results
