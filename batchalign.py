@@ -27,6 +27,7 @@ import pathlib
 
 # I/O and stl
 import os
+import random # for testing
 
 # Import pathing utilities
 import glob
@@ -45,6 +46,9 @@ from tqdm import tqdm
 
 # Argument parser
 import argparse
+
+# defaultdict
+from collections import defaultdict
  
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -152,7 +156,6 @@ def elan2transcript(file_path):
                 timeslot_id = int(annotation[0].attrib.get("TIME_SLOT_REF1", "0")[2:])
             except ValueError:
                 print(file_path)
-            
 
             # and append the metadata + transcript to the annotations
             annotations.append((timeslot_id, tier_id, transcript))
@@ -387,7 +390,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         alignment_form (string): long or short (MFA or P2FA textGrid)
 
     Returns:
-        {"alignments": ((start, end)...*num_lines), "terms": [bulleted results: string...*num_utterances]}
+        {"alignments": ((start, end)...*num_lines), "terms": [bulleted results: string...*num_utterances], "raw": [(word/pause: (start, end)/None)]}
     """
 
     transcript = elan2transcript(elan)["transcript"]
@@ -422,10 +425,11 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         buff = []
 
         # remove extra delimiters
-        current_sentence = current_sentence.replace("↫"," ")
-        current_sentence = current_sentence.replace("_"," ")
-        current_sentence = current_sentence.replace("xxx","")
-        current_sentence = current_sentence.replace("yyy","")
+        current_sentence = current_sentence.replace("+","+ ")
+        current_sentence = current_sentence.replace("↫","↫ ")
+        current_sentence = current_sentence.replace("_","_ ")
+        current_sentence = current_sentence.replace("xxx","xxx")
+        current_sentence = current_sentence.replace("yyy","yyy")
 
         # split results
         splits = current_sentence.split(" ")
@@ -453,6 +457,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("[","").replace("]","")
             cleaned_word = cleaned_word.replace("<","").replace(">","")
             cleaned_word = cleaned_word.replace("“","").replace("”","")
+            cleaned_word = cleaned_word.replace("+","").replace("↫","")
+            cleaned_word = cleaned_word.replace("_","")
             cleaned_word = cleaned_word.replace("\"","")
             cleaned_word = cleaned_word.replace(":","")
             cleaned_word = cleaned_word.replace("^","")
@@ -460,8 +466,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # include annotated spaces
             if current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
-                # append a pause mark
-                buff.append((word, (current_word[1][0], current_word[1][1])))
+                # if pause is greater than 250 milliseconds
+                if (current_word[1][1] - current_word[1][0]) > 0.25:
+                    # append a pause mark
+                    buff.append((word, (current_word[1][0], current_word[1][1])))
                 # append the next 
                 try: 
                     # The end should be the end of the current word
@@ -473,8 +481,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # include spaces 
             elif current_word[0].strip() == '':
-                # append a pause mark
-                buff.append(("(.)", (current_word[1][0], current_word[1][1])))
+                # if pause is greater than 250 ms
+                if (current_word[1][1] - current_word[1][0]) > 0.25:
+                    # append a pause mark
+                    buff.append(("(.)", (current_word[1][0], current_word[1][1])))
                 # Rewind
                 i -= 1
                 try: 
@@ -570,9 +580,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 # append the current word 
                 buff.append((word, None))
 
-
-
-
         # Append the start and end intervals we aligned
         alignments.append((start,end))
         results.append(buff.copy())
@@ -609,7 +616,78 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         bulleted_results.append(" ".join(sentence_bulleted).strip())
 
     # Return the fimal alignments
-    return {"alignments": alignments, "terms": bulleted_results}
+    return {"alignments": alignments, "terms": bulleted_results, "raw": results}
+
+def disfluency_calculation(raw_results, tiers):
+    """tool to help calculate disfluncy per utterance
+
+    Attributes:
+        raw_results: a list of [(word/pause: (start, end)/None)] representing
+                     alignment
+        tiers: tier information to seperate terms out
+    """
+
+    # for each utterance
+    for tier, utterance in zip(tiers, raw_results):
+        # create a default dict to track
+        tracker = defaultdict(int)
+        # the item logs
+        # contents should be [(item, start, end)...xnum_marks]
+        log = []
+
+        # seed a for loop (so we can skip things) and iterate
+        i = 0
+        print(utterance)
+        while i < len(utterance):
+            # get the mark
+            mark = utterance[i]
+
+            # get timemark
+            # if timemark exists, the beginning is counted
+            # as the timeark. Otherwise, the end of the
+            # previous one is the timemark
+
+            if mark[1]:
+                # start of the current one
+                timemark = mark[1][0]
+            elif i!=0 and utterance[i-1][1]:
+                # end of the previous one
+                timemark = utterance[i-1][1][1]
+            else:
+                timemark = None
+
+            # if we have an empty line, we ignore
+            if mark[0] == "": pass
+            # if we have a retraction or repetition, we add it
+            elif mark[0] == "[/]" or  mark[0] == "[//]" :
+                # append the previous result to the log
+                # for the timing
+                log.append((mark[0], timemark))
+                # and add one to the tracker
+                tracker[mark[0]] += 1
+            # if we have an ending utterance mark (at the end of uterances), we add it
+            elif mark[0][-1]  == "]" and (i == len(utterance)-1):
+                # append the result to the log
+                log.append((mark[0][:-1], timemark))
+                # and add one to the tracker
+                tracker[mark[0][:-1]] += 1
+            # if we have a filled pause or verbal disfluency
+            elif mark[0] == "&+" or mark[0] == "&-":
+                # append the result to log
+                # by gettincg the start of the next item
+                log.append((mark[0], utterance[i+1][1][0]))
+                tracker[mark[0]] += 1
+            # if we have a pause, also add it
+            elif mark[0] == "(.)" or mark[0] == "(..)" or mark[0] == "(...)":
+                # append the result
+                log.append(("(.)", timemark))
+                # and add one to the tracker
+                tracker["(.)"] += 1
+
+            # increment  
+            i += 1
+            
+        print(dict(tracker), log)
 
 def eafalign(file_path, alignments, output_path):
     """get an unaligned eaf file to be aligned
@@ -804,7 +882,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=True):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=False):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -846,7 +924,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
@@ -872,6 +950,10 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
         elif method.lower()=="p2fa":
             # P2FA TextGrids are short form
             aligned_result = transcript_word_alignment(elan, alignment, alignment_form="short")
+
+        # Perform disfluency calculation TODO
+        disfluency_calculation(aligned_result["raw"], [random.choice(["A","B"]) for i in range (len(aligned_result["raw"]))])
+
         # Calculate the path to the old and new eaf
         old_eaf_path = os.path.join(in_directory,
                                     pathlib.Path(elan).name)
