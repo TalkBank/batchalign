@@ -422,7 +422,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         buff = []
 
         # remove extra delimiters
-        current_sentence = current_sentence.replace("+"," ")
         current_sentence = current_sentence.replace("↫"," ")
         current_sentence = current_sentence.replace("_"," ")
         current_sentence = current_sentence.replace("xxx","")
