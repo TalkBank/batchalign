@@ -180,7 +180,7 @@ def chat2transcript(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cr +t*')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
 
