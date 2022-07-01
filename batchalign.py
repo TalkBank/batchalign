@@ -53,7 +53,7 @@ from collections import defaultdict
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
-bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))} " # start and end should be float seconds
+bullet = lambda start,end: f"{int(round(start*1000))}_{int(round(end*1000))}" # start and end should be float seconds
 
 # Get the default path of UnitCLAN installation
 # from the path of the current file
@@ -428,8 +428,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         current_sentence = current_sentence.replace("+","+ ")
         current_sentence = current_sentence.replace("↫","↫ ")
         current_sentence = current_sentence.replace("_","_ ")
-        current_sentence = current_sentence.replace("xxx","xxx")
-        current_sentence = current_sentence.replace("yyy","yyy")
 
         # split results
         splits = current_sentence.split(" ")
@@ -499,7 +497,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # disfluency adjustments
             elif cleaned_word.lower() == current_word[0].lower():
                 # append current word
-                buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
+                buff.append((word, (current_word[1][0], current_word[1][1])))
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
@@ -520,7 +518,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # go through the results and append
                     while i.lower() == current_word[0].lower():
                         # append current word
-                        buff.append((i.lower(), (current_word[1][0], current_word[1][1])))
+                        buff.append((i, (current_word[1][0], current_word[1][1])))
                         try: 
                             # The end should be the end of the current word
                             end = current_word[1][1]
@@ -536,7 +534,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             elif '_' in current_word[0].lower() and current_word[0].split("_")[0].lower() == cleaned_word.lower():
                 # split the word
                 word_split = current_word[0].split("_")
-                buff.append((current_word[0].lower(), (current_word[1][0], current_word[1][1])))
+                buff.append((current_word[0], (current_word[1][0], current_word[1][1])))
+                # ignore the next word
+                i += 1
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
@@ -549,7 +549,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # MFA for no good reason
             elif "'" in word.lower() and current_word[0].lower() == word.split("'")[0].lower():
                 # append current word up until the end of the 'm
-                buff.append((word.lower(), (current_word[1][0], wordlist_alignments[0][1][1])))
+                buff.append((word, (current_word[1][0], wordlist_alignments[0][1][1])))
                 # Ignore the am
                 current_word = wordlist_alignments.pop(0)
                 # Ignore any spaces
@@ -568,7 +568,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # apostrophie and try again
             elif cleaned_word.replace("'", "").lower() == current_word[0].lower():
                # append current word
-                buff.append((word.lower(), (current_word[1][0], current_word[1][1])))
+                buff.append((word, (current_word[1][0], current_word[1][1])))
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
@@ -612,8 +612,17 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 sentence_bulleted.append(i[0].strip() + bullet(i[1][0], i[1][1]))
             else:
                 sentence_bulleted.append(i[0])
+
+        # replace sentence
+        sentence = " ".join(sentence_bulleted).strip()
+
+        # remove extra delimiters
+        sentence = sentence.replace("+ ","+")
+        sentence = sentence.replace("↫ ","↫")
+        sentence = sentence.replace("_ ","_")
+
         # concat and append to bulleted results
-        bulleted_results.append(" ".join(sentence_bulleted).strip())
+        bulleted_results.append(sentence)
 
     # Return the fimal alignments
     return {"alignments": alignments, "terms": bulleted_results, "raw": results}
@@ -626,6 +635,9 @@ def disfluency_calculation(raw_results, tiers):
                      alignment
         tiers: tier information to seperate terms out
     """
+
+    # sentence logs
+    logs = []
 
     # for each utterance
     for tier, utterance in zip(tiers, raw_results):
@@ -686,8 +698,12 @@ def disfluency_calculation(raw_results, tiers):
 
             # increment  
             i += 1
-            
-        print(dict(tracker), log)
+
+        # append log to logs
+        logs = logs + log
+
+    # Union the logs together
+    print(dict(tracker), log)
 
 def eafalign(file_path, alignments, output_path):
     """get an unaligned eaf file to be aligned
@@ -882,7 +898,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=False):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -924,7 +940,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
@@ -952,7 +968,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
             aligned_result = transcript_word_alignment(elan, alignment, alignment_form="short")
 
         # Perform disfluency calculation TODO
-        disfluency_calculation(aligned_result["raw"], [random.choice(["A","B"]) for i in range (len(aligned_result["raw"]))])
+        # disfluency_calculation(aligned_result["raw"], [random.choice(["A","B"]) for i in range (len(aligned_result["raw"]))])
 
         # Calculate the path to the old and new eaf
         old_eaf_path = os.path.join(in_directory,
