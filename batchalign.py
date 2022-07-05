@@ -130,7 +130,8 @@ def elan2transcript(file_path):
     """
 
     # Load the file
-    tree = ET.parse(file_path)
+    parser = ET.XMLParser(encoding="utf-8")
+    tree = ET.parse(file_path, parser=parser)
     root =  tree.getroot()
     tiers = root[2:]
 
@@ -456,6 +457,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("<","").replace(">","")
             cleaned_word = cleaned_word.replace("“","").replace("”","")
             cleaned_word = cleaned_word.replace("+","").replace("↫","")
+            cleaned_word = cleaned_word.replace("-","").replace("&","")
             cleaned_word = cleaned_word.replace("_","")
             cleaned_word = cleaned_word.replace("\"","")
             cleaned_word = cleaned_word.replace(":","")
@@ -547,7 +549,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # apostrophie carveout. Apostrophies are parsed differently sometimes
             # MFA for no good reason
-            elif "'" in word.lower() and current_word[0].lower() == word.split("'")[0].lower():
+            elif "'" in cleaned_word.lower() and current_word[0].lower() == cleaned_word.split("'")[0].lower():
                 # append current word up until the end of the 'm
                 buff.append((word, (current_word[1][0], wordlist_alignments[0][1][1])))
                 # Ignore the am
@@ -719,7 +721,8 @@ def eafalign(file_path, alignments, output_path):
     """
 
     # Load the file
-    tree = ET.parse(file_path)
+    parser = ET.XMLParser(encoding="utf-8")
+    tree = ET.parse(file_path, parser=parser)
     root =  tree.getroot()
     tiers = root[2:]
 
@@ -833,7 +836,7 @@ def eafalign(file_path, alignments, output_path):
         root[1].append(element_end)
 
     # And write tit to file
-    tree.write(output_path)
+    tree.write(output_path, encoding="unicode")
 
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
