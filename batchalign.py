@@ -952,7 +952,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
