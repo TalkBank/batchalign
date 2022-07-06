@@ -53,7 +53,7 @@ from collections import defaultdict
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
-bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))} " # start and end should be float seconds
+bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))}" # start and end should be float seconds
 
 # Get the default path of UnitCLAN installation
 # from the path of the current file
@@ -952,7 +952,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
