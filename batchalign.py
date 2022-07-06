@@ -416,11 +416,35 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     # emergency pop
     emergency = 0
 
+    # pnev ending
+    prevend = 0
+
     # For each sentence
     for current_sentence in transcript:
         # Set start and end for the current interval
         start = current_word[1][0]
         end = current_word[1][1] # create template ending in case the end doesn't exist
+
+        # flatten result
+        results_flat = [x for xs in results for x in xs]
+
+        # find the last empty result
+        last_empty = (len(results_flat), None)
+
+        # get the last empty item
+        while last_empty[0] > 0 and not last_empty[1]:
+            last_empty = (last_empty[0]-1, results_flat[last_empty[0]-1][1])
+
+        # If the utterance is an unvoiced %act annotation, copy the latest current timecode
+        if current_sentence == "0 .":
+            # align an empty slice
+            alignments.append((min(prevend, last_empty[1][1]), start))
+            results.append([("0 .", None)])
+            # skip
+            continue
+
+        # set template ending
+        prevend = end
 
         # create a running buffer
         buff = []
@@ -466,14 +490,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # include annotated spaces
             if current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
-                # if pause is greater than 250 milliseconds
-                if (current_word[1][1] - current_word[1][0]) > 0.25:
-                    # append a pause mark
-                    buff.append((word, (current_word[1][0], current_word[1][1])))
                 # append the next 
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
+
+                    # WE DONT SET PREVIOUS END HERE b/c there's no word 
+
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -483,22 +506,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             elif current_word[0].strip() == '':
                 # Rewind
                 i -= 1
-                # if pause is greater than 250 ms
-                if (current_word[1][1] - current_word[1][0]) > 0.25:
-                    # if upcoming repeat mark, append the mark as well
-                    # before pause mark if not, just append pause
-
-                    if len(splits[i]) > 0 and splits[i][0] == "[": 
-                        # append the repeat mark /before/ pause mark
-                        buff.append((splits[i]+" (.)", (current_word[1][0], current_word[1][1])))
-                        # set time forward
-                        i += 1
-                    else:
-                        # just append a pause mark
-                        buff.append(("(.)", (current_word[1][0], current_word[1][1])))
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
+
+                    # WE DONT SET PREVIOUS END HERE b/c there's no word 
+
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -512,6 +525,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -533,6 +548,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                         try: 
                             # The end should be the end of the current word
                             end = current_word[1][1]
+                            # set previous ending as the end of the current one
+                            prevend = end
                             # pop the current word
                             current_word = wordlist_alignments.pop(0)
                         except IndexError:
@@ -551,6 +568,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -570,6 +589,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 try:
                     # The end should be the end of the current word
                     end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -583,6 +604,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
@@ -592,7 +615,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
 
         # Append the start and end intervals we aligned
-        alignments.append((start,end))
+        alignments.append((start,prevend))
         results.append(buff.copy())
 
     bulleted_results = []
@@ -608,9 +631,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             if skip:
                 skip = False
                 continue
-            # if alignable and next is a bracket, append a bracket
+            # if alignable and ends with a bracket, put the bullet before the bracket
+            if i[1] and (i[0][-1] == ']' or i[0][-1] == '>' ):
+                sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1])+" " + i[0].strip()[-1])
+            # if alignable and next is a repeat, append a bracket
             # and then the bullet
-            if i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0] == "[":
+            elif i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0:2] == "[/":
                 sentence_bulleted.append(i[0].strip() +
                                          " " +
                                          sentence[indx+1][0].strip() +
@@ -830,15 +856,18 @@ def eafalign(file_path, alignments, output_path):
         element_start = ET.Element("TIME_SLOT")
         # Set the time slot ID to the correct beginning
         element_start.set("TIME_SLOT_ID", f"ts{annotation[0][0]}")
-        # Set the time slot ID to the correct end
-        element_start.set("TIME_VALUE", f"{int(alignment[0]*1000)}")
 
         # Create the beginning time slot
         element_end = ET.Element("TIME_SLOT")
         # Set the time slot ID to the correct beginning
         element_end.set("TIME_SLOT_ID", f"ts{annotation[0][1]}")
-        # Set the time slot ID to the correct end
-        element_end.set("TIME_VALUE", f"{int(alignment[1]*1000)}")
+
+        # if alignment is not None, set time value
+        if alignment:
+            # Set the time slot ID to the correct end
+            element_start.set("TIME_VALUE", f"{int(alignment[0]*1000)}")
+            # Set the time slot ID to the correct end
+            element_end.set("TIME_VALUE", f"{int(alignment[1]*1000)}")
 
         # Appending the element
         root[1].append(element_start)
@@ -952,7 +981,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
 
     if method.lower()=="mfa":
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        # align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
@@ -967,7 +996,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
     else:
         raise Exception(f'Unknown forced alignment method {method}.')
 
-    # zip the results and dump into neaw eafs
+    # zip the results and dump into new eafs
     for alignment in sorted(alignments):
         # Find the relative elan file
         elan = repath_file(alignment, "in").replace("TextGrid", "eaf").replace("textGrid", "eaf")
