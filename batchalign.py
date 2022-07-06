@@ -523,7 +523,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # a mistake, we split the dashes and try again
             elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower():
                 # split the word
-                word_split = cleaned_word.split("-")
+                word_split = word.split("-")
                 # enumerate over the split word
                 for i in word_split:
                     # go through the results and append
@@ -545,7 +545,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             elif '_' in current_word[0].lower() and current_word[0].split("_")[0].lower() == cleaned_word.lower():
                 # split the word
                 word_split = current_word[0].split("_")
-                buff.append((current_word[0], (current_word[1][0], current_word[1][1])))
+                buff.append((word+splits[i], (current_word[1][0], current_word[1][1])))
                 # ignore the next word
                 i += 1
                 try: 
