@@ -53,7 +53,7 @@ from collections import defaultdict
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
-bullet = lambda start,end: f"{int(round(start*1000))}_{int(round(end*1000))}" # start and end should be float seconds
+bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))} " # start and end should be float seconds
 
 # Get the default path of UnitCLAN installation
 # from the path of the current file
@@ -481,12 +481,21 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # include spaces 
             elif current_word[0].strip() == '':
-                # if pause is greater than 250 ms
-                if (current_word[1][1] - current_word[1][0]) > 0.25:
-                    # append a pause mark
-                    buff.append(("(.)", (current_word[1][0], current_word[1][1])))
                 # Rewind
                 i -= 1
+                # if pause is greater than 250 ms
+                if (current_word[1][1] - current_word[1][0]) > 0.25:
+                    # if upcoming repeat mark, append the mark as well
+                    # before pause mark if not, just append pause
+
+                    if len(splits[i]) > 0 and splits[i][0] == "[": 
+                        # append the repeat mark /before/ pause mark
+                        buff.append((splits[i]+" (.)", (current_word[1][0], current_word[1][1])))
+                        # set time forward
+                        i += 1
+                    else:
+                        # just append a pause mark
+                        buff.append(("(.)", (current_word[1][0], current_word[1][1])))
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
