@@ -438,7 +438,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # If the utterance is an unvoiced %act annotation, copy the latest current timecode
         if current_sentence == "0 .":
             # align an empty slice
-            alignments.append((min(prevend, last_empty[1][1]), start))
+            alignments.append((start, start))
             results.append([("0 .", None)])
             # skip
             continue
@@ -625,15 +625,40 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         skip = False
         # bullet the sentence
         sentence_bulleted = []
+        # set indx = 0
+        indx = 0
         # for each term
-        for indx,i in enumerate(sentence):
+        while indx < len(sentence):
+            # load the value
+            i = sentence[indx]
             # if asked to skip, skip
             if skip:
                 skip = False
                 continue
-            # if alignable and ends with a bracket, put the bullet before the bracket
-            if i[1] and (i[0][-1] == ']' or i[0][-1] == '>' ):
+            # if alignable and ends with a angle bracket, put the bullet inside the bracket
+            if i[1] and i[0][-1] == '>':
                 sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1])+" " + i[0].strip()[-1])
+            # if alignable and ends with a square bracket, put the bullet after the last the bracket
+            elif i[1] and i[0][-1] == ']':
+                # get template result
+                result = i[0].strip()
+                # track if we need to keep reading
+                is_open = False
+                # if the next element is a bracket, we need to keep reading
+                if sentence[indx + 1][0][0] == "[":
+                    is_open = True
+                # while we are open, keep reading
+                while is_open:
+                    # increment reading
+                    indx += 1
+                    # append result
+                    result = result + " " + sentence[indx][0].strip()
+                    # check if closed
+                    if result[-1] == "]":
+                        is_open = False
+
+                # append result
+                sentence_bulleted.append(result + bullet(i[1][0], i[1][1]))
             # if alignable and next is a repeat, append a bracket
             # and then the bullet
             elif i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0:2] == "[/":
@@ -649,6 +674,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 sentence_bulleted.append(i[0].strip() + bullet(i[1][0], i[1][1]))
             else:
                 sentence_bulleted.append(i[0])
+            # increment
+            indx += 1
 
         # replace sentence
         sentence = " ".join(sentence_bulleted).strip()
@@ -939,7 +966,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=True):
+def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=True, align=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -950,6 +977,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
         method (string): your choice of 'mfa' or 'p2fa' for alignment
         beam (int): beam width for initial MFA alignment
         clean (bool): whether to clean up, used for debugging
+        align (bool): whether to actually align, used for debugging
 
     Returns:
         none
@@ -980,16 +1008,20 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
     # in terms of capitalization.
 
     if method.lower()=="mfa":
-        # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        # if we are to align
+        if align:
+            # Align the files
+            align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
         # find textgrid files
         alignments = globase(DATA_DIR, "*.TextGrid")
     elif method.lower()=="p2fa":
-        # conforms wavs
-        wavconformation(in_directory)
-        # Align files
-        align_directory_p2fa(in_directory)
+        # if we are to align
+        if align:
+            # conforms wavs
+            wavconformation(in_directory)
+            # Align files
+            align_directory_p2fa(in_directory)
 
         # find textgrid files
         alignments = globase(in_directory, "*.textGrid")
@@ -1033,6 +1065,7 @@ parser.add_argument("out_dir", type=str, help='output directory to store aligned
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
 parser.add_argument("--method", type=str, default="mfa", help='method to use to perform alignment')
 parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
+parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":
@@ -1041,6 +1074,6 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, args.method, args.beam)
+        do_align(args.in_dir, args.out_dir, args.data_dir, args.method, args.beam, align=(not args.skipalign))
 
 # ((word, (start_time, end_time))... x number_words)
