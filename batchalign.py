@@ -518,6 +518,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             word = splits[i]
             i += 1
 
+            # print(word, current_word[0])
+
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
             cleaned_word = cleaned_word.replace("[","").replace("]","")
@@ -666,6 +668,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             alignments.append((start,prevend))
         # either way, copy buffer
         results.append(buff.copy())
+
+    # print(results)
 
     bulleted_results = []
     # Convert bulleted results
