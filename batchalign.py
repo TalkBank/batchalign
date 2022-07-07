@@ -68,6 +68,34 @@ from opt.p2fa_py3.p2fa.align import align
 # import textgrid
 from opt.textgrid.textgrid import TextGrid
 
+# indent an XML
+def indent(elem, level=0):
+    """Indent an XML
+
+    Attributes:
+        element (ET.ElementTree.root): element tree root
+        level (int): which level to start aligning from
+
+    Citation:
+    https://stackoverflow.com/a/33956544/5684313
+
+    Returns void
+    """
+
+    i = "\n" + level*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
 # chat2elan a whole path
 def elan2chat(directory):
     """Convert a folder of CLAN .eaf files to corresponding CHATs
@@ -98,6 +126,9 @@ def elan2chat(directory):
 def chat2elan(directory):
     """Convert a folder of CLAN .cha files to corresponding ELAN XMLs
 
+    Note: this function STRIPS EXISTING TIME CODES (though,
+          nondestructively)
+
     files:
         directory (string): the string directory in which .cha is in
 
@@ -107,16 +138,36 @@ def chat2elan(directory):
    
     # get all files in that directory
     files = globase(directory, "*.cha")
-    # praat2chatit!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +e.wav {' '.join(files)} >/dev/null 2>&1"
+    # get the name of cleaned files
+    files_cleaned = [i.replace(".cha", ".new.cha") for i in files]
+
+    # then, clean out all bullets
+    for in_file, out_file in zip(files, files_cleaned):
+        # read the in file
+        with open(in_file, "r") as df:
+            in_file_content = df.read()
+
+        # perform cleaning and write
+        cleaned_content = re.sub("\x15.*?\x15", "", in_file_content)
+
+        # write
+        with open(out_file, "w") as df:
+            df.write(cleaned_content)
+            
+    # chat2elan it!
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +e.wav {' '.join(files_cleaned)} >/dev/null 2>&1"
+
     # run!
     os.system(CMD)
     # delete any error logs
     for f in globase(directory, "*.err.cex"):
         os.remove(f)
+    # delete intermediary
+    for f in globase(directory, "*.new.cha"):
+        os.remove(f)
     # and rename the files
-    for f in globase(directory, "*.eaf"):
-        os.rename(f, f.replace(".c2elan", ""))
+    for f in globase(directory, "*.new.c2elan.eaf"):
+        os.rename(f, f.replace(".new.c2elan.eaf", ".eaf"))
 
 def elan2transcript(file_path):
     """convert an eaf XML file to tiered transcripts
@@ -898,8 +949,10 @@ def eafalign(file_path, alignments, output_path):
         root[1].append(element_start)
         root[1].append(element_end)
 
+    # Indent the tree
+    indent(root)
     # And write tit to file
-    tree.write(output_path, encoding="unicode")
+    tree.write(output_path, encoding="unicode", xml_declaration=True)
 
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
