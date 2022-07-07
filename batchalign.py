@@ -435,14 +435,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         while last_empty[0] > 0 and not last_empty[1]:
             last_empty = (last_empty[0]-1, results_flat[last_empty[0]-1][1])
 
-        # If the utterance is an unvoiced %act annotation, copy the latest current timecode
-        if current_sentence == "0 .":
-            # align an empty slice
-            alignments.append((start, start))
-            results.append([("0 .", None)])
-            # skip
-            continue
-
         # set template ending
         prevend = end
 
@@ -614,8 +606,14 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 # append the current word 
                 buff.append((word, None))
 
-        # Append the start and end intervals we aligned
-        alignments.append((start,prevend))
+        # If the utterance is completely unaligned, don't align it!
+        if set([i[1] for i in buff]) == {None}:
+            # align an empty slice
+            alignments.append((start, start))
+        else:
+            # Append the start and end intervals we aligned
+            alignments.append((start,prevend))
+        # either way, copy buffer
         results.append(buff.copy())
 
     bulleted_results = []
