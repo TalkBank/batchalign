@@ -49,7 +49,7 @@ import argparse
 
 # defaultdict
 from collections import defaultdict
- 
+
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
@@ -674,8 +674,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     bulleted_results = []
     # Convert bulleted results
     for sentence in results:
-        # skip (use for bracket change)
-        skip = False
         # bullet the sentence
         sentence_bulleted = []
         # set indx = 0
@@ -684,13 +682,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         while indx < len(sentence):
             # load the value
             i = sentence[indx]
-            # if asked to skip, skip
-            if skip:
-                skip = False
-                continue
             # if alignable and ends with a angle bracket, put the bullet inside the bracket
             if i[1] and i[0][-1] == '>':
-                sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1])+" " + i[0].strip()[-1])
+                sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1]) + i[0].strip()[-1])
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
             elif i[1] and i[0][-1] == ']':
                 # get template result
@@ -710,6 +704,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     if result[-1] == "]":
                         is_open = False
 
+                indx+=1 
                 # append result
                 sentence_bulleted.append(result + bullet(i[1][0], i[1][1]))
             # if alignable and next is a repeat, append a bracket
@@ -720,7 +715,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                                          sentence[indx+1][0].strip() +
                                          bullet(i[1][0], i[1][1]))
                 # also skip the next iteration as its already appended
-                skip = True
+                indx+=1 
             # else, just append the element and bullet
             elif i[1]:
                 # appending the current word and chorresponding bullet
@@ -733,10 +728,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # replace sentence
         sentence = " ".join(sentence_bulleted).strip()
 
-        # remove extra delimiters
+        # remove extra delimiters, as a final sanity check
         sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("↫ ","↫")
         sentence = sentence.replace("_ ","_")
+        sentence = sentence.replace(" >",">")
+        sentence = sentence.replace("< ","<")
 
         # concat and append to bulleted results
         bulleted_results.append(sentence)
