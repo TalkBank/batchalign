@@ -20,7 +20,7 @@ repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file
 CLAN_PATH=""
 
 # file to check
-CHECKDIR="/Users/houliu/Documents/Projects/talkbank-alignment/EllisWeismer/30ec/TD/v2/out/"
+CHECKDIR="/Users/houliu/Documents/Projects/talkbank-alignment/DementiaBank/dementia/out/"
 
 # get output
 files = globase(CHECKDIR, "*.cha")

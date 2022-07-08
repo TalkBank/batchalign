@@ -674,26 +674,40 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             if i[1] and i[0][-1] == '>':
                 sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1]) + i[0].strip()[-1])
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
-            elif i[1] and i[0][-1] == ']':
+            elif i[0][0] == '[':
                 # get template result
                 result = i[0].strip()
-                # track if we need to keep reading
-                is_open = False
-                # if the next element is a bracket, we need to keep reading
-                if sentence[indx + 1][0][0] == "[":
-                    is_open = True
+                # clear start and end
+                start = None
+                end = None
+                # get start
+                if i[1]:
+                    start = i[1][0]
+                    end = i[1][1]
+
                 # while we are open, keep reading
-                while is_open:
+                while (indx+1) < len(sentence):
                     # increment reading
                     indx += 1
+                    # if no start, but have start now, set start
+                    if not start and sentence[indx][1]:
+                        start = sentence[indx][1][0]
+                    # set end to the new end
+                    if sentence[indx][1]:
+                        end = sentence[indx][1][1]
+
                     # append result
                     result = result + " " + sentence[indx][0].strip()
                     # check if closed
                     if result[-1] == "]":
-                        is_open = False
+                        break
 
-                # append result
-                sentence_bulleted.append(result + bullet(i[1][0], i[1][1]))
+                if start:
+                    # append result
+                    sentence_bulleted.append(result + bullet(start, end))
+                else:
+                    # append result without bullet
+                    sentence_bulleted.append(result)
             # if alignable and next is a repeat, append a bracket
             # and then the bullet
             elif i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0:2] == "[/":
@@ -753,7 +767,6 @@ def disfluency_calculation(raw_results, tiers):
 
         # seed a for loop (so we can skip things) and iterate
         i = 0
-        print(utterance)
         while i < len(utterance):
             # get the mark
             mark = utterance[i]
