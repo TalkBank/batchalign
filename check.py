@@ -53,7 +53,7 @@ for checkfile in files:
             # pop the result
             res = result.pop()
             # append
-            res = res.strip("\n") + value[1:]
+            res = res.strip("\n") + " " + value[1:]
             # put back
             result.append(res)
         else:
@@ -62,7 +62,8 @@ for checkfile in files:
 
     # new the result
     result = [re.sub(" \\x15\d*_\d*\\x15>", ">", i) for i in result] # bullets
-    result = [re.sub("\\x15.*?\\x15", "", i) for i in result] # bullets
+    result = [re.sub("\\x15.*?\\x15 ?", "", i) for i in result] # bullets
+    result = [re.sub("\(\.+\)", "", i) for i in result] # pause marks (we remove)
     result = [re.sub(".*?\\t", "", i) for i in result] # tabs
     result = [re.sub("\.", "", i) for i in result] # doduble spaces
     result = [re.sub("  ", " ", i).strip() for i in result] # doduble spaces
@@ -90,8 +91,8 @@ for checkfile in files:
 
     # for the error
     for item in errors:
-        print(f"Main tier: {result_paired[item][0]}")
-        print(f"%xwor tier: {result_paired[item][1]}\n")
+        print(f"Main tier ({item*3}): {result_paired[item][0]}")
+        print(f"%xwor tier ({item*3+2}): {result_paired[item][1]}\n")
     # if no errors, print
     if len(errors) == 0:
         print("No inconsistencies found!\n")

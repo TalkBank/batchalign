@@ -410,28 +410,6 @@ def parse_textgrid_short(file_path):
 
     return wordlist_alignments
 
-# Parse a generated transcript
-def parse_transcript(file_path):
-    """Parse a transcript file
-
-    Arguments:
-        file_path (string): name of the transcript file
-
-    Returns:
-        A list of [[word... * words]... * utterances]
-    """
-
-    # Open the transcript file
-    with open(file_path, "r") as df:
-        data = df.read()
-    # Split the lines of the data 
-    lines = data.split("\n")
-    # Split each line (replacing all punctuations with spaces and split
-    # by spaces
-    lines_split = [[j for j in re.compile("[ .,?!-]+").split(i)[:-1]] for i in lines]
-
-    return lines_split[:-1]
-
 # Align the alignments!
 def transcript_word_alignment(elan, alignments, alignment_form="long"):
     """Align the output of parse_transcript and parse_textgrid_* together
@@ -472,19 +450,16 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
     # For each sentence
     for current_sentence in transcript:
-        # Set start and end for the current interval
-        start = current_word[1][0]
-        end = current_word[1][1] # create template ending in case the end doesn't exist
-
-        # flatten result
-        results_flat = [x for xs in results for x in xs]
-
-        # find the last empty result
-        last_empty = (len(results_flat), None)
-
-        # get the last empty item
-        while last_empty[0] > 0 and not last_empty[1]:
-            last_empty = (last_empty[0]-1, results_flat[last_empty[0]-1][1])
+        # if we have more content to align
+        if current_word:
+            # Set start and end for the current interval
+            start = current_word[1][0]
+            end = current_word[1][1] # create template ending in case the end doesn't exist
+        # otherwise, just make everything else unaligned by making start and end the same
+        # with zero-time bullets
+        else:
+            start = end 
+            
 
         # set template ending
         prevend = end
@@ -518,6 +493,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             word = splits[i]
             i += 1
 
+            # if we are out of words to align, just dump none
+            if not current_word:
+                # append the current word 
+                buff.append((word, None))
+                continue
+
             # print(word, current_word[0])
 
             # clean the word of extraneous symbols
@@ -545,7 +526,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
-                    break # we have reached the end
+                    current_word = None
+                    pass # we have reached the end
 
             # include spaces 
             elif current_word[0].strip() == '':
@@ -560,7 +542,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
-                    break # we have reached the end
+                    current_word = None
+                    pass # we have reached the end
             # If we got the current word, move on to the next
             # you will notice we replace the parenthese because those are in-text
             # disfluency adjustments
@@ -575,7 +558,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
-                    break # we have reached the end
+                    current_word = None
+                    pass # we have reached the end
             # TODO HACKY!!
             # dashes carveout. Dashes is parsed inconsistently
             # where sometimes dashed tokens are parsed as
@@ -598,7 +582,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                             # pop the current word
                             current_word = wordlist_alignments.pop(0)
                         except IndexError:
-                            break # we have reached the end
+                            current_word = None
+                            pass # we have reached the end
             # TODO HACKY!!
             # underscore carveout. Underscore is parsed inconsistently
             # where sometimes underscores exists in the lab transcript
@@ -618,7 +603,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
-                    break # we have reached the end
+                    current_word = None
+                    pass # we have reached the end
 
             # apostrophie carveout. Apostrophies are parsed differently sometimes
             # MFA for no good reason
@@ -639,7 +625,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
-                    break # we have reached the end
+                    current_word = None
+                    pass # we have reached the end
             # TODO HACKY!
             # yet another apostrophie carveout. If the above didn't work, we remove
             # apostrophie and try again
@@ -654,7 +641,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
                 except IndexError:
-                    break # we have reached the end
+                    current_word = None
+                    pass # we have reached the end
             else:
                 # append the current word 
                 buff.append((word, None))
@@ -704,7 +692,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     if result[-1] == "]":
                         is_open = False
 
-                indx+=1 
                 # append result
                 sentence_bulleted.append(result + bullet(i[1][0], i[1][1]))
             # if alignable and next is a repeat, append a bracket
@@ -728,12 +715,15 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # replace sentence
         sentence = " ".join(sentence_bulleted).strip()
 
+        ### Final Santy Checks and Shape Conformations ###
         # remove extra delimiters, as a final sanity check
         sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("↫ ","↫")
         sentence = sentence.replace("_ ","_")
         sentence = sentence.replace(" >",">")
         sentence = sentence.replace("< ","<")
+        # however, double < should have a space between
+        sentence = sentence.replace("<<","< <")
 
         # concat and append to bulleted results
         bulleted_results.append(sentence)
