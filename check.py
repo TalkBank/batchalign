@@ -41,6 +41,9 @@ for checkfile in files:
         # get alignment result
         data = df.readlines()
 
+    # delete result file
+    os.remove(result_path)
+
     # conform result with tab-seperated beginnings
     result = []
     # for each value
