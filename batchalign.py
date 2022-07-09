@@ -1086,7 +1086,7 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
     # zip the results and dump into new eafs
     for alignment in sorted(alignments):
         # Find the relative elan file
-        elan = repath_file(alignment, "in").replace("TextGrid", "eaf").replace("textGrid", "eaf")
+        elan = repath_file(alignment, in_directory).replace("TextGrid", "eaf").replace("textGrid", "eaf")
         # Align the alignment results
         if method.lower()=="mfa":
             # MFA TextGrids are long form
