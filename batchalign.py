@@ -892,7 +892,7 @@ def eafalign(file_path, alignments, output_path):
 
             # create new xword tier
             xwor_tier = ET.SubElement(root, "TIER")
-            xwor_tier.set("TIER_ID", f"xwor@{tier_id}")
+            xwor_tier.set("TIER_ID", f"wor@{tier_id}")
             xwor_tier.set("PARTICIPANT", tier_id)
             xwor_tier.set("LINGUISTIC_TYPE_REF", "dependency")
             xwor_tier.set("DEFAULT_LOCALE", "us")
