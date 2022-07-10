@@ -2,19 +2,6 @@ batchalign is a Python script that uses the Montreal Forced Aligner OR Penn Phon
 
 === Software Installation ===
 
-  == For P2FA: Download HTK ==
-
-    Download HTK.
-    (https://htk.eng.cam.ac.uk/ftp/software/HTK-3.5.beta-2.tar.gz)
-    HTK version 3.5.1 doesn't always play nice with p2fa. We provided
-    here in this folder a patch to install it on macOS.
-
-    Hence, download HTK. Deflate it, then, in the working directory
-    of the HTK source type "git apply < THIS_FOLDER/htk.patch".
-
-    Finally, compile and install HTK Binaries. HVite, for instance,
-    should be callable.
-
   == For MFA: Download MFA ==
 
     Install anaconda
@@ -59,15 +46,69 @@ the =.cha= files with the same name.
     444.wav 576.wav 733.wav 875.wav
     474.cha 607.cha 735.cha 877.cha
 
-  The output folder should be empty.
+The output folder should be empty.
 
-  Finally, to generate aligned .textGrid and .cha files, simply execute
+Finally, to generate aligned .textGrid and .cha files, simply execute
 
-  python3 batchalign.py input_folder empty_output_folder
+python3 batchalign.py input_folder empty_output_folder
 
-  The input folder will briefly populate with some supplemental files,
-  before begining to be aligned. Aligned .cha files will be in the
-  output directory specified, whereas aligned .textGrid, .lab
-  transcripts, and generated .wav files will be in a subfolder
-  named "data" in the output directory.
+The input folder will briefly populate with some supplemental files,
+before begining to be aligned. Aligned .cha files will be in the
+output directory specified, whereas aligned .textGrid, .lab
+transcripts, and generated .wav files will be in a subfolder
+named "data" in the output directory.
 
+=== Usage Example ===
+
+Here's a typical usage example of the program. The following documentation
+all assumes that a copy of batchalign is placed in
+~/mfa_data/batchalign-dist/batchalign.py, a directory of .cha and .wav files
+in ~/mfa_data/my_corpus, and an empty folder in ~/mfa_data/my_corpus_aligned
+
+## Common Setup
+Set up the Montreal forced aligner at
+(https://montreal-forced-aligner.readthedocs.io/en/latest/installation.html) as
+well as download and install the latest version of UnixClan located online at
+(https://dali.talkbank.org/clan/unix-clan.zip).
+
+Then, if needed
+
+conda activate aligner
+
+## Aligning Files
+
+python3 ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/my_corpus ~/mfa_data/my_corpus_aligned
+
+## Align with existing TextGrid files
+
+This command assumes, in to addition to ~/mfa_data/my_corpus_aligned,
+that there is a data/ subfolder in ~/mfa_data/my_corpus_aligned which
+contains already-aligned TextGrid files.
+
+python3 ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/my_corpus ~/mfa_data/my_corpus_aligned --skipalign
+
+## Clean up
+If there is stray files in the input folder after alignment, it is
+likely that the program crashed. To clean up all stray files,
+run:
+
+python3 ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/my_corpus ~/mfa_data/my_corpus_aligned --clean
+
+=== Usage Documentation ===
+
+usage: batchalign.py [-h] [--data_dir DATA_DIR] [--beam BEAM] [--skipalign]
+                     [--clean]
+                     in_dir out_dir
+
+batch align .cha to audio in a directory with MFA/P2FA
+
+positional arguments:
+  in_dir               input directory containing .cha and .mp3/.wav files
+  out_dir              output directory to store aligned .cha files
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --data_dir DATA_DIR  subdirectory of out_dir to use as data dir
+  --beam BEAM          beam width for MFA, ignored for P2FA
+  --skipalign          don't align, just call CHAT ops
+  --clean              don't align, just call cleanup

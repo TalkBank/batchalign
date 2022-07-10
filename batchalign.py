@@ -6,11 +6,7 @@
 # For instance, the file ./opt/clan/praat2chat should exist
 # and should be executable.
 #
-## For P2FA: INSTALLING HTK  ##
-# an htk installation should be present on the system.
-# For instance, HVite should be executable. 
-#
-## For MFA: INSTALLING MFA ##
+## INSTALLING MFA ##
 # MFA should be present on the system.
 # conda config --add channels conda-forge
 # conda install montreal-forced-aligner
@@ -59,11 +55,7 @@ bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))}"
 # from the path of the current file
 CURRENT_PATH=pathlib.Path(__file__).parent.resolve()
 CLAN_PATH=""
-P2FA_PATH=os.path.join(CURRENT_PATH, "./opt/p2fa_py3/p2fa")
 ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
-
-# import p2fa
-from opt.p2fa_py3.p2fa.align import align
 
 # import textgrid
 from opt.textgrid.textgrid import TextGrid
@@ -282,32 +274,6 @@ def wavconformation(directory):
         os.remove(f)
         # and move the new back
         os.rename("temp.wav", f)
-
-# Align a whole directory
-def align_directory_p2fa(directory):
-    """Given a directory of .wav and .lab, align them
-
-    Arguments:
-        directory (string): string directory filled with .wav and .txt files with same name
-
-    Returns:
-        none
-    """
-
-    # find the paired wave files and transcripts
-    wavs = globase(directory, "*.wav")
-    txts = globase(directory, "*.lab")
-
-    # pair them up
-    pairs = zip(sorted(wavs), sorted(txts))
-
-    # and then align them!
-    for wav, text in pairs:
-        print(f"aligning {wav}")
-        # Get output file name
-        output_filename = wav.replace("wav", "textGrid")
-        # Generate align!
-        align(wav, text, output_filename, verbose=1)
 
 def align_directory_mfa(directory, data_dir, beam=100):
     """Given a directory of .wav and .lab, align them
@@ -1021,7 +987,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", method="mfa", beam=100, clean=True, align=True):
+def do_align(in_directory, out_directory, data_directory="data", beam=100, clean=True, align=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -1029,7 +995,6 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
         out_directory (string): the directory for the output files
         data_directory (string): the subdirectory (rel. to out_directory) which the misc.
                                  outputs go
-        method (string): your choice of 'mfa' or 'p2fa' for alignment
         beam (int): beam width for initial MFA alignment
         clean (bool): whether to clean up, used for debugging
         align (bool): whether to actually align, used for debugging
@@ -1062,38 +1027,21 @@ def do_align(in_directory, out_directory, data_directory="data", method="mfa", b
     # TextGrid != textGrid. P2FA and MFA generate different results
     # in terms of capitalization.
 
-    if method.lower()=="mfa":
-        # if we are to align
-        if align:
-            # Align the files
-            align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+    # if we are to align
+    if align:
+        # Align the files
+        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
 
-        # find textgrid files
-        alignments = globase(DATA_DIR, "*.TextGrid")
-    elif method.lower()=="p2fa":
-        # if we are to align
-        if align:
-            # conforms wavs
-            wavconformation(in_directory)
-            # Align files
-            align_directory_p2fa(in_directory)
-
-        # find textgrid files
-        alignments = globase(in_directory, "*.textGrid")
-    else:
-        raise Exception(f'Unknown forced alignment method {method}.')
+    # find textgrid files
+    alignments = globase(DATA_DIR, "*.TextGrid")
 
     # zip the results and dump into new eafs
     for alignment in sorted(alignments):
         # Find the relative elan file
         elan = repath_file(alignment, in_directory).replace("TextGrid", "eaf").replace("textGrid", "eaf")
         # Align the alignment results
-        if method.lower()=="mfa":
-            # MFA TextGrids are long form
-            aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long")
-        elif method.lower()=="p2fa":
-            # P2FA TextGrids are short form
-            aligned_result = transcript_word_alignment(elan, alignment, alignment_form="short")
+        # MFA TextGrids are long form
+        aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long")
 
         # Perform disfluency calculation TODO
         # disfluency_calculation(aligned_result["raw"], [random.choice(["A","B"]) for i in range (len(aligned_result["raw"]))])
@@ -1118,7 +1066,6 @@ parser = argparse.ArgumentParser(description="batch align .cha to audio in a dir
 parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
 parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
-parser.add_argument("--method", type=str, default="mfa", help='method to use to perform alignment')
 parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
 parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
@@ -1129,6 +1076,6 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, args.method, args.beam, align=(not args.skipalign))
+        do_align(args.in_dir, args.out_dir, args.data_dir, args.beam, align=(not args.skipalign))
 
 # ((word, (start_time, end_time))... x number_words)
