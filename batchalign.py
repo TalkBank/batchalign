@@ -437,6 +437,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         current_sentence = current_sentence.replace("+","+ ")
         current_sentence = current_sentence.replace("↫","↫ ")
         current_sentence = current_sentence.replace("_","_ ")
+        current_sentence = current_sentence.replace("$","$ ")
 
         # split results
         splits = current_sentence.split(" ")
@@ -472,12 +473,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("[","").replace("]","")
             cleaned_word = cleaned_word.replace("<","").replace(">","")
             cleaned_word = cleaned_word.replace("“","").replace("”","")
+            cleaned_word = cleaned_word.replace(",","").replace("!","")
+            cleaned_word = cleaned_word.replace("?","").replace(".","")
             cleaned_word = cleaned_word.replace("+","").replace("↫","")
             cleaned_word = cleaned_word.replace("-","").replace("&","")
-            cleaned_word = cleaned_word.replace("_","")
-            cleaned_word = cleaned_word.replace("\"","")
-            cleaned_word = cleaned_word.replace(":","")
-            cleaned_word = cleaned_word.replace("^","")
+            cleaned_word = cleaned_word.replace("_","").replace("\"","")
+            cleaned_word = cleaned_word.replace(":","").replace("^","")
+            cleaned_word = cleaned_word.replace("$","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
 
             # include annotated spaces
@@ -702,6 +704,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         sentence = sentence.replace("_ ","_")
         sentence = sentence.replace(" >",">")
         sentence = sentence.replace("< ","<")
+        sentence = sentence.replace("$ ","$")
         # however, double < should have a space between
         sentence = sentence.replace("<<","< <")
 
@@ -786,7 +789,7 @@ def disfluency_calculation(raw_results, tiers):
         logs = logs + log
 
     # Union the logs together
-    print(dict(tracker), log)
+    # print(dict(tracker), log)
 
 def eafalign(file_path, alignments, output_path):
     """get an unaligned eaf file to be aligned
@@ -864,6 +867,11 @@ def eafalign(file_path, alignments, output_path):
             xwor_tier.set("DEFAULT_LOCALE", "us")
             xwor_tier.set("PARENT_REF", tier_id)
 
+            # we delete all previous xwor/wor tiers
+            if "wor" in tier_id or "xwor" in tier_id:
+                root.remove(tier)
+                continue
+
             # we ignore anything that's a "@S*" tier
             # because those are metadata
             if "@" in tier_id:
@@ -890,6 +898,9 @@ def eafalign(file_path, alignments, output_path):
 
                 # with the bulleted content
                 xwor_word_cont.text = terms_dict.get(annot_id)
+
+                # update index
+                id_indx += 1
 
     # Remove the old time slot IDs
     root[1].clear()
