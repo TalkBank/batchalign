@@ -435,7 +435,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         # remove extra delimiters
         current_sentence = current_sentence.replace("+","+ ")
-        current_sentence = current_sentence.replace("↫","↫ ")
         current_sentence = current_sentence.replace("_","_ ")
         current_sentence = current_sentence.replace("$","$ ")
 
@@ -466,7 +465,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # print(word, current_word[0])
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -475,12 +473,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("“","").replace("”","")
             cleaned_word = cleaned_word.replace(",","").replace("!","")
             cleaned_word = cleaned_word.replace("?","").replace(".","")
-            cleaned_word = cleaned_word.replace("+","").replace("↫","")
+            cleaned_word = cleaned_word.replace("+","")
             cleaned_word = cleaned_word.replace("-","").replace("&","")
             cleaned_word = cleaned_word.replace("_","").replace("\"","")
             cleaned_word = cleaned_word.replace(":","").replace("^","")
             cleaned_word = cleaned_word.replace("$","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
+            cleaned_word = re.sub(r"↫.*?↫", '', cleaned_word)
 
             # include annotated spaces
             if current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
@@ -638,10 +637,11 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         while indx < len(sentence):
             # load the value
             i = sentence[indx]
-            # if alignable and ends with a angle bracket, put the bullet inside the bracket
-            if i[1] and i[0][-1] == '>':
+            # if alignable and ends with a angle bracket or plus sign, put the bullet inside the bracket
+            if i[1] and (i[0][-1] == '>' or i[0][-1] == '+'):
                 sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1]) + i[0].strip()[-1])
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
+
             elif i[0] and i[0][0] == '[':
                 # get template result
                 result = i[0].strip()
@@ -699,8 +699,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         ### Final Santy Checks and Shape Conformations ###
         # remove extra delimiters, as a final sanity check
-        sentence = sentence.replace("+ ","+")
-        sentence = sentence.replace("↫ ","↫")
+        sentence = sentence.replace("+ "," + ")
         sentence = sentence.replace("_ ","_")
         sentence = sentence.replace(" >",">")
         sentence = sentence.replace("< ","<")
