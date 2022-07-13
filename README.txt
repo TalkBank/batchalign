@@ -1,6 +1,40 @@
 batchalign is a Python script that uses the Montreal Forced Aligner OR Penn Phonetics Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
 
-=== Software Installation ===
+=== Quick Setup and Usage ===
+
+## Setup
+
+Begin by setting up a machine with a default package manager. For macOS (M1 or otherwise)
+this means setting up Homebrew (https://brew.sh/).
+
+Then, install anaconda, the environment tool:
+
+brew install miniforge
+
+Then, create an environment called aligner with the required dependencies:
+
+conda create -n aligner montreal-forced-aligner pynini
+
+## Usage
+
+Activate this environment:
+
+conda activate aligner
+
+Ok. You are now ready to run MFA. Begin by placing .cha and .wav/.mp3 to align together
+in your input folder. For instance, ~/mfa_data/input. Create also an empty folder at
+~/mfa_data/output, which will contain the output of MFA.
+
+The following line also assumes that the batchalign script is located at
+~/mfa_data/batchalign-dist/batchalign.py.
+
+To align, execute:
+
+python3 ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output
+
+The resulting aligned files will be located at ~/mfa_data/output.
+
+=== Detailed Installation Instructions===
 
   == For MFA: Download MFA ==
 
