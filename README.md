@@ -1,4 +1,5 @@
-batchalign is a Python script that uses the Montreal Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
+# batchalign
+`batchalign` is a Python script that uses the Montreal Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
 
 # Setup and Usage 
 
