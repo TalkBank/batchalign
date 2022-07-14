@@ -573,6 +573,21 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     current_word = None
                     pass # we have reached the end
 
+            # we may have an extra dash in the beginning, so we catch that
+            elif len(cleaned_word.lower()) > 0 and cleaned_word.lower()[0] =="-" and cleaned_word.split("-")[1].lower() == current_word[0].lower():
+                # append current word
+                buff.append((word, (current_word[1][0], current_word[1][1])))
+                try: 
+                    # The end should be the end of the current word
+                    end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    current_word = None
+                    pass # we have reached the end
+
             # apostrophie carveout. Apostrophies are parsed differently sometimes
             # MFA for no good reason
             elif "'" in cleaned_word.lower() and current_word[0].lower() == cleaned_word.split("'")[0].lower():
