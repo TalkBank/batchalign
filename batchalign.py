@@ -435,7 +435,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         # remove extra delimiters
         current_sentence = current_sentence.replace("+","+ ")
-        current_sentence = current_sentence.replace("_","_ ")
+        # current_sentence = current_sentence.replace("_","_ ")
         current_sentence = current_sentence.replace("$","$ ")
 
         # split results
@@ -459,12 +459,14 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             word = splits[i]
             i += 1
 
+
             # if we are out of words to align, just dump none
             if not current_word:
                 # append the current word 
                 buff.append((word, None))
                 continue
 
+            # print(word, current_word[0])
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -473,11 +475,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("“","").replace("”","")
             cleaned_word = cleaned_word.replace(",","").replace("!","")
             cleaned_word = cleaned_word.replace("?","").replace(".","")
-            cleaned_word = cleaned_word.replace("+","")
-            cleaned_word = cleaned_word.replace("-","").replace("&","")
-            cleaned_word = cleaned_word.replace("_","").replace("\"","")
+            cleaned_word = cleaned_word.replace("+","").replace("&","")
             cleaned_word = cleaned_word.replace(":","").replace("^","")
-            cleaned_word = cleaned_word.replace("$","")
+            cleaned_word = cleaned_word.replace("$","").replace("\"","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"↫.*?↫", '', cleaned_word)
 
@@ -699,7 +699,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         ### Final Santy Checks and Shape Conformations ###
         # remove extra delimiters, as a final sanity check
-        sentence = sentence.replace("+ "," + ")
+        sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("_ ","_")
         sentence = sentence.replace(" >",">")
         sentence = sentence.replace("< ","<")

@@ -7,8 +7,7 @@
 
 Begin by setting up a machine with a default package manager. For macOS (M1 or otherwise) this means setting up Homebrew with instrucitons at https://brew.sh/.
 
-Acquire also a copy of UnixCLAN from https://dali.talkbank.org/clan/unix-clan.zip. Its `0readme.txt`
-should contain its own setup instructions.
+Acquire also a copy of UnixCLAN from https://dali.talkbank.org/clan/unix-clan.zip. Its `0readme.txt` should contain its own setup instructions. Remember to set the shell `PATH` variable to ensure that the UnixCLAN suite can be called.
 
 Then, install anaconda, the environment tool:
 
