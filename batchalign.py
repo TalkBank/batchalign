@@ -655,8 +655,14 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # if alignable and ends with a angle bracket or plus sign, put the bullet inside the bracket
             if i[1] and (i[0][-1] == '>' or i[0][-1] == '+'):
                 sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1]) + i[0].strip()[-1])
+            # if alignable and ends with a dollar sign, put the next mark, then add the bullet
+            elif i[1] and indx+1 < len(sentence) and i[0][-1] == '$':
+                # get the cucrent expression, the next, then bullet
+                cur = i[0].strip()
+                indx += 1
+                cur += sentence[indx][0]
+                sentence_bulleted.append(cur + bullet(i[1][0], i[1][1]))
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
-
             elif i[0] and i[0][0] == '[':
                 # get template result
                 result = i[0].strip()
