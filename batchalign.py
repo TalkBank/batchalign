@@ -719,6 +719,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         sentence = " ".join(sentence_bulleted).strip()
 
         ### Final Santy Checks and Shape Conformations ###
+        # if you can insert proper logic, do so. If not, use
+        # this area as the last-ditch preprocessing step to
+        # make spontaneous final transcript adjustments happen
+        
         # remove extra delimiters, as a final sanity check
         sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("_ ","_")
@@ -727,9 +731,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         sentence = sentence.replace("$ ","$")
         # however, double < should have a space between
         sentence = sentence.replace("<<","< <")
+        sentence = sentence.replace("+<"," +< ")
+        sentence = sentence.replace("[<]"," [<] ")
+
+        sentence = re.sub(r" +", " ", sentence)
 
         # concat and append to bulleted results
-        bulleted_results.append(sentence)
+        bulleted_results.append(sentence.strip())
 
     # Return the fimal alignments
     return {"alignments": alignments, "terms": bulleted_results, "raw": results}
