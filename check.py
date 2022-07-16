@@ -11,6 +11,8 @@ import pathlib
 import re
 # glob
 import glob
+# argument
+import argparse
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -20,7 +22,15 @@ repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file
 CLAN_PATH=""
 
 # file to check
-CHECKDIR="/Users/houliu/Documents/Projects/talkbank-alignment/EllisWeismer/out"
+parser = argparse.ArgumentParser(description="check batchalign output for &wor and *main tier alignment")
+parser.add_argument("out_dir", type=str, help='output directory with aligned .cha files')
+
+# parse args
+args = parser.parse_args()
+
+# check
+CHECKDIR=args.out_dir
+
 
 # get output
 files = globase(CHECKDIR, "*.cha")
@@ -62,7 +72,7 @@ for checkfile in files:
 
     # get the last line
     last_line = result[-1]
-    last_line_bullet = re.search("\d*_\d*", last_line)
+    last_line_bullet = re.search("\d+_\d+", last_line)
 
 
     # new the result
@@ -89,6 +99,10 @@ for checkfile in files:
         if i != j:
             errors.append(indx)
 
+    # print bullets
+    if last_line_bullet == None:
+        print("Last line bullet not found!\n")
+
     # print results
     print()
     print(f"check.py output on {os.path.basename(checkfile)}")
@@ -102,7 +116,7 @@ for checkfile in files:
     if len(errors) == 0:
         print("No inconsistencies found!\n")
 
-    if not last_line_bullet:
-        print("Last line bullet not found!\n")
 
+# manloop to take input
+# ((word, (start_time, end_time))... x number_words)
 
