@@ -466,7 +466,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # print(word, current_word[0])
+            # if "12004" in elan:
+                # print(word, current_word[0])
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -505,6 +506,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     end = current_word[1][1]
 
                     # WE DONT SET PREVIOUS END HERE b/c there's no word 
+                    
 
                     # pop the current word
                     current_word = wordlist_alignments.pop(0)
@@ -532,15 +534,17 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # where sometimes dashed tokens are parsed as
             # one token and sometimes two. Therefore, if we made
             # a mistake, we split the dashes and try again
-            elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower():
+            # but this screws up some brackets, so if we are in a bracket
+            # we don't do this
+            elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower() and "[" not in word and "]" not in word:
                 # split the word
                 word_split = word.split("-")
                 # enumerate over the split word
-                for i in word_split:
+                for j in word_split:
                     # go through the results and append
-                    while i.lower() == current_word[0].lower():
+                    while j.lower() == current_word[0].lower():
                         # append current word
-                        buff.append((i, (current_word[1][0], current_word[1][1])))
+                        buff.append((j, (current_word[1][0], current_word[1][1])))
                         try: 
                             # The end should be the end of the current word
                             end = current_word[1][1]
@@ -618,6 +622,41 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 try: 
                     # The end should be the end of the current word
                     end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    current_word = None
+                    pass # we have reached the end
+            # after everything, if we still haven't aligned, check if the textgrid
+            # was generated using a legacy corpus with spaces in place of + instead
+            # of joining up the tokens
+            elif current_word[0].lower() == cleaned_word[:len(current_word[0])]:
+                # calculate start and end
+                beg = current_word[1][0]
+                fin = current_word[1][1]
+                # baseword
+                baseword = cleaned_word[:len(current_word[0])].strip()
+                # calculate start index
+                startindx = len(current_word[0])
+                # increment, skipping spaces, and append
+                while baseword != cleaned_word:
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                    # and if not space
+                    if current_word != "":
+                        # increment baseword
+                        baseword += cleaned_word[startindx:startindx+len(current_word[0])]
+                        # calculate new startindex
+                        startindx = startindx+len(current_word[0])
+                        # calculate end
+                        fin = current_word[1][1]
+                # append to the buffer
+                buff.append((word, (beg, fin)))
+                try: 
+                    # The end should be the end of the current word
+                    end = fin
                     # set previous ending as the end of the current one
                     prevend = end
                     # pop the current word
