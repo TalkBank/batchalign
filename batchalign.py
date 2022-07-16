@@ -147,7 +147,7 @@ def chat2elan(directory):
             df.write(cleaned_content)
             
     # chat2elan it!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +e.wav {' '.join(files_cleaned)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +c +e.wav {' '.join(files_cleaned)} >/dev/null 2>&1"
 
     # run!
     os.system(CMD)
@@ -1107,6 +1107,7 @@ parser.add_argument("out_dir", type=str, help='output directory to store aligned
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
 parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
 parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
+parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":
@@ -1115,6 +1116,6 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, args.beam, align=(not args.skipalign))
+        do_align(args.in_dir, args.out_dir, args.data_dir, args.beam, align=(not args.skipalign), clean=(not args.skipclean))
 
 # ((word, (start_time, end_time))... x number_words)
