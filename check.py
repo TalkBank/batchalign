@@ -20,7 +20,7 @@ repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file
 CLAN_PATH=""
 
 # file to check
-CHECKDIR="/Users/houliu/Documents/Projects/talkbank-alignment/DementiaBank/dementia/out/"
+CHECKDIR="/Users/houliu/Documents/Projects/talkbank-alignment/EllisWeismer/out"
 
 # get output
 files = globase(CHECKDIR, "*.cha")
@@ -29,7 +29,7 @@ files = globase(CHECKDIR, "*.cha")
 for checkfile in files:
 
     # run flo on the file
-    CMD = f"{os.path.join(CLAN_PATH, 'flo +t%xwor')} {checkfile} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'flo +t%xwor +t%wor')} {checkfile} >/dev/null 2>&1"
     # run!
     os.system(CMD)
 
@@ -59,6 +59,11 @@ for checkfile in files:
         else:
             # just append typical value
             result.append(value)
+
+    # get the last line
+    last_line = result[-1]
+    last_line_bullet = re.search("\d*_\d*", last_line)
+
 
     # new the result
     result = [re.sub(" \\x15\d*_\d*\\x15>", ">", i) for i in result] # bullets
@@ -96,5 +101,8 @@ for checkfile in files:
     # if no errors, print
     if len(errors) == 0:
         print("No inconsistencies found!\n")
+
+    if not last_line_bullet:
+        print("Last line bullet not found!\n")
 
 
