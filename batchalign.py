@@ -57,6 +57,8 @@ CURRENT_PATH=pathlib.Path(__file__).parent.resolve()
 CLAN_PATH=""
 ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 
+DISFLULENCY_CODE = re.compile("\[.\]")
+
 # import textgrid
 from opt.textgrid.textgrid import TextGrid
 
@@ -425,7 +427,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # with zero-time bullets
         else:
             start = end 
-            
+
+
 
         # set template ending
         prevend = end
@@ -466,8 +469,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # if "12004" in elan:
-                # print(word, current_word[0])
+            # if "12037" in elan:
+            #     print(word, current_word[0])
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -678,7 +681,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # either way, copy buffer
         results.append(buff.copy())
 
-    # print(results)
+    # if "12037" in elan:
+        # print(results)
 
     bulleted_results = []
     # Convert bulleted results
@@ -701,6 +705,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 indx += 1
                 cur += sentence[indx][0]
                 sentence_bulleted.append(cur + bullet(i[1][0], i[1][1]))
+            # if alignable and next is a code, append the code first
+            elif i[1] and indx+1 < len(sentence) and DISFLULENCY_CODE.match(sentence[indx+1][0]):
+                sentence_bulleted.append(i[0] + " " + sentence[indx+1][0] + bullet(i[1][0], i[1][1]))
+                indx += 1
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
             elif i[0] and i[0][0] == '[':
                 # get template result
