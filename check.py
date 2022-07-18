@@ -71,7 +71,14 @@ for checkfile in files:
             result.append(value)
 
     # get the last line
-    last_line = result[-1]
+    try:
+        last_line = result[-1]
+    except IndexError:
+        print()
+        print(f"check.py output on {os.path.basename(checkfile)}")
+        print("-----------------------------\n")
+        print("Empty file found! Skipping...\n")
+        continue
     last_line_bullet = re.search("\d+_\d+", last_line)
 
 
