@@ -70,6 +70,14 @@ This command assumes, in to addition to `~/mfa_data/input`, that there is a `dat
 python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --skipalign
 ```
 
+## Align with existing dictionary
+
+This command assumes, in to addition to `~/mfa_data/input`, there is a dictionary located at `~/mfa_data/dictionary.dict`.
+
+```bash
+python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --dictionary ~/mfa_data/dictionary.dict
+```
+
 ## Clean up
 If there is stray files in the input folder (`.eaf`, `.lab`, etc.) after alignment, it is likely that the program crashed. To clean up all stray files, run:
 

@@ -1167,6 +1167,6 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary)
+        do_align(args.in_dir, args.out_dir, args.data_dir, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary)
 
 # ((word, (start_time, end_time))... x number_words)
