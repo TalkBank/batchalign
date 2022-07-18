@@ -277,13 +277,14 @@ def wavconformation(directory):
         # and move the new back
         os.rename("temp.wav", f)
 
-def align_directory_mfa(directory, data_dir, beam=100):
+def align_directory_mfa(directory, data_dir, dictionary=None, beam=100):
     """Given a directory of .wav and .lab, align them
 
     Arguments:
         directory (string): string directory filled with .wav and .lab files with same name
         data_dir (string): output directory for textgrids
-        beam (int): beam width for initial MFA alignment
+        [dictionary (str)]: dictionary to use
+        [beam (int)]: beam width for initial MFA alignment
 
     Returns:
         none
@@ -303,7 +304,8 @@ def align_directory_mfa(directory, data_dir, beam=100):
         os.system(CMD)
 
     # define dictionary path
-    dictionary = os.path.join(directory, 'dictionary.txt')
+    if not dictionary:
+        dictionary = os.path.join(directory, 'dictionary.txt')
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
@@ -1073,7 +1075,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", beam=100, clean=True, align=True):
+def do_align(in_directory, out_directory, data_directory="data", dictionary=None, beam=100, clean=True, align=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -1081,9 +1083,10 @@ def do_align(in_directory, out_directory, data_directory="data", beam=100, clean
         out_directory (string): the directory for the output files
         data_directory (string): the subdirectory (rel. to out_directory) which the misc.
                                  outputs go
-        beam (int): beam width for initial MFA alignment
-        clean (bool): whether to clean up, used for debugging
-        align (bool): whether to actually align, used for debugging
+        [dictionary (str)]: dictionary to use
+        [beam (int)]: beam width for initial MFA alignment
+        [clean (bool)]: whether to clean up, used for debugging
+        [align (bool)]: whether to actually align, used for debugging
 
     Returns:
         none
@@ -1116,7 +1119,7 @@ def do_align(in_directory, out_directory, data_directory="data", beam=100, clean
     # if we are to align
     if align:
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam)
+        align_directory_mfa(in_directory, DATA_DIR, beam=beam, dictionary=dictionary)
 
     # find textgrid files
     alignments = globase(DATA_DIR, "*.TextGrid")
@@ -1155,6 +1158,7 @@ parser.add_argument("--data_dir", type=str, default="data", help='subdirectory o
 parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
 parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
 parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
+parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":
@@ -1163,6 +1167,6 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, args.beam, align=(not args.skipalign), clean=(not args.skipclean))
+        do_align(args.in_dir, args.out_dir, args.data_dir, args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary)
 
 # ((word, (start_time, end_time))... x number_words)
