@@ -57,7 +57,7 @@ CURRENT_PATH=pathlib.Path(__file__).parent.resolve()
 CLAN_PATH=""
 ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 
-DISFLULENCY_CODE = re.compile("\[.\]")
+DISFLULENCY_CODE = re.compile("\[.*?\]")
 
 # import textgrid
 from opt.textgrid.textgrid import TextGrid
@@ -717,7 +717,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 sentence_bulleted.append(i[0] + " " + sentence[indx+1][0] + bullet(i[1][0], i[1][1]))
                 indx += 1
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
-            elif i[0] and i[0][0] == '[':
+            elif (i[1] and indx+1 < len(sentence) and sentence[indx+1][0] and sentence[indx+1][0][0] == '[') or (i[0] and i[0][0] == '['):
                 # get template result
                 result = i[0].strip()
                 # clear start and end
@@ -743,7 +743,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     result = result + " " + sentence[indx][0].strip()
                     # check if closed
                     if result[-1] == "]":
-                        break
+                        # if there's a next, and the next is not another open
+                        if (indx+1 < len(sentence) and sentence[indx+1][0] != "" and sentence[indx+1][0][0] != "[") or indx+1 >= len(sentence):
+                            break
 
                 if start:
                     # append result
