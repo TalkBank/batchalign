@@ -60,7 +60,7 @@ ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 DISFLULENCY_CODE = re.compile("\[.*?\]")
 
 # import textgrid
-from opt.textgrid.textgrid import TextGrid
+from opt.textgrid.textgrid import Interval, TextGrid, IntervalTier
 
 # indent an XML
 def indent(elem, level=0):
@@ -236,7 +236,70 @@ def chat2transcript(directory):
     # and rename the files to lab files, which are essentially the same thing
     for f in globase(directory, "*.flo.cex"):
         os.rename(f, f.replace(".flo.cex", ".lab"))
-   
+
+# chat2praat, then clean up tiers, for a whole path
+def chat2praat(directory):
+    """Convert a whole directory to praat files
+
+    Arguments:
+        directory (string) : string directory filled with chat
+
+    Returns:
+        none
+    """
+    # then, finding all the cha files
+    files = globase(directory, "*.cha")
+
+    # use flo to convert chat files to text
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.wav')} {' '.join(files)} >/dev/null 2>&1"
+    # run!
+    os.system(CMD)
+
+    # then, finding all the praat files
+    praats = globase(directory, "*.c2praat.textGrid")
+
+    for praat in praats:
+        # load the textgrid
+        text_grid = TextGrid.fromFile(praat)
+
+        # filter main tiers
+        main_tiers = [i for i in text_grid if "[main]" in i.name]
+
+        # dump out all intervals
+        intervals = [j for i in main_tiers for j in i if j.mark]
+        intervals.sort(key=lambda x:x.minTime)
+
+        # and create the final tier
+        combined_tier = IntervalTier("main")
+
+        # and add all to the combined tier
+        for interval in intervals:
+            orig = interval.mark
+            # remove all action annotatinos
+            mark = re.sub(r"&=.[\w:]+", r'', interval.mark)
+            mark = re.sub(r"@l", r'', mark)
+            # modify all marks to drop any annotations
+            mark = re.findall(r"[\w']+", mark)
+            # humph
+            interval.mark = ' '.join(mark).strip()
+            # add to tier
+            combined_tier.addInterval(interval)
+
+        # create the final file
+        name = pathlib.Path(praat).stem.split(".")[0]
+        tg = TextGrid(name=name)
+        # append the resulting tier
+        tg.append(combined_tier)
+        # and finally, write
+        tg.write(praat.replace("c2praat.textGrid", "TextGrid"))
+        # and remove the textgrid
+        os.remove(praat)
+
+    # delete any error logs
+    for f in globase(directory, "*.err.cex"):
+        os.remove(f)
+
+
 # optionally convert mp3 to wav files
 def mp32wav(directory):
     """Generate wav files from mp3
@@ -1046,6 +1109,12 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.rename(f, repath_file(f, DATA_DIR)) 
 
     # move all the lab files 
+    tgfiles = globase(in_directory, "*.TextGrid")
+    # Rename each one
+    for f in tgfiles:
+        os.rename(f, repath_file(f.replace("TextGrid", "orig.textGrid"), DATA_DIR)) 
+
+    # move all the lab files 
     labfiles = globase(in_directory, "*.lab")
     # Rename each one
     for f in labfiles:
@@ -1087,7 +1156,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", model=None, dictionary=None, beam=100, clean=True, align=True):
+def do_align(in_directory, out_directory, data_directory="data", model=None, dictionary=None, beam=100, prealigned=False, clean=True, align=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -1098,6 +1167,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         [model (str)]: the model to use
         [dictionary (str)]: dictionary to use
         [beam (int)]: beam width for initial MFA alignment
+        [prealigned (bool)]: whether to start with preexisting alignments from the originial CHA files
         [clean (bool)]: whether to clean up, used for debugging
         [align (bool)]: whether to actually align, used for debugging
 
@@ -1116,14 +1186,18 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     # convert all mp3s to wavs
     mp32wav(in_directory)
 
-    # convert all chats to transcripts
-    chat2transcript(in_directory)
-
     # Generate elan elan elan elan
     chat2elan(in_directory)
 
     # generate utterance and word-level alignments
     elans = globase(in_directory, "*.eaf")
+
+    if prealigned:
+        # convert all chats to TextGrids
+        chat2praat(in_directory)
+    else:
+        # convert all chats to transcripts
+        chat2transcript(in_directory)
 
     # NOTE FOR FUTURE EDITORS
     # TextGrid != textGrid. P2FA and MFA generate different results
@@ -1167,6 +1241,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
 parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
 parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
 parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
+parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
 parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
 parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
@@ -1181,6 +1256,6 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=args.prealigned, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
 
 # ((word, (start_time, end_time))... x number_words)
