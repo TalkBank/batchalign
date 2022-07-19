@@ -476,8 +476,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # if "12037" in elan:
-            #     print(word, current_word[0])
+            # if "12033" in elan:
+                # print(word, current_word[0])
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -712,12 +712,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 indx += 1
                 cur += sentence[indx][0]
                 sentence_bulleted.append(cur + bullet(i[1][0], i[1][1]))
-            # if alignable and next is a code, append the code first
-            elif i[1] and indx+1 < len(sentence) and DISFLULENCY_CODE.match(sentence[indx+1][0]):
-                sentence_bulleted.append(i[0] + " " + sentence[indx+1][0] + bullet(i[1][0], i[1][1]))
-                indx += 1
             # if alignable and ends with a square bracket, put the bullet after the last the bracket
-            elif (i[1] and indx+1 < len(sentence) and sentence[indx+1][0] and sentence[indx+1][0][0] == '[') or (i[0] and i[0][0] == '['):
+            # TODO. Future editors, please accept my apologies for the following line.
+            elif (i[1] and ((indx+1 < len(sentence) and sentence[indx+1][0] and sentence[indx+1][0][0] == '[') or (indx+2 < len(sentence) and sentence[indx+1][0] == "" and sentence[indx+2][0] and sentence[indx+2][0][0] == '['))) or (i[0] and i[0][0] == '['):
+                # if "12033" in elan:
+                #     print(i, sentence[indx+1])
+
                 # get template result
                 result = i[0].strip()
                 # clear start and end
@@ -745,6 +745,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     if result[-1] == "]":
                         # if there's a next, and the next is not another open
                         if (indx+1 < len(sentence) and sentence[indx+1][0] != "" and sentence[indx+1][0][0] != "[") or indx+1 >= len(sentence):
+
                             break
 
                 if start:
@@ -753,6 +754,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 else:
                     # append result without bullet
                     sentence_bulleted.append(result)
+            # if alignable and next is a code, append the code first
+            elif i[1] and indx+1 < len(sentence) and DISFLULENCY_CODE.match(sentence[indx+1][0]):
+                sentence_bulleted.append(i[0] + " " + sentence[indx+1][0] + bullet(i[1][0], i[1][1]))
+                indx += 1
             # if alignable and next is a repeat, append a bracket
             # and then the bullet
             elif i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0:2] == "[/":
