@@ -251,7 +251,7 @@ def chat2praat(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.wav')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +c -t% +e.wav')} {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
 
@@ -265,31 +265,10 @@ def chat2praat(directory):
         # filter main tiers
         main_tiers = [i for i in text_grid if "[main]" in i.name]
 
-        # dump out all intervals
-        intervals = [j for i in main_tiers for j in i if j.mark]
-        intervals.sort(key=lambda x:x.minTime)
-
-        # and create the final tier
-        combined_tier = IntervalTier("main")
-
-        # and add all to the combined tier
-        for interval in intervals:
-            orig = interval.mark
-            # remove all action annotatinos
-            mark = re.sub(r"&=.[\w:]+", r'', interval.mark)
-            mark = re.sub(r"@l", r'', mark)
-            # modify all marks to drop any annotations
-            mark = re.findall(r"[\w']+", mark)
-            # humph
-            interval.mark = ' '.join(mark).strip()
-            # add to tier
-            combined_tier.addInterval(interval)
-
-        # create the final file
         name = pathlib.Path(praat).stem.split(".")[0]
         tg = TextGrid(name=name)
         # append the resulting tier
-        tg.append(combined_tier)
+        [tg.append(i) for i in main_tiers]
         # and finally, write
         tg.write(praat.replace("c2praat.textGrid", "TextGrid"))
         # and remove the textgrid
@@ -400,12 +379,16 @@ def parse_textgrid_long(file_path):
     text_grid = TextGrid.fromFile(file_path)
 
     # Get tiers
-    word = text_grid[0]
-    pho = text_grid[1]
+    word = [i for i in text_grid if "words" in i.name]
+    pho = [i for i in text_grid if "phones" in i.name]
 
     # Convert pho and word tiers
-    word_tiers = [(i.mark, (i.minTime, i.maxTime)) for i in word]
-    phone_tiers = [(i.mark, (i.minTime, i.maxTime)) for i in pho]
+    word_tiers = [[(i.mark, (i.minTime, i.maxTime)) for i in j] for j in word]
+    phone_tiers = [[(i.mark, (i.minTime, i.maxTime)) for i in j] for j in pho]
+
+    # flatten word tiers and sort 
+    word_tiers = sorted(sum(word_tiers, []), key=lambda x:x[1][0])
+    phone_tiers = sorted(sum(phone_tiers, []), key=lambda x:x[1][0])
 
     # Skip all blanks (to reinsert spaces)
     # word_tiers = list(filter(lambda x:x[0]!="", word_tiers))
@@ -539,8 +522,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # if "12033" in elan:
-                # print(word, current_word[0])
+            # if "11023" in elan:
+            #     print(f"'{word}'", f"'{current_word[0]}'")
 
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
@@ -555,8 +538,20 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"↫.*?↫", '', cleaned_word)
 
-            # include annotated spaces
-            if current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
+            # we ignore accidentally stringified quot for --prealigned optino
+            if current_word[0] and current_word[0]=="quot":
+                # append the next 
+                try: 
+                    # WE DONT SET PREVIOUS END HERE b/c there's no word 
+
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                    # print(current_word)
+                except IndexError:
+                    current_word = None
+                    pass # we have reached the end
+            # skip annotated spaces
+            elif current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
                 # append the next 
                 try: 
                     # The end should be the end of the current word
@@ -591,6 +586,22 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # disfluency adjustments
             elif cleaned_word.lower() == current_word[0].lower():
                 # append current word
+                buff.append((word, (current_word[1][0], current_word[1][1])))
+                try: 
+                    # The end should be the end of the current word
+                    end = current_word[1][1]
+                    # set previous ending as the end of the current one
+                    prevend = end
+                    # pop the current word
+                    current_word = wordlist_alignments.pop(0)
+                except IndexError:
+                    current_word = None
+                    pass # we have reached the end
+            # "give up" policy for one off misaligned words, for prealigned, if one off is exactly correct, we just take it
+            elif len(wordlist_alignments)>0 and wordlist_alignments[0][0] == cleaned_word:
+                # give up
+                current_word = wordlist_alignments.pop(0)
+                # append the now current word
                 buff.append((word, (current_word[1][0], current_word[1][1])))
                 try: 
                     # The end should be the end of the current word
@@ -766,10 +777,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             # load the value
             i = sentence[indx]
             # if alignable and ends with a angle bracket or plus sign, put the bullet inside the bracket
-            if i[1] and (i[0][-1] == '>' or i[0][-1] == '+'):
+            if i[1] and (i[0] != '' and (i[0][-1] == '>' or i[0][-1] == '+')):
                 sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1]) + i[0].strip()[-1])
             # if alignable and ends with a dollar sign, put the next mark, then add the bullet
-            elif i[1] and indx+1 < len(sentence) and i[0][-1] == '$':
+            elif i[1] and indx+1 < len(sentence) and i[0] != '' and i[0][-1] == '$':
                 # get the cucrent expression, the next, then bullet
                 cur = i[0].strip()
                 indx += 1
