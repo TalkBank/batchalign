@@ -591,7 +591,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 current_word = wordlist_alignments.pop(0)
                 # if its a space, give up the space too
                 if current_word[0] == '':
-                    current_word = wordlist_alignments.pop(0)
+                    try: 
+                        # update word
+                        current_word = wordlist_alignments.pop(0)
+                    except IndexError:
+                        # we give up and reached the end
+                        pass
                 # append the now current word
                 buff.append((word, (current_word[1][0], current_word[1][1])))
                 try: 
