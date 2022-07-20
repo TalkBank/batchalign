@@ -251,7 +251,7 @@ def chat2praat(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +c -t% +e.wav')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.mp3 +c -t% -t@')} {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
 
@@ -260,19 +260,7 @@ def chat2praat(directory):
 
     for praat in praats:
         # load the textgrid
-        text_grid = TextGrid.fromFile(praat)
-
-        # filter main tiers
-        main_tiers = [i for i in text_grid if "[main]" in i.name]
-
-        name = pathlib.Path(praat).stem.split(".")[0]
-        tg = TextGrid(name=name)
-        # append the resulting tier
-        [tg.append(i) for i in main_tiers]
-        # and finally, write
-        tg.write(praat.replace("c2praat.textGrid", "TextGrid"))
-        # and remove the textgrid
-        os.remove(praat)
+       os.rename(praat, praat.replace("c2praat.textGrid", "TextGrid"))
 
     # delete any error logs
     for f in globase(directory, "*.err.cex"):
@@ -522,7 +510,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # if "11023" in elan:
+            # if "11024" in elan:
             #     print(f"'{word}'", f"'{current_word[0]}'")
 
             # clean the word of extraneous symbols
@@ -598,9 +586,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     current_word = None
                     pass # we have reached the end
             # "give up" policy for one off misaligned words, for prealigned, if one off is exactly correct, we just take it
-            elif len(wordlist_alignments)>0 and wordlist_alignments[0][0] == cleaned_word:
+            elif (len(wordlist_alignments)>0 and wordlist_alignments[0][0] == cleaned_word) or (len(wordlist_alignments)>1 and wordlist_alignments[0][0] == '' and wordlist_alignments[1][0] == cleaned_word) :
                 # give up
                 current_word = wordlist_alignments.pop(0)
+                # if its a space, give up the space too
+                if current_word[0] == '':
+                    current_word = wordlist_alignments.pop(0)
                 # append the now current word
                 buff.append((word, (current_word[1][0], current_word[1][1])))
                 try: 
