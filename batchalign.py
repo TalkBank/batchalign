@@ -855,12 +855,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         sentence = sentence.replace(" >",">")
         sentence = sentence.replace("< ","<")
         sentence = sentence.replace("$ ","$")
+        sentence = sentence.replace("& ","&")
         # however, double < should have a space between
         sentence = sentence.replace("<<","< <")
         sentence = sentence.replace("+<"," +< ")
         sentence = sentence.replace("[<]"," [<] ")
 
-        sentence = re.sub(r" +", " ", sentence)
+        # sentence = re.sub(r" +", " ", sentence)
 
         # concat and append to bulleted results
         bulleted_results.append(sentence.strip())

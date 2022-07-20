@@ -79,6 +79,8 @@ for checkfile in files:
         print("-----------------------------\n")
         print("Empty file found! Skipping...\n")
         continue
+
+    # print(last_line)
     last_line_bullet = re.search("\d+_\d+", last_line)
 
 
@@ -106,10 +108,6 @@ for checkfile in files:
         if i != j:
             errors.append(indx)
 
-    # print bullets
-    if last_line_bullet == None:
-        print("Last line bullet not found!\n")
-
     # print results
     print()
     print(f"check.py output on {os.path.basename(checkfile)}")
@@ -122,6 +120,11 @@ for checkfile in files:
     # if no errors, print
     if len(errors) == 0:
         print("No inconsistencies found!\n")
+
+    # print bullets
+    if last_line_bullet == None:
+        print("Last line bullet not found!\n")
+
 
 
 # manloop to take input
