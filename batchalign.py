@@ -585,56 +585,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 except IndexError:
                     current_word = None
                     pass # we have reached the end
-            # "give up" policy for one off misaligned words, for prealigned, if one off is exactly correct, we just take it
-            elif (len(wordlist_alignments)>0 and wordlist_alignments[0][0] == cleaned_word) or (len(wordlist_alignments)>1 and wordlist_alignments[0][0] == '' and wordlist_alignments[1][0] == cleaned_word) :
-                # give up
-                current_word = wordlist_alignments.pop(0)
-                # if its a space, give up the space too
-                if current_word[0] == '':
-                    try: 
-                        # update word
-                        current_word = wordlist_alignments.pop(0)
-                    except IndexError:
-                        # we give up and reached the end
-                        pass
-                # append the now current word
-                buff.append((word, (current_word[1][0], current_word[1][1])))
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # TODO HACKY!!
-            # dashes carveout. Dashes is parsed inconsistently
-            # where sometimes dashed tokens are parsed as
-            # one token and sometimes two. Therefore, if we made
-            # a mistake, we split the dashes and try again
-            # but this screws up some brackets, so if we are in a bracket
-            # we don't do this
-            elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower() and "[" not in word and "]" not in word:
-                # split the word
-                word_split = word.split("-")
-                # enumerate over the split word
-                for j in word_split:
-                    # go through the results and append
-                    while j.lower() == current_word[0].lower():
-                        # append current word
-                        buff.append((j, (current_word[1][0], current_word[1][1])))
-                        try: 
-                            # The end should be the end of the current word
-                            end = current_word[1][1]
-                            # set previous ending as the end of the current one
-                            prevend = end
-                            # pop the current word
-                            current_word = wordlist_alignments.pop(0)
-                        except IndexError:
-                            current_word = None
-                            pass # we have reached the end
             # TODO HACKY!!
             # underscore carveout. Underscore is parsed inconsistently
             # where sometimes underscores exists in the lab transcript
@@ -744,6 +694,32 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 except IndexError:
                     current_word = None
                     pass # we have reached the end
+            # TODO HACKY!!
+            # dashes carveout. Dashes is parsed inconsistently
+            # where sometimes dashed tokens are parsed as
+            # one token and sometimes two. Therefore, if we made
+            # a mistake, we split the dashes and try again
+            # but this screws up some brackets, so if we are in a bracket
+            # we don't do this
+            elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower() and "[" not in word and "]" not in word:
+                # split the word
+                word_split = word.split("-")
+                # enumerate over the split word
+                for j in word_split:
+                    # go through the results and append
+                    while j.lower() == current_word[0].lower():
+                        # append current word
+                        buff.append((j, (current_word[1][0], current_word[1][1])))
+                        try: 
+                            # The end should be the end of the current word
+                            end = current_word[1][1]
+                            # set previous ending as the end of the current one
+                            prevend = end
+                            # pop the current word
+                            current_word = wordlist_alignments.pop(0)
+                        except IndexError:
+                            current_word = None
+                            pass # we have reached the end
             else:
                 # append the current word 
                 buff.append((word, None))
