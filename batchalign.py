@@ -307,7 +307,7 @@ def wavconformation(directory):
         # and move the new back
         os.rename("temp.wav", f)
 
-def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=100):
+def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=10):
     """Given a directory of .wav and .lab, align them
 
     Arguments:
@@ -348,7 +348,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         os.system(CMD)
 
     # and finally, align!
-    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam}"
+    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100 --verbose"
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
@@ -510,9 +510,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                 buff.append((word, None))
                 continue
 
-            # if "11024" in elan:
-            #     print(f"'{word}'", f"'{current_word[0]}'")
-
             # clean the word of extraneous symbols
             cleaned_word = word.lower().replace("(","").replace(")","")
             cleaned_word = cleaned_word.replace("[","").replace("]","")
@@ -524,7 +521,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace(":","").replace("^","")
             cleaned_word = cleaned_word.replace("$","").replace("\"","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
-            cleaned_word = re.sub(r"↫.*?↫", '', cleaned_word)
+            cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
+
+            if "12007" in elan:
+                print(f"'{cleaned_word}'", f"'{current_word[0]}'")
 
             # we ignore accidentally stringified quot for --prealigned optino
             if current_word[0] and current_word[0]=="quot":
@@ -1140,7 +1140,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
         os.remove(eaf_file)
 
 
-def do_align(in_directory, out_directory, data_directory="data", model=None, dictionary=None, beam=100, prealigned=False, clean=True, align=True):
+def do_align(in_directory, out_directory, data_directory="data", model=None, dictionary=None, beam=10, prealigned=False, clean=True, align=True):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -1163,8 +1163,12 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     DATA_DIR = os.path.join(out_directory, data_directory)
 
     # Make the data directory if needed
-    if not os.path.exists(DATA_DIR):
-        os.mkdir(DATA_DIR)
+    if os.path.exists(DATA_DIR) and align:
+        input("\nFound data folder, yet we are not --skipalign,\nso we will delete the data folder. \nPlease press enter to confirm > ")
+        print()
+        print("Thank you. We are proceeding.")
+        print()
+        os.rmdir(DATA_DIR)
 
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
@@ -1227,7 +1231,7 @@ parser.add_argument("in_dir", type=str, help='input directory containing .cha an
 parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
 parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
 parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
-parser.add_argument("--beam", type=int, default=100, help='beam width for MFA, ignored for P2FA')
+parser.add_argument("--beam", type=int, default=30, help='beam width for MFA, ignored for P2FA')
 parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
 parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
 parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
