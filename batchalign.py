@@ -23,6 +23,7 @@ import pathlib
 
 # I/O and stl
 import os
+from posixpath import expanduser
 import random # for testing
 
 # Import pathing utilities
@@ -36,6 +37,8 @@ import xml.etree.ElementTree as ET
 
 # Also, include regex
 import re
+from nltk.sem.logic import ExpectedMoreTokensException
+from nltk.translate.api import AlignedSent
 
 # Import a progress bar
 from tqdm import tqdm
@@ -45,6 +48,9 @@ import argparse
 
 # defaultdict
 from collections import defaultdict
+
+# silence OMP
+os.environ["KMP_WARNINGS"] = "FALSE" 
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -251,7 +257,7 @@ def chat2praat(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.mp3 +c -t% -t@')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.wav +c -t% -t@')} {' '.join(files)} >/dev/null 2>&1"
     # run!
     os.system(CMD)
 
@@ -323,13 +329,13 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
 
     # TODO for non-macOS systems
     # check if the g2p model exists, if not, download them
-    if not os.path.exists("~/Documents/MFA/extracted_models/g2p/english_us_arpa"):
+    if not os.path.exists(expanduser("~/Documents/MFA/pretrained_models/g2p/english_us_arpa.zip")):
         # Get and download the model
         CMD = "mfa model download g2p english_us_arpa"
         os.system(CMD)
 
     # check if the acoustic model exists, if not, download them
-    if not os.path.exists("~/Documents/MFA/extracted_models/acoustic/english_us_arpa"):
+    if not os.path.exists(expanduser("~/Documents/MFA/pretrained_models/acoustic/english_us_arpa.zip")):
         # Get and download the model
         CMD = "mfa model download acoustic english_us_arpa"
         os.system(CMD)
@@ -348,7 +354,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         os.system(CMD)
 
     # and finally, align!
-    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100 --verbose"
+    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100"
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
@@ -379,8 +385,8 @@ def parse_textgrid_long(file_path):
     phone_tiers = sorted(sum(phone_tiers, []), key=lambda x:x[1][0])
 
     # Skip all blanks (to reinsert spaces)
-    # word_tiers = list(filter(lambda x:x[0]!="", word_tiers))
-    # phone_tiers = list(filter(lambda x:x[0]!="", phone_tiers))
+    word_tiers = list(filter(lambda x:x[0]!="", word_tiers))
+    phone_tiers = list(filter(lambda x:x[0]!="", phone_tiers))
 
     # return the result
     return (word_tiers, phone_tiers)
@@ -436,81 +442,38 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
     # Get alignment form
     if alignment_form == "long":
-        wordlist_alignments, _ = parse_textgrid_long(alignments)
+        aligned_words, _ = parse_textgrid_long(alignments)
     elif alignment_form == "short":
-        wordlist_alignments = parse_textgrid_short(alignments)
+        aligned_words = parse_textgrid_short(alignments)
     else:
         raise Exception(f"unknown alignment_form {alignment_form}")
+
+    # cleaned transcirpt
+    unaligned_words = []
+    sentence_starts = []
+    sentence_ends = []
     
+    # we perform cleaning and tokenization of the transcript
+    # to create an unaligned word plate. This is used fro
+    # matching against the aligned word
 
-    # Get the top word to be aligned
-    current_word = wordlist_alignments.pop(0)
-
-    # Create a list of start and end results
-    alignments = []
-    # Create a list of results
-    results = []
-
-    # emergency pop
-    emergency = 0
-
-    # pnev ending
-    prevend = 0
+    # index becase we'll be doing a lot of shuffling
+    i = 0
 
     # For each sentence
     for current_sentence in transcript:
-        # if we have more content to align
-        if current_word:
-            # Set start and end for the current interval
-            start = current_word[1][0]
-            end = current_word[1][1] # create template ending in case the end doesn't exist
-        # otherwise, just make everything else unaligned by making start and end the same
-        # with zero-time bullets
-        else:
-            start = end 
-
-
-
-        # set template ending
-        prevend = end
-
-        # create a running buffer
-        buff = []
-
         # remove extra delimiters
         current_sentence = current_sentence.replace("+","+ ")
-        # current_sentence = current_sentence.replace("_","_ ")
         current_sentence = current_sentence.replace("$","$ ")
 
         # split results
         splits = current_sentence.split(" ")
-        split_length = len(splits)
 
-        i = 0
+        # append boundaries
+        sentence_starts.append(i)
 
-        # for the current word in the current sentence
-        # check if it is the current word. If it is, move
-        # on and update end interval. If not, ignore the wrod
-        #
-        # HACKY we also remove the space in front of brackets so that
-        # the annotations there can be aligned
-        # HACKY dashes are spaces, apparently
-        # HACKY plus signs are spaces, appranetly
-        # we use while to rewind the loop
-        
-        while i < split_length:
-            # define word
-            word = splits[i]
-            i += 1
-
-
-            # if we are out of words to align, just dump none
-            if not current_word:
-                # append the current word 
-                buff.append((word, None))
-                continue
-
-            # clean the word of extraneous symbols
+        # we generate a cleaned and uncleaned match list
+        for word in splits:
             cleaned_word = word.lower().replace("(","").replace(")","")
             cleaned_word = cleaned_word.replace("[","").replace("]","")
             cleaned_word = cleaned_word.replace("<","").replace(">","")
@@ -523,220 +486,62 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
 
-            if "12007" in elan:
-                print(f"'{cleaned_word}'", f"'{current_word[0]}'")
+            # append the cleaned and uncleaned versions of words 
+            unaligned_words.append((word, cleaned_word, i))
+            i += 1
 
-            # we ignore accidentally stringified quot for --prealigned optino
-            if current_word[0] and current_word[0]=="quot":
-                # append the next 
-                try: 
-                    # WE DONT SET PREVIOUS END HERE b/c there's no word 
+        # append boundaries
+        sentence_ends.append(i)
 
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                    # print(current_word)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # skip annotated spaces
-            elif current_word[0].strip() == '' and (word.strip() == "(.)" or word.strip() == "(..)"):
-                # append the next 
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
+    # conform boundaries
+    sentence_boundaries = list([list(range(i,j)) for i,j in zip(sentence_starts, sentence_ends)])
 
-                    # WE DONT SET PREVIOUS END HERE b/c there's no word 
+    # we now perform n-round alignment
+    # essentially, for each word in the aligned section, we
+    # match it to the easiest canidate in the unaligned words
+    # to create the final transcript
 
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
+    aligned_indicies = []
+    backplated_alignments = []
+    
+    # for each word
+    for aligned_word, (start, end) in aligned_words:
 
-            # include spaces 
-            elif current_word[0].strip() == '':
-                # Rewind
-                i -= 1
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
+        # we will go through the unaligned results to find the earlist
+        # available canidate
 
-                    # WE DONT SET PREVIOUS END HERE b/c there's no word 
-                    
+        # for each word
+        for word, cleaned_word, i in unaligned_words:
+            # if the i is seen, we skip
+            if i in aligned_indicies:
+                continue
 
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # If we got the current word, move on to the next
-            # you will notice we replace the parenthese because those are in-text
-            # disfluency adjustments
-            elif cleaned_word.lower() == current_word[0].lower():
-                # append current word
-                buff.append((word, (current_word[1][0], current_word[1][1])))
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # TODO HACKY!!
-            # underscore carveout. Underscore is parsed inconsistently
-            # where sometimes underscores exists in the lab transcript
-            # one token and sometimes two. Therefore, if we made
-            # a mistake, we split the dashes and try again
-            elif '_' in current_word[0].lower() and current_word[0].split("_")[0].lower() == cleaned_word.lower():
-                # split the word
-                word_split = current_word[0].split("_")
-                buff.append((word+splits[i], (current_word[1][0], current_word[1][1])))
-                # ignore the next word
-                i += 1
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
+            # if we can align, do align
+            if cleaned_word == aligned_word: 
+                backplated_alignments.append((i, word, (start, end)))
+                aligned_indicies.append(i)
+                break
 
-            # we may have an extra dash in the beginning, so we catch that
-            elif len(cleaned_word.lower()) > 0 and cleaned_word.lower()[0] =="-" and cleaned_word.split("-")[1].lower() == current_word[0].lower():
-                # append current word
-                buff.append((word, (current_word[1][0], current_word[1][1])))
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
+    
+    # find missing elements
+    to_reinsert = list(filter(lambda x:x[2] not in aligned_indicies, unaligned_words))
+    to_reinsert = [(i[2], i[0], None) for i in to_reinsert]
 
-            # apostrophie carveout. Apostrophies are parsed differently sometimes
-            # MFA for no good reason
-            elif "'" in cleaned_word.lower() and current_word[0].lower() == cleaned_word.split("'")[0].lower():
-                # append current word up until the end of the 'm
-                buff.append((word, (current_word[1][0], wordlist_alignments[0][1][1])))
-                # Ignore the am
-                current_word = wordlist_alignments.pop(0)
-                # Ignore any spaces
-                while current_word[0].strip() == "":
-                    current_word = wordlist_alignments.pop(0)
-                # and append as usual
-                try:
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # TODO HACKY!
-            # yet another apostrophie carveout. If the above didn't work, we remove
-            # apostrophie and try again
-            elif cleaned_word.replace("'", "").lower() == current_word[0].lower():
-               # append current word
-                buff.append((word, (current_word[1][0], current_word[1][1])))
-                try: 
-                    # The end should be the end of the current word
-                    end = current_word[1][1]
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # after everything, if we still haven't aligned, check if the textgrid
-            # was generated using a legacy corpus with spaces in place of + instead
-            # of joining up the tokens
-            elif current_word[0].lower() == cleaned_word[:len(current_word[0])]:
-                # calculate start and end
-                beg = current_word[1][0]
-                fin = current_word[1][1]
-                # baseword
-                baseword = cleaned_word[:len(current_word[0])].strip()
-                # calculate start index
-                startindx = len(current_word[0])
-                # increment, skipping spaces, and append
-                while baseword != cleaned_word:
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                    # and if not space
-                    if current_word != "":
-                        # increment baseword
-                        baseword += cleaned_word[startindx:startindx+len(current_word[0])]
-                        # calculate new startindex
-                        startindx = startindx+len(current_word[0])
-                        # calculate end
-                        fin = current_word[1][1]
-                # append to the buffer
-                buff.append((word, (beg, fin)))
-                try: 
-                    # The end should be the end of the current word
-                    end = fin
-                    # set previous ending as the end of the current one
-                    prevend = end
-                    # pop the current word
-                    current_word = wordlist_alignments.pop(0)
-                except IndexError:
-                    current_word = None
-                    pass # we have reached the end
-            # TODO HACKY!!
-            # dashes carveout. Dashes is parsed inconsistently
-            # where sometimes dashed tokens are parsed as
-            # one token and sometimes two. Therefore, if we made
-            # a mistake, we split the dashes and try again
-            # but this screws up some brackets, so if we are in a bracket
-            # we don't do this
-            elif '-' in cleaned_word.lower() and cleaned_word.split("-")[0].lower() == current_word[0].lower() and "[" not in word and "]" not in word:
-                # split the word
-                word_split = word.split("-")
-                # enumerate over the split word
-                for j in word_split:
-                    # go through the results and append
-                    while j.lower() == current_word[0].lower():
-                        # append current word
-                        buff.append((j, (current_word[1][0], current_word[1][1])))
-                        try: 
-                            # The end should be the end of the current word
-                            end = current_word[1][1]
-                            # set previous ending as the end of the current one
-                            prevend = end
-                            # pop the current word
-                            current_word = wordlist_alignments.pop(0)
-                        except IndexError:
-                            current_word = None
-                            pass # we have reached the end
-            else:
-                # append the current word 
-                buff.append((word, None))
+    # sort and reincorporate backplated alignments
+    backplated_alignments = sorted(backplated_alignments+to_reinsert, key=lambda i:i[0])
 
-        # If the utterance is completely unaligned, don't align it!
-        if set([i[1] for i in buff]) == {None}:
-            # align an empty slice
-            alignments.append((start, start))
-        else:
-            # Append the start and end intervals we aligned
-            alignments.append((start,prevend))
-        # either way, copy buffer
-        results.append(buff.copy())
+    # conform the sentences 
+    backplated_alignments_sentences = [[backplated_alignments[j] for j in i] for i in sentence_boundaries]
 
-    # if "12037" in elan:
-        # print(results)
+    # generate final results
+    results = [[(i[1], i[2]) for i in j] for j in backplated_alignments_sentences]
 
+    # extract alignments
+    results_filtered = [list(filter(lambda x:x[1], i)) for i in results]
+    # if there is nothing to align, just produce (0,0)
+    alignments = [(i[0][1][0], i[-1][1][1]) if len(i) > 0 else (0,0) for i in results_filtered]
+
+    # recreate results
     bulleted_results = []
     # Convert bulleted results
     for sentence in results:
@@ -1163,12 +968,8 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     DATA_DIR = os.path.join(out_directory, data_directory)
 
     # Make the data directory if needed
-    if os.path.exists(DATA_DIR) and align:
-        input("\nFound data folder, yet we are not --skipalign,\nso we will delete the data folder. \nPlease press enter to confirm > ")
-        print()
-        print("Thank you. We are proceeding.")
-        print()
-        os.rmdir(DATA_DIR)
+    if not os.path.exists(DATA_DIR):
+        os.mkdir(DATA_DIR)
 
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
@@ -1200,7 +1001,8 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     alignments = globase(DATA_DIR, "*.TextGrid")
 
     # zip the results and dump into new eafs
-    for alignment in sorted(alignments):
+    print("Done with MFA! Generating final word-level alignments and bullets...")
+    for alignment in tqdm(sorted(alignments)):
         # Find the relative elan file
         elan = repath_file(alignment, in_directory).replace("TextGrid", "eaf").replace("textGrid", "eaf")
         # Align the alignment results
