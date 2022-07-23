@@ -350,11 +350,11 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
-        CMD = f"mfa g2p --clean {model} {directory} {dictionary} --verbose"
+        CMD = f"mfa g2p --clean {model} {directory} {dictionary}"
         os.system(CMD)
 
     # and finally, align!
-    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100 --verbose"
+    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100"
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
@@ -533,19 +533,26 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     # set the begin
     j = 0
 
+    # check if we need backtracking
+    # (i.e. "we corrected an error, backpropegate")
+    backtracking = False
+
     # begin a loop to scan and correct errors
     while j < len(backplated_alignments):
-        # check if we need backtracking
-        # (i.e. "we corrected an error, backpropegate")
-        backtracking = False
         
         # get the results 
         indx, word, interval = backplated_alignments[j]
 
         # if no interval, we skip
-        if not interval:
+        if not interval and not backtracking:
             j += 1
             continue
+        elif not interval:
+            j -= 1 
+            continue
+
+        # reset backtracking
+        backtracking = False
 
         # if there is an interval, we unpack it and ensure
         # that a few things is the case
@@ -575,11 +582,11 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # if end is smaller than start, conform start to be
         # 1 second before end
         if start > end:
-            start = max(end-1, 0)
+            start = max(end, 0)
             backtracking = True # backprop to correct prev. errors
 
         # append new results
-        # backplated_alignments[indx] = (indx, word, (start, end))
+        backplated_alignments[indx] = (indx, word, (start, end))
 
         # if don't need backprop, continue
         if not backtracking:
