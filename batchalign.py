@@ -350,11 +350,11 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
-        CMD = f"mfa g2p --clean {model} {directory} {dictionary}"
+        CMD = f"mfa g2p --clean {model} {directory} {dictionary} --verbose"
         os.system(CMD)
 
     # and finally, align!
-    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100"
+    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100 --verbose"
     os.system(CMD)
 
 # Parse a TextGrid file for word tier
