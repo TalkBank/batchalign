@@ -533,6 +533,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     # set the begin
     j = 0
 
+    # keep track the timestamp
+    last_end = 0
+
     # check if we need backtracking
     # (i.e. "we corrected an error, backpropegate")
     backtracking = False
@@ -560,25 +563,19 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         # get the first remaining indexable elements
         rem = None
+        upcoming = None
         i = indx+1
 
         # go through in a while loop until we found
         # the next indexable element
         while not rem and i<len(backplated_alignments):
             rem = backplated_alignments[i][2]
+            upcoming = backplated_alignments[i][0]
             i += 1
 
-        # if we still don't have it, set rem to be the current
-        # interval with same adjusttment
-        # this is usually the last element, which we push usuall
-        # to have no ending. so TODO shift 0.0001 to the end asap.
-        if not rem:
-            rem = (start, end)
-            end = end
-         
         # if end is after the next starting, set the end
         # to be the next starting
-        if end > rem[0]:
+        if rem and end > rem[0]:
             end = rem[0]
             backtracking = True # backprop to correct prev. errors
 
@@ -589,26 +586,39 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             backtracking = True # backprop to correct prev. errors
 
         # append new results
+        # last ditch effort if no differences are found, we subtract
+        # a bit from the beginning
+        # subtractt 0.0001 to the end <250msecs so shouldn't 
+        if round(start,2) == round(end,2):
+            # descrement start 
+            start = last_end
+            # increment end
+            end = end + 0.01
+
+            # skootch the upcoming element
+            # to frontpop frontprop to 
+            try:
+                upcoming_item = backplated_alignments[upcoming]
+                backplated_alignments[upcoming] = (upcoming_item[0],
+                                                   upcoming_item[1],
+                                                   (upcoming_item[2][0]+0.01, upcoming_item[2][1]+0.01))
+            except IndexError:
+                pass # we don't have anything to prop to
+            backtracking = True # backprop to correct prev. errors
+
+        # store the last end, if not backtracking
+        if not backtracking:
+            last_end = end
+
+        print(start,end, word)
         backplated_alignments[indx] = (indx, word, (start, end))
 
         # if don't need backprop, continue
-        if not backtracking:
-            j += 1
+        if backtracking:
+            j -= 1
         # if we do need backtracking
         else:
-            j -= 1 
-
-    # find the last unaligned item and add a bit to the end
-    # the last bit, if correction is needed, is used such that
-    # the ending will always be shoved against itself (no time bullet)
-    #
-    # to prevent this, we add 0.0001 to th end <250msecs so shouldn't
-    # affect anything for flucalc
-    for i in reversed(backplated_alignments):
-        # when we found the last unaligned item
-        if i[2]: # add the update and be done if aligned
-            backplated_alignments[i[0]] = (i[0], i[1], (i[2][0], i[2][1]+0.001))
-            break
+            j += 1 
 
     # conform the sentences 
     backplated_alignments_sentences = [[backplated_alignments[j] for j in i] for i in sentence_boundaries]
