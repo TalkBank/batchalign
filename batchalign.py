@@ -530,6 +530,64 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     # sort and reincorporate backplated alignments
     backplated_alignments = sorted(backplated_alignments+to_reinsert, key=lambda i:i[0])
 
+    # set the begin
+    j = 0
+
+    # begin a loop to scan and correct errors
+    while j < len(backplated_alignments):
+        # check if we need backtracking
+        # (i.e. "we corrected an error, backpropegate")
+        backtracking = False
+        
+        # get the results 
+        indx, word, interval = backplated_alignments[j]
+
+        # if no interval, we skip
+        if not interval:
+            j += 1
+            continue
+
+        # if there is an interval, we unpack it and ensure
+        # that a few things is the case
+        start,end = interval
+
+        # get the first remaining indexable elements
+        rem = None
+        i = indx+1
+
+        # go through in a while loop until we found
+        # the next indexable element
+        while not rem and i<len(backplated_alignments):
+            rem = backplated_alignments[i][2]
+            i += 1
+
+        # if we still don't have it, set rem to be the current
+        # interval
+        if not rem:
+            rem = interval
+         
+        # if end is after the next starting, set the end
+        # to be the next starting
+        if end > rem[0]:
+            end = rem[0]
+            backtracking = True # backprop to correct prev. errors
+
+        # if end is smaller than start, conform start to be
+        # 1 second before end
+        if start > end:
+            start = max(end-1, 0)
+            backtracking = True # backprop to correct prev. errors
+
+        # append new results
+        # backplated_alignments[indx] = (indx, word, (start, end))
+
+        # if don't need backprop, continue
+        if not backtracking:
+            j += 1
+        # if we do need backtracking
+        else:
+            j -= 1 
+
     # conform the sentences 
     backplated_alignments_sentences = [[backplated_alignments[j] for j in i] for i in sentence_boundaries]
 
