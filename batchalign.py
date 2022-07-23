@@ -569,9 +569,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             i += 1
 
         # if we still don't have it, set rem to be the current
-        # interval
+        # interval with same adjusttment
+        # this is usually the last element, which we push usuall
+        # to have no ending. so TODO shift 0.0001 to the end asap.
         if not rem:
-            rem = interval
+            rem = (start, end)
+            end = end
          
         # if end is after the next starting, set the end
         # to be the next starting
@@ -580,9 +583,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             backtracking = True # backprop to correct prev. errors
 
         # if end is smaller than start, conform start to be
-        # 1 second before end
+        # a bit before end
         if start > end:
-            start = max(end, 0)
+            start = max(end, 0.01)-0.01
             backtracking = True # backprop to correct prev. errors
 
         # append new results
@@ -594,6 +597,18 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # if we do need backtracking
         else:
             j -= 1 
+
+    # find the last unaligned item and add a bit to the end
+    # the last bit, if correction is needed, is used such that
+    # the ending will always be shoved against itself (no time bullet)
+    #
+    # to prevent this, we add 0.0001 to th end <250msecs so shouldn't
+    # affect anything for flucalc
+    for i in reversed(backplated_alignments):
+        # when we found the last unaligned item
+        if i[2]: # add the update and be done if aligned
+            backplated_alignments[i[0]] = (i[0], i[1], (i[2][0], i[2][1]+0.001))
+            break
 
     # conform the sentences 
     backplated_alignments_sentences = [[backplated_alignments[j] for j in i] for i in sentence_boundaries]
