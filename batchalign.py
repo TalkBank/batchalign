@@ -553,7 +553,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         elif not interval:
             j -= 1 
             continue
-
+        
         # reset backtracking
         backtracking = False
 
@@ -563,14 +563,12 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         # get the first remaining indexable elements
         rem = None
-        upcoming = None
         i = indx+1
 
         # go through in a while loop until we found
         # the next indexable element
         while not rem and i<len(backplated_alignments):
             rem = backplated_alignments[i][2]
-            upcoming = backplated_alignments[i][0]
             i += 1
 
         # if end is after the next starting, set the end
@@ -582,36 +580,18 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # if end is smaller than start, conform start to be
         # a bit before end
         if start > end:
-            start = max(end, 0.01)-0.01
-            backtracking = True # backprop to correct prev. errors
-
-        # append new results
-        # last ditch effort if no differences are found, we subtract
-        # a bit from the beginning
-        # subtractt 0.0001 to the end <250msecs so shouldn't 
-        if round(start,2) == round(end,2):
-            # descrement start 
-            start = last_end
-            # increment end
-            end = end + 0.01
-
-            # skootch the upcoming element
-            # to frontpop frontprop to 
-            try:
-                upcoming_item = backplated_alignments[upcoming]
-                backplated_alignments[upcoming] = (upcoming_item[0],
-                                                   upcoming_item[1],
-                                                   (upcoming_item[2][0]+0.01, upcoming_item[2][1]+0.01))
-            except IndexError:
-                pass # we don't have anything to prop to
+            start = max(end, 0.0001)-0.0001
             backtracking = True # backprop to correct prev. errors
 
         # store the last end, if not backtracking
         if not backtracking:
             last_end = end
 
-        print(start,end, word)
-        backplated_alignments[indx] = (indx, word, (start, end))
+        # if we are unalignable, give up. Otherwise, don't give up
+        if abs(start-end) < 0.001:
+            backplated_alignments[indx] = (indx, word, None)
+        else:
+            backplated_alignments[indx] = (indx, word, (start, end))
 
         # if don't need backprop, continue
         if backtracking:
