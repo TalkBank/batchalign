@@ -36,5 +36,4 @@ rpunct = RestorePuncts()
 # perform punctuation
 sentence_punctuated = rpunct.punctuate(sentence)
 sentence_tokenize = sent_tokenize(sentence_punctuated)
-sentence_tokenize
 
