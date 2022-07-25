@@ -37,8 +37,6 @@ import xml.etree.ElementTree as ET
 
 # Also, include regex
 import re
-from nltk.sem.logic import ExpectedMoreTokensException
-from nltk.translate.api import AlignedSent
 
 # Import a progress bar
 from tqdm import tqdm
