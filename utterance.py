@@ -192,6 +192,3 @@ def retokenize(infile, outfile, utterance_engine):
     with open(outfile, 'w') as df:
         # write!
         df.writelines([i+'\n' for i in new_chat])
-
-retokenize(TARGETFILE, OUTFILE, E)
-
