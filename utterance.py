@@ -174,7 +174,7 @@ def retokenize(infile, outfile, utterance_engine):
 
 
         # we will stringify it into new bullets
-        new_bullets_str = [f'•{i[0]}_{i[1]}•' for i in new_bullets]
+        new_bullets_str = [f'{i[0]}_{i[1]}' for i in new_bullets]
 
         # and finally, we can construct the final line
         # speaker, tab, sentence, end of sentence mark, end bullet
