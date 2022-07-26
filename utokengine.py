@@ -37,8 +37,13 @@ class UtteranceEngine(object):
         self.model.eval()
 
     def __call__(self, passage):
+        # input passage words "tokenized"
+        input_tokenized = passage.split(' ')
+        
         # pass it through the tokenizer and model
-        tokd = self.tokenizer([passage], return_tensors='pt').to(DEVICE)
+        tokd = self.tokenizer([input_tokenized],
+                              return_tensors='pt',
+                              is_split_into_words=True).to(DEVICE)
 
         # pass it through the model
         res = self.model(**tokd).logits
@@ -53,21 +58,28 @@ class UtteranceEngine(object):
         # 4, exclaimation mark
         # 5, comma
 
-        # get the words from the sentence
-        tokenized_result = self.tokenizer.tokenize(passage)
-        labeled_result = list(zip(tokenized_result, classified_targets[0].tolist()[1:-1]))
-
         # and finally append the result
         res_toks = []
+        prev_word_idx = None
 
         # for each word, perform the action
-        for word, action in labeled_result:
+        for indx, elem in enumerate(tokd.word_ids(0)):
+            # if its none, append nothing or if we have
+            # seen it before, do nothing
+            if elem is None or elem == prev_word_idx:
+                continue
+            # otherwise, store previous index
+            prev_word_idx = elem
+
+            # otherwise, get nth prediction
+            action = classified_targets[0][indx]
+
             # set the working variable
-            w = word
+            w = input_tokenized[elem]
 
             # perform the edit actions
             if action == 1:
-                w[0] = w[0].upper()
+                w = w[0].upper() + w[1:]
             elif action == 2:
                 w = w+'.'
             elif action == 3:
