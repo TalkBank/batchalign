@@ -22,11 +22,11 @@ from tqdm import tqdm
 # wandb
 import wandb
 
-# seed model
-class TokenizeEngine(object):
+# seed device and tokens
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    # seed device and tokens
-    DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+# seed model
+class UtteranceEngine(object):
 
     def __init__(self, model):
         # seed tokenizers and model
@@ -38,7 +38,7 @@ class TokenizeEngine(object):
 
     def __call__(self, passage):
         # pass it through the tokenizer and model
-        tokd = tokenizer([passage], return_tensors='pt').to(DEVICE)
+        tokd = self.tokenizer([passage], return_tensors='pt').to(DEVICE)
 
         # pass it through the model
         res = self.model(**tokd).logits
