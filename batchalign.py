@@ -944,6 +944,42 @@ def eafalign(file_path, alignments, output_path):
     # And write tit to file
     tree.write(output_path, encoding="unicode", xml_declaration=True)
 
+def retokenize_directory(in_directory, model_path):
+    """Retokenize the directory, or read Rev.ai JSON files and generate .cha
+
+    Attributes:
+        in_directory (str): input directory containing files
+        model_path (str): path to a BertTokenizer and BertModelForTokenClassification
+                          trained on the segmentation task.
+
+    Returns:
+        None, used for .cha file generation side effects.
+    """
+
+    # we import here for backwards dependency capatability
+    from utterance import retokenize
+    from utokengine import UtteranceEngine
+
+    # find all the JSON files
+    files = globase(in_directory, "*.json")
+    # if we have no JSON files, we assume that the input
+    # chat files are .cha (Andrew edition)
+    if len(files) == 0:
+        # we will scan for .cha files
+        files = globase(in_directory, "*.cha")
+        # move them to the .orig directory
+        for f in files:
+            # move to .old
+            os.rename(f,f.replace("cha",".orig.cha"))
+        # we will scan for .cha files again, with new dir
+        files = globase(in_directory, "*.cha")
+    # seed an utterance engine to use
+    E = UtteranceEngine(model_path)
+    # we will then perform the retokenization
+    for f in files:
+        # retokenize the file!
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E)
+    
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
 
@@ -987,6 +1023,12 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     mp3files = globase(in_directory, "*.mp3")
     # Rename each one
     for f in mp3files:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # move all the orig.cha files from repathing
+    chafiles = globase(in_directory, "*.orig.cha")
+    # Rename each one
+    for f in chafiles:
         os.rename(f, repath_file(f, DATA_DIR)) 
 
     # clean up the elans
@@ -1114,6 +1156,13 @@ if __name__=="__main__":
 
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
+    elif args.retokenize:
+        if not args.prealigned:
+            print("--prealigned flag not provided. as source came from ASR, prealigned mode will be enabled.")
+        print("Performing retokenization!")
+        retokenize_directory(args.in_dir, args.retokenize)
+        print("Done. Handing off to MFA.")
+        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
     else: 
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=args.prealigned, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
 

@@ -162,12 +162,11 @@ def process_json_file(f):
     media_tier = ["@Media:", f"{pathlib.Path(f).stem}, audio"]
 
     # assemble final header and footer
-    header = [["@UTF8"],
-            ["@Begin"],
-            ["@Languages:", "eng"],
-            participants_tier,
-            *id_tiers,
-            media_tier]
+    header = [["@Begin"],
+              ["@Languages:", "eng"],
+              participants_tier,
+              *id_tiers,
+              media_tier]
     footer = [["@End"]]
 
     # return result
