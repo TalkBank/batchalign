@@ -250,7 +250,3 @@ def retokenize(infile, outfile, utterance_engine):
     with open(outfile, 'w') as df:
         # write!
         df.writelines([i+'\n' for i in new_chat])
-
-E = UtteranceEngine("../../utterance-tokenizer/models/playful-lake-2")
-
-retokenize("../RevAILanzi/09.json", "../RevAILanzi/09.cha", E)
