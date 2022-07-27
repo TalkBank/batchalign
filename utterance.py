@@ -18,6 +18,9 @@ from collections import defaultdict
 # utility string punctuations
 import string
 
+# json utilities
+import json
+
 # import nltk
 from nltk import sent_tokenize
 # handwavy tokenization
@@ -29,12 +32,6 @@ from tqdm import tqdm
 
 # import the tokenization engine
 from utokengine import UtteranceEngine
-
-# seed a utterance engine
-E = UtteranceEngine("../../utterance-tokenizer/models/playful-lake-2")
-
-TARGETFILE = "/Users/houliu/Documents/Projects/talkbank-alignment/AWS/MCI/09.cha"
-OUTFILE = "/Users/houliu/Documents/Projects/talkbank-alignment/AWS/MCI/09.out.cha"
 
 # read all chat files
 def read_file(f):
@@ -69,7 +66,7 @@ def read_file(f):
     return results
 
 # process a file
-def process_file(f):
+def process_chat_file(f):
     # get lines in the file
     lines = read_file(f)
 
@@ -118,19 +115,82 @@ def process_file(f):
 
     return header_tiers, main_tiers_processed, closing_tiers
 
+# global realignment function (for rev.ai)
+def process_json_file(f):
+    """Process a RevAI text file as input
+
+    Attributes:
+        f (str): file to process
+    """
+
+    # open the file and read its lines
+    with open(f, 'r') as df:
+        data = json.load(df)
+
+    # create array for total collected utterance
+    utterance_col = []
+
+    # for each utterance
+    for utterance in data["monologues"]:
+        # create the speaker
+        spk = f"*SPK{utterance['speaker']}"
+
+        # get a list of words
+        words = utterance["elements"]
+        # coallate words (not punct) into the shape we expect
+        # which is ['word', [start_ms, end_ms]]. Yes, this would
+        # involve multiplying by 1000 to s => ms
+        words = [[i["value"], [round(i["ts"]*1000),
+                            round(i["end_ts"]*1000)]] # the shape 
+                for i in words # for each word
+                if i["type"] == "text"] # if its text
+        # concatenate with speaker tier and append to final collection
+        utterance_col.append((f"{spk}:", words))
+
+    # get all the participant tier names
+    utterance_participants = [i[0][1:] for i in utterance_col]
+    participants = set(utterance_participants)
+    # create the @Participants tier
+    participants_tier = ", ".join([i[:-1]+" Speaker" for i in participants])
+    participants_tier = ["@Participants:", participants_tier]
+
+    # create the @ID tiers and @ID tier string
+    id_tiers = [f"eng|corpus_name|{i[:-1]}|||||Speaker|||" for i in participants]
+    id_tiers = [["@ID:",i] for i in id_tiers]
+
+    # finally, create media tier
+    media_tier = ["@Media:", f"{pathlib.Path(f).stem}, audio"]
+
+    # assemble final header and footer
+    header = [["@UTF8"],
+            ["@Begin"],
+            ["@Languages:", "eng"],
+            participants_tier,
+            *id_tiers,
+            media_tier]
+    footer = [["@End"]]
+
+    # return result
+    return header, utterance_col, footer
+
 # global realignment function
 def retokenize(infile, outfile, utterance_engine):
     """Function to retokenize an entire chat file
 
     Attributes:
-        infile (str): in .cha file
+        infile (str): in .cha or json file
         outfile (str): out, retokenized out file
         utterance_engine (UtteranceEngine): trained utterance engine instance
 
     Used for output side effects
     """
 
-    header, main, closing = process_file(infile)
+    # if its json, use json the processor
+    if pathlib.Path(infile).suffix == ".json": 
+        header, main, closing = process_json_file(infile)
+    # if its an AWS .cha (from Andrew), we will use the chat processor
+    else:
+        header, main, closing = process_chat_file(infile)
 
     # collect retokenized lines
     realigned_lines = []
@@ -171,8 +231,6 @@ def retokenize(infile, outfile, utterance_engine):
         # finally, lookup the actual bullet values
         new_bullets = [(bullets[i[0]][0], bullets[i[1]][1]) for i in shifts]
 
-
-
         # we will stringify it into new bullets
         new_bullets_str = [f'{i[0]}_{i[1]}' for i in new_bullets]
 
@@ -192,3 +250,7 @@ def retokenize(infile, outfile, utterance_engine):
     with open(outfile, 'w') as df:
         # write!
         df.writelines([i+'\n' for i in new_chat])
+
+E = UtteranceEngine("../../utterance-tokenizer/models/playful-lake-2")
+
+retokenize("../RevAILanzi/09.json", "../RevAILanzi/09.cha", E)

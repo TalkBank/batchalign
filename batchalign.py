@@ -1106,6 +1106,7 @@ parser.add_argument("--skipalign", default=False, action='store_true', help='don
 parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
 parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
 parser.add_argument("--model", type=str, help='path to custom model')
+parser.add_argument("--retokenize", type=str, help='retokenize input with model')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":

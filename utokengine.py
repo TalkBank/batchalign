@@ -37,7 +37,13 @@ class UtteranceEngine(object):
         self.model.eval()
 
     def __call__(self, passage):
-        # input passage words "tokenized"
+        # input passage words removed of all preexisting punctuation
+        passage = passage.lower()
+        passage = passage.replace('.','')
+        passage = passage.replace(',','')
+        passage = passage.replace('.','')
+
+        # "tokenize" the result by just splitting by space
         input_tokenized = passage.split(' ')
         
         # pass it through the tokenizer and model
