@@ -208,11 +208,20 @@ def interactive_edit(name, string):
     # create the bottom frame
     bottom = ttk.Frame(root, padding=5)
     bottom.grid()
+    # don't stop until we do
+    # this is a CHEAP MAINLOOP, but its used
+    # to control when the text element can
+    # be destroyed (i.e. not before reading)
+    def stopit():
+        # hide
+        root.withdraw()
+        # leave!
+        root.quit()
     # create the buttons
     ttk.Button(bottom, text="Reset", command=settext).grid(column=0, row=0,
                                                            padx=20, pady=5)
-    ttk.Button(bottom, text="Submit", command=root.quit).grid(column=1, row=0,
-                                                              padx=20, pady=5)
+    ttk.Button(bottom, text="Submit", command=stopit).grid(column=1, row=0,
+                                                           padx=20, pady=5)
     # mainloop
     root.mainloop()
     final_text = text_box.get("1.0","end-1c")

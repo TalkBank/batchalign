@@ -962,13 +962,14 @@ def eafalign(file_path, alignments, output_path):
     # And write tit to file
     tree.write(output_path, encoding="unicode", xml_declaration=True)
 
-def retokenize_directory(in_directory, model_path):
+def retokenize_directory(in_directory, model_path, interactive=False):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
         in_directory (str): input directory containing files
         model_path (str): path to a BertTokenizer and BertModelForTokenClassification
                           trained on the segmentation task.
+        interactive (bool): whether to run the interactive routine
 
     Returns:
         None, used for .cha file generation side effects.
@@ -996,7 +997,7 @@ def retokenize_directory(in_directory, model_path):
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
-        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E)
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive)
     
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
@@ -1174,6 +1175,7 @@ parser.add_argument("--skipclean", default=False, action='store_true', help='don
 parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
 parser.add_argument("--model", type=str, help='path to custom model')
 parser.add_argument("--retokenize", type=str, help='retokenize input with model')
+parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":
@@ -1185,7 +1187,7 @@ if __name__=="__main__":
         if not args.prealigned:
             print("--prealigned flag not provided. as source came from ASR, prealigned mode will be enabled.")
         print("Performing retokenization!")
-        retokenize_directory(args.in_dir, args.retokenize)
+        retokenize_directory(args.in_dir, args.retokenize, args.interactive)
         print("Done. Handing off to MFA.")
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
     else: 
