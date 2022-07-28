@@ -17,6 +17,10 @@ import argparse
 from collections import defaultdict
 # utility string punctuations
 import string
+# import temporary file
+import tempfile
+# to open the text editor
+import editor
 
 # json utilities
 import json
@@ -30,8 +34,16 @@ from nltk import RegexpParser, pos_tag
 # progress bar
 from tqdm import tqdm
 
+# ui tools
+from tkinter import *
+from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
+
 # import the tokenization engine
 from utokengine import UtteranceEngine
+
+# silence huggingface
+os.environ["TOKENIZERS_PARALLELISM"] = "FALSE" 
 
 # read all chat files
 def read_file(f):
@@ -141,9 +153,10 @@ def process_json_file(f):
         # which is ['word', [start_ms, end_ms]]. Yes, this would
         # involve multiplying by 1000 to s => ms
         words = [[i["value"], [round(i["ts"]*1000),
-                            round(i["end_ts"]*1000)]] # the shape 
+                               round(i["end_ts"]*1000)]] # the shape 
                 for i in words # for each word
-                if i["type"] == "text"] # if its text
+                 if i["type"] == "text" and
+                 not re.match(r'<.*>', i["value"])] # if its text
         # concatenate with speaker tier and append to final collection
         utterance_col.append((f"{spk}:", words))
 
@@ -172,14 +185,51 @@ def process_json_file(f):
     # return result
     return header, utterance_col, footer
 
+# get text GUI
+def interactive_edit(name, string):
+    # create a new UI
+    root = Tk(screenName=f"Interactive Fix")
+    root.title(f"Interactively Fixing {name}")
+    # create the top frame
+    top = ttk.Frame(root, padding=5)
+    top.grid()
+    # label
+    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 14 bold').grid(column=0, row=0)
+    ttk.Label(top, text="Use *** to seperate speakers, newlines to seperate utterances.").grid(column=1, row=0)
+    # insert a textbox and place it
+    text_box = ScrolledText(root, height=50, width=100, borderwidth=20, highlightthickness=0)
+    text_box.grid(column=0, row=1)
+    # and insert our fixit string
+    def settext():
+        text_box.delete(1.0, "end")
+        text_box.insert("end", string)
+    # create a finishing function
+    settext()
+    # create the bottom frame
+    bottom = ttk.Frame(root, padding=5)
+    bottom.grid()
+    # create the buttons
+    ttk.Button(bottom, text="Reset", command=settext).grid(column=0, row=0,
+                                                           padx=20, pady=5)
+    ttk.Button(bottom, text="Submit", command=root.quit).grid(column=1, row=0,
+                                                              padx=20, pady=5)
+    # mainloop
+    root.mainloop()
+    final_text = text_box.get("1.0","end-1c")
+    root.destroy()
+
+    # return the new contents of the textbox
+    return final_text
+
 # global realignment function
-def retokenize(infile, outfile, utterance_engine):
+def retokenize(infile, outfile, utterance_engine, interactive=False):
     """Function to retokenize an entire chat file
 
     Attributes:
         infile (str): in .cha or json file
         outfile (str): out, retokenized out file
         utterance_engine (UtteranceEngine): trained utterance engine instance
+        interactive (bool): whether to enable midway user fixes to label data/train
 
     Used for output side effects
     """
@@ -191,22 +241,17 @@ def retokenize(infile, outfile, utterance_engine):
     else:
         header, main, closing = process_chat_file(infile)
 
-    # collect retokenized lines
-    realigned_lines = []
+    # chunk the data with our model
+    chunked_passages = []
 
-    # for each line, perform analysis and append
+    # for each line, create chunks
     for line in tqdm(main):
-
-        # save the speaker for use later
-        speaker = line[0]
-
-        # we will now use UtteranceEngine to redo
-        # utterance tokenization
-
         # extract words and bullets
         words, bullets = zip(*line[1])
         # build a giant string for passage
         passage = " ".join(words)
+        # we will now use UtteranceEngine to redo
+        # utterance tokenization
         # chunk the passage into utterances
         chunked_passage = utterance_engine(passage)
         # remove the end delimiters (again!) because
@@ -214,6 +259,36 @@ def retokenize(infile, outfile, utterance_engine):
         # we will add "." later
         chunked_passage = [re.sub(r'([.?!])', r'', i)
                         for i in chunked_passage]
+        # append it to the chunked_passages
+        chunked_passages.append(chunked_passage)
+
+    # if we need to the interactive fixit program,
+    # run the routine
+    if interactive:
+        # create the output string
+        fixit_string = "\n\n***\n\n".join(["\n\n".join(i) for i in chunked_passages])
+
+        # let the user edit the fixit string
+        edited_text = [[j.strip() for j in i.split("\n\n")]
+                    for i in interactive_edit(pathlib.Path(infile).stem,
+                                            fixit_string).split("\n\n***\n\n")]
+
+        # set the chunked passage back
+        chunked_passages = edited_text
+
+    # collect retokenized lines
+    realigned_lines = []
+
+    # for each line, perform analysis and append
+    for line, chunked_passage in zip(main, chunked_passages):
+
+        # save the speaker for use later
+        speaker = line[0]
+
+        # extract words and bullets
+        _, bullets = zip(*line[1])
+        # build a giant string for passage
+        passage = " ".join(words)
         # split the passage align to realign with the bullets
         # that was previously provided. we do a len() here
         # because all we really need is the index at which
@@ -249,3 +324,4 @@ def retokenize(infile, outfile, utterance_engine):
     with open(outfile, 'w') as df:
         # write!
         df.writelines([i+'\n' for i in new_chat])
+
