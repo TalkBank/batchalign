@@ -19,8 +19,6 @@ from collections import defaultdict
 import string
 # import temporary file
 import tempfile
-# to open the text editor
-import editor
 
 # json utilities
 import json
