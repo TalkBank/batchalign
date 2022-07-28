@@ -19,9 +19,6 @@ from transformers import DataCollatorForTokenClassification
 # tqdm
 from tqdm import tqdm
 
-# wandb
-import wandb
-
 # seed device and tokens
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
