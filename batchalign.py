@@ -289,6 +289,24 @@ def mp32wav(directory):
     for f in mp3s:
         os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
 
+# optionally convert mp4 to wav files
+def mp42wav(directory):
+    """Generate wav files from mp4
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    mp4s = globase(directory, "*.mp4")
+
+    # convert each file
+    for f in mp4s:
+        os.system(f"ffmpeg -i {f} {f.replace('mp4','wav')} -c copy")
+
 def wavconformation(directory):
     """Reconform wav files
 
@@ -1025,6 +1043,12 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     for f in mp3files:
         os.rename(f, repath_file(f, DATA_DIR)) 
 
+    # move all the rest of mp4 files 
+    mp4files = globase(in_directory, "*.mp4")
+    # Rename each one
+    for f in mp4files:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
     # move all the orig.cha files from repathing
     chafiles = globase(in_directory, "*.orig.cha")
     # Rename each one
@@ -1084,6 +1108,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
     mp32wav(in_directory)
+    mp42wav(in_directory)
 
     # Generate elan elan elan elan
     chat2elan(in_directory)
