@@ -43,6 +43,12 @@ from utokengine import UtteranceEngine
 # silence huggingface
 os.environ["TOKENIZERS_PARALLELISM"] = "FALSE" 
 
+SPEAKER_TRANSLATIONS = {
+    "p": ("Participant", "PAR"),
+    "i": ("Investigator", "INV"),
+    "c": ("Child", "CHI")
+}
+
 # read all chat files
 def read_file(f):
     """Utility to read a single flo file
@@ -126,11 +132,12 @@ def process_chat_file(f):
     return header_tiers, main_tiers_processed, closing_tiers
 
 # global realignment function (for rev.ai)
-def process_json_file(f):
+def process_json_file(f, interactive=False):
     """Process a RevAI text file as input
 
     Attributes:
         f (str): file to process
+        interactive (bool): whether or not to prompt for speaker info
     """
 
     # open the file and read its lines
@@ -142,31 +149,96 @@ def process_json_file(f):
 
     # for each utterance
     for utterance in data["monologues"]:
-        # create the speaker
-        spk = f"*SPK{utterance['speaker']}"
-
         # get a list of words
         words = utterance["elements"]
         # coallate words (not punct) into the shape we expect
         # which is ['word', [start_ms, end_ms]]. Yes, this would
         # involve multiplying by 1000 to s => ms
         words = [[i["value"], [round(i["ts"]*1000),
-                               round(i["end_ts"]*1000)]] # the shape 
+                                round(i["end_ts"]*1000)]] # the shape 
                 for i in words # for each word
-                 if i["type"] == "text" and
-                 not re.match(r'<.*>', i["value"])] # if its text
-        # concatenate with speaker tier and append to final collection
-        utterance_col.append((f"{spk}:", words))
+                    if i["type"] == "text" and
+                    not re.match(r'<.*>', i["value"])] # if its text
 
-    # get all the participant tier names
-    utterance_participants = [i[0][1:] for i in utterance_col]
-    participants = set(utterance_participants)
+        # concatenate with speaker tier and append to final collection
+        utterance_col.append((utterance["speaker"], words))
+
+    # get a list of speaker IDs
+    speaker_ids = {i[0] for i in utterance_col} # this is a set!
+    speakers = {}
+
+    corpus = "corpus_name"
+
+    # generate the speaker information, or
+    # otherwise fill it out
+    if interactive:
+
+        speakers_filtered = []
+        # filter 2 statements for each speaker needed
+        # and then push
+        for speaker in speaker_ids:
+            speakers_filtered.append(list(filter(lambda x:x[0]==speaker, utterance_col))[:2])
+
+        # prompt hello
+        print("Welcome to interactive speaker identification!")
+        print(f"You are working with sample {pathlib.Path(f).stem}.\n")
+
+        # print out samples from speaker
+        for indx, speaker in enumerate(speaker_ids):
+            print(f"\033[1mSpeaker {speaker}\033[0m") 
+            print("\n".join([" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+            print()
+
+        # prompt for info
+        for speaker in speaker_ids:
+            # get info and handle error correction
+            # get speaker info
+            speaker_tier = None
+            speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant or P): ").strip()
+            if len(speaker_name) == 1:
+                translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
+                speaker_name = translation[0]
+                speaker_tier = translation[1]
+            # if we don't have first capital and spelt correctly
+            while not (speaker_name[0].isupper() and "*" not in speaker_name):
+                print("Invalid response. Please follow the formatting example provided.")
+                speaker_name = input(f"Please enter name of speaker {speaker} (i.e. Participant): ").strip()
+                if len(speaker_name) == 1:
+                    translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
+                    speaker_name = translation[0]
+                    speaker_tier = translation[1]
+            # if we are not using on letter shortcut, prompt for tier
+            if not speaker_tier:
+                # get tier info
+                speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ")
+                # if we don't have first capital and spelt correctly
+                while not (speaker_tier.isupper() and "*" not in speaker_name):
+                    print("Invalid response. Please follow the formatting example provided.")
+                    speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ").strip()
+            # add to list
+            speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
+            print()
+        # Name of the corpus
+        corpus = input("Name of the corpus: ")
+
+    else:
+
+        # generate info
+        for speaker in speaker_ids:
+            # add to list
+            speakers[speaker] = {"name": f"Speaker {speaker}", "tier": speaker}
+
+    # go through the list and reshape the main tier
+    utterance_col = [['*'+speakers[i[0]]["tier"]+":",
+                    i[1]] for i in utterance_col]
+
     # create the @Participants tier
-    participants_tier = ", ".join([i[:-1]+" Speaker" for i in participants])
+    participants_tier = ", ".join([v["tier"]+f" {v['name']}"
+                                for k,v in speakers.items()])
     participants_tier = ["@Participants:", participants_tier]
 
     # create the @ID tiers and @ID tier string
-    id_tiers = [f"eng|corpus_name|{i[:-1]}|||||Speaker|||" for i in participants]
+    id_tiers = [f"eng|{corpus}|{v['tier']}|||||{v['name']}|||" for k,v in speakers.items()]
     id_tiers = [["@ID:",i] for i in id_tiers]
 
     # finally, create media tier
@@ -174,10 +246,10 @@ def process_json_file(f):
 
     # assemble final header and footer
     header = [["@Begin"],
-              ["@Languages:", "eng"],
-              participants_tier,
-              *id_tiers,
-              media_tier]
+                ["@Languages:", "eng"],
+                participants_tier,
+                *id_tiers,
+                media_tier]
     footer = [["@End"]]
 
     # return result
@@ -243,7 +315,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False):
 
     # if its json, use json the processor
     if pathlib.Path(infile).suffix == ".json": 
-        header, main, closing = process_json_file(infile)
+        header, main, closing = process_json_file(infile, interactive)
     # if its an AWS .cha (from Andrew), we will use the chat processor
     else:
         header, main, closing = process_chat_file(infile)
