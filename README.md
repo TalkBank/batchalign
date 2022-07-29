@@ -78,6 +78,25 @@ This command assumes, in to addition to `~/mfa_data/input`, there is a dictionar
 python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --dictionary ~/mfa_data/dictionary.dict
 ```
 
+## Process Rev.AI JSON
+
+`batchalign` has also the ability to handle the output of ASR (and, hopefully in the future, interface with the ASR API). This functionality assumes that you have already performed ASR on your audio.
+
+This command assumes, in to addition to `~/mfa_data/input`, there is a dictionary located at `~/mfa_data/dictionary.dict`, as well as a trained tokenization model located at `~/mfa_data/model/`.
+
+
+```bash
+python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --retokenize ~/mfa_data/model
+```
+
+There is additionally a `-i` flag that allows interactive tokenization fixes. 
+
+```bash
+python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --retokenize ~/mfa_data/model -i
+```
+
+Follow the on-screen prompts for details and next steps.
+
 ## Clean up
 If there is stray files in the input folder (`.eaf`, `.lab`, etc.) after alignment, it is likely that the program crashed. To clean up all stray files, run:
 
