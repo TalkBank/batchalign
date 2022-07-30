@@ -23,6 +23,9 @@ import tempfile
 # json utilities
 import json
 
+# import time
+import time
+
 # import nltk
 from nltk import sent_tokenize
 # handwavy tokenization
@@ -131,18 +134,14 @@ def process_chat_file(f):
 
     return header_tiers, main_tiers_processed, closing_tiers
 
-# global realignment function (for rev.ai)
-def process_json_file(f, interactive=False):
-    """Process a RevAI text file as input
+# process jsons (for both rev API and json files)
+def process_json(data, interactive=False):
+    """Process JSON Data from Rev.ai
 
     Attributes:
-        f (str): file to process
-        interactive (bool): whether or not to prompt for speaker info
+        data (dict): JSON data from Rev.ai
+        [interactive] (bool): whether to support interactive fixes
     """
-
-    # open the file and read its lines
-    with open(f, 'r') as df:
-        data = json.load(df)
 
     # create array for total collected utterance
     utterance_col = []
@@ -255,6 +254,60 @@ def process_json_file(f, interactive=False):
     # return result
     return header, utterance_col, footer
 
+# global realignment function (for rev.ai)
+def process_json_file(f, interactive=False):
+    """Process a RevAI text file as input
+
+    Attributes:
+        f (str): file to process
+        interactive (bool): whether or not to prompt for speaker info
+    """
+
+    # open the file and read its lines
+    with open(f, 'r') as df:
+        data = json.load(df)
+
+    # process and return
+    return process_json(data, interactive)
+
+# sent an audio file to ASR, and then process the resulting JSON
+def process_audio_file(f, key, interactive=False):
+    # late import for backwards capatibility
+    from rev_ai import apiclient, JobStatus
+
+    # create client
+    client = apiclient.RevAiAPIClient(key)
+
+    # we will send the file for processing
+    job = client.submit_job_local_file(f,
+                                    metadata=f"batchalign_{pathlib.Path(f).stem}")
+
+    # we will wait 
+    status = client.get_job_details(job.id).status
+
+    # we will wait until it finishes
+    print(f"Rev.AI is transcribing '{pathlib.Path(f).stem}'...")
+
+    # check status
+    while status == JobStatus.IN_PROGRESS:
+        # sleep
+        time.sleep(30)
+        # check again
+        status = client.get_job_details(job.id).status
+
+    # if we failed, report failure and give up
+    if status == JobStatus.FAILED:
+        # get error
+        err = client.get_job_details(job.id).failure_detail
+        # print error
+        raise Exception(f"Job '{pathlib.Path(f).stem}' failed! {err}.")
+
+    # and now, we extract result
+    transcript_json = client.get_transcript_json(job.id)
+
+    # finally, we run processing and return the resutls
+    return process_json(transcript_json, interactive)
+
 # get text GUI
 def interactive_edit(name, string):
     # create a new UI
@@ -301,14 +354,15 @@ def interactive_edit(name, string):
     return final_text
 
 # global realignment function
-def retokenize(infile, outfile, utterance_engine, interactive=False):
+def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     """Function to retokenize an entire chat file
 
     Attributes:
         infile (str): in .cha or json file
         outfile (str): out, retokenized out file
         utterance_engine (UtteranceEngine): trained utterance engine instance
-        interactive (bool): whether to enable midway user fixes to label data/train
+        [interactive] (bool): whether to enable midway user fixes to label data/train
+        [key] (str): Rev.AI API key, used for transcription when needed
 
     Used for output side effects
     """
@@ -316,6 +370,9 @@ def retokenize(infile, outfile, utterance_engine, interactive=False):
     # if its json, use json the processor
     if pathlib.Path(infile).suffix == ".json": 
         header, main, closing = process_json_file(infile, interactive)
+    # if its an audio file, we use the audio preprocessor
+    elif pathlib.Path(infile).suffix == ".wav": 
+        header, main, closing = process_audio_file(infile, key, interactive)
     # if its an AWS .cha (from Andrew), we will use the chat processor
     else:
         header, main, closing = process_chat_file(infile)
