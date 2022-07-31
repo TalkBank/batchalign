@@ -32,7 +32,7 @@ from collections import defaultdict
 os.environ["KMP_WARNINGS"] = "FALSE" 
 
 # import cleanup
-from utils import cleanup
+from .utils import cleanup
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -48,7 +48,7 @@ ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 DISFLULENCY_CODE = re.compile("\[.*?\]")
 
 # import textgrid
-from opt.textgrid.textgrid import Interval, TextGrid, IntervalTier
+from .opt.textgrid.textgrid import Interval, TextGrid, IntervalTier
 
 # indent an XML
 def indent(elem, level=0):

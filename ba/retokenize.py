@@ -41,7 +41,7 @@ from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 
 # import the tokenization engine
-from utokengine import UtteranceEngine
+from .utokengine import UtteranceEngine
 
 # silence huggingface
 os.environ["TOKENIZERS_PARALLELISM"] = "FALSE" 

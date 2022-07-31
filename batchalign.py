@@ -20,11 +20,11 @@
 
 # import our utilities
 # directory retokenization tools
-from retokenize import retokenize_directory
+from ba.retokenize import retokenize_directory
 # directory forced alignment tools 
-from fa import do_align
+from ba.fa import do_align
 # utilities
-from utils import cleanup, globase
+from ba.utils import cleanup, globase
 
 # import argparse
 import argparse
