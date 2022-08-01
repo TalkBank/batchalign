@@ -44,7 +44,7 @@ from tkinter.scrolledtext import ScrolledText
 from .utokengine import UtteranceEngine
 
 # silence huggingface
-os.environ["TOKENIZERS_PARALLELISM"] = "FALSE" 
+os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -65,7 +65,7 @@ def read_file(f):
     Returns:
         list[str] a string of results
     """
-    
+
     # open and read file
     with open(f, 'r') as df:
         # read!
@@ -96,7 +96,7 @@ def process_chat_file(f):
     lines = [i.split("\t") for i in lines]
 
     # chop off end delimiters in main tier
-    lines = [[i[0], i[1][:-2]] if i[0][0]=='*' else i for i in lines] 
+    lines = [[i[0], i[1][:-2]] if i[0][0]=='*' else i for i in lines]
 
     # get tiers seperated
 
@@ -158,7 +158,7 @@ def process_json(data, name=None, interactive=False):
         # which is ['word', [start_ms, end_ms]]. Yes, this would
         # involve multiplying by 1000 to s => ms
         words = [[i["value"], [round(i["ts"]*1000),
-                                round(i["end_ts"]*1000)]] # the shape 
+                                round(i["end_ts"]*1000)]] # the shape
                 for i in words # for each word
                     if i["type"] == "text" and
                     not re.match(r'<.*>', i["value"])] # if its text
@@ -204,7 +204,7 @@ def process_json(data, name=None, interactive=False):
 
         # print out samples from speaker
         for indx, speaker in enumerate(speaker_ids):
-            print(f"\033[1mSpeaker {speaker}\033[0m") 
+            print(f"\033[1mSpeaker {speaker}\033[0m")
             print("\n".join([" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
             print()
 
@@ -304,7 +304,7 @@ def process_audio_file(f, key, interactive=False):
     job = client.submit_job_local_file(f,
                                     metadata=f"batchalign_{pathlib.Path(f).stem}")
 
-    # we will wait 
+    # we will wait
     status = client.get_job_details(job.id).status
 
     # we will wait until it finishes
@@ -482,6 +482,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
         # write!
         df.writelines([i+'\n' for i in new_chat])
 
+
 def retokenize_directory(in_directory, model_path, interactive=False, key=None):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
@@ -526,18 +527,18 @@ def retokenize_directory(in_directory, model_path, interactive=False, key=None):
                 files = globase(in_directory, "*.mp4")
             # convert!
             for f in files:
-                # find the files 
+                # find the files
                 suf = pathlib.Path(f).suffix
                 CMD = f"ffmpeg -i {f} {f.replace(suf, '.wav')} -c copy"
                 # run!
                 os.system(CMD)
             # convert again
             files = globase(in_directory, "*.wav")
-    # so, we will convert the input directory to 
+    # so, we will convert the input directory to
     # seed an utterance engine to use
     E = UtteranceEngine(model_path)
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
         retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, key)
- 
+
