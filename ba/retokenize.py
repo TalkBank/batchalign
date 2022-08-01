@@ -428,7 +428,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
                                         for i in chunked_passages])
 
         # let the user edit the fixit string
-        edited_text = [(i.split("\n\n")[0], i.split("\n\n")[1:])
+        edited_text = [(i.split("\n\n")[0], [j.strip() for j in i.split("\n\n")[1:]])
                    for i in interactive_edit(pathlib.Path(infile).stem,
                                             fixit_string).split("\n\n***\n")]
 
@@ -440,8 +440,9 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     
     # calculate the bullets
     bullets = [j[1] for i in main for j in i[1]]
+    words = [j[0] for i in main for j in i[1]]
     bullet_tally = 0
-    
+
     # for each line, perform analysis and append
     for speaker, chunked_passage in chunked_passages:
         # split the passage align to realign with the bullets
@@ -454,14 +455,12 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
                                 for i in range(len(chunked_passage_split))]
         # set the new index of the bullet
         bullet_tally = chunked_passage_split[-1]
-        # we subtract one from each element to calculate the stop index
-        chunked_passage_split_subtract = [i-1 for i in chunked_passage_split][1:]
         # and now, pair one-off-shift groups: this is the IDs of the start
         # and stop times we look for each utterance's new bullet
-        shifts = list(zip(chunked_passage_split, chunked_passage_split_subtract))
+        shifts = list(zip(chunked_passage_split, chunked_passage_split[1:]))
 
         # finally, lookup the actual bullet values
-        new_bullets = [(bullets[i[0]][0], bullets[i[1]][1]) for i in shifts]
+        new_bullets = [[bullets[i[0]][0], bullets[min(i[1], len(bullets)-1)][1]] for i in shifts]
 
         # we will stringify it into new bullets
         new_bullets_str = [f'{i[0]}_{i[1]}' for i in new_bullets]
