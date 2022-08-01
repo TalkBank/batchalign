@@ -974,8 +974,11 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
 
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
-    mp32wav(in_directory)
-    mp42wav(in_directory)
+    wavs = globase(in_directory, "*.wav")
+    # if there are no wavs, convert
+    if len(wavs) == 0:
+        mp32wav(in_directory)
+        mp42wav(in_directory)
 
     # Generate elan elan elan elan
     chat2elan(in_directory)
