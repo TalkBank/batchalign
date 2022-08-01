@@ -97,7 +97,13 @@ class UtteranceEngine(object):
 
         # compose final passage
         final_passage = self.tokenizer.convert_tokens_to_string(res_toks)
-        split_passage = sent_tokenize(final_passage)
+        try: 
+            split_passage = sent_tokenize(final_passage)
+        except LookupError:
+            # we are missing punkt
+            nltk.download('punkt')
+            # perform tokenization
+            split_passage = sent_tokenize(final_passage)
 
         return split_passage
 
