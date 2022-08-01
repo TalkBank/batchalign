@@ -162,9 +162,25 @@ def process_json(data, name=None, interactive=False):
                 for i in words # for each word
                     if i["type"] == "text" and
                     not re.match(r'<.*>', i["value"])] # if its text
-
+        # final words
+        final_words = []
+        # go through the words, if there is a space, split time in n parts
+        for word, (i,o) in words:
+            # split the word
+            word_parts = word.split(" ")
+            # if we only have one part, we don't interpolate
+            if len(word_parts) == 1:
+                final_words.append([word, [i,o]])
+                continue
+            # otherwise, we interpolate the itme
+            cur = i
+            div = (o-i)//len(word_parts)
+            # for each part, add the start and end
+            for part in word_parts:
+                final_words.append([part.strip(), [cur, cur+div]])
+                cur += div
         # concatenate with speaker tier and append to final collection
-        utterance_col.append((utterance["speaker"], words))
+        utterance_col.append((utterance["speaker"], final_words))
 
     # get a list of speaker IDs
     speaker_ids = {i[0] for i in utterance_col} # this is a set!
