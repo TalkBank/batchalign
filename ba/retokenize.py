@@ -390,10 +390,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     """
 
     # if its json, use json the processor
-    if pathlib.Path(infile).suffix == ".json": 
+    if pathlib.Path(infile).suffix == ".json":
         header, main, closing = process_json_file(infile, interactive)
     # if its an audio file, we use the audio preprocessor
-    elif pathlib.Path(infile).suffix == ".wav": 
+    elif pathlib.Path(infile).suffix == ".wav":
         header, main, closing = process_audio_file(infile, key, interactive)
     # if its an AWS .cha (from Andrew), we will use the chat processor
     else:
@@ -415,8 +415,8 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
         # remove the end delimiters (again!) because
         # all we case about here are the split utterances
         # we will add "." later
-        chunked_passage = [re.sub(r'([.?!])', r'', i)
-                        for i in chunked_passage]
+        chunked_passage = (line[0], [re.sub(r'([.?!])', r'', i)
+                             for i in chunked_passage])
         # append it to the chunked_passages
         chunked_passages.append(chunked_passage)
 
@@ -424,42 +424,42 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     # run the routine
     if interactive:
         # create the output string
-        fixit_string = "\n\n***\n\n".join(["\n\n".join(i) for i in chunked_passages])
+        fixit_string = "\n\n***\n".join([(i[0]+"\n\n")+ "\n\n".join(i[1]) 
+                                        for i in chunked_passages])
 
         # let the user edit the fixit string
-        edited_text = [[j.strip() for j in i.split("\n\n")]
-                    for i in interactive_edit(pathlib.Path(infile).stem,
-                                            fixit_string).split("\n\n***\n\n")]
+        edited_text = [(i.split("\n\n")[0], i.split("\n\n")[1:])
+                   for i in interactive_edit(pathlib.Path(infile).stem,
+                                            fixit_string).split("\n\n***\n")]
 
         # set the chunked passage back
         chunked_passages = edited_text
 
     # collect retokenized lines
     realigned_lines = []
-
+    
+    # calculate the bullets
+    bullets = [j[1] for i in main for j in i[1]]
+    bullet_tally = 0
+    
     # for each line, perform analysis and append
-    for line, chunked_passage in zip(main, chunked_passages):
-
-        # save the speaker for use later
-        speaker = line[0]
-
-        # extract words and bullets
-        _, bullets = zip(*line[1])
-        # build a giant string for passage
-        passage = " ".join(words)
+    for speaker, chunked_passage in chunked_passages:
         # split the passage align to realign with the bullets
         # that was previously provided. we do a len() here
         # because all we really need is the index at which
         # the first and last bullet of the line exists
         chunked_passage_split = [len(i.split(' ')) for i in chunked_passage]
         # tally up to create zipped result
-        chunked_passage_split = [0]+[sum(chunked_passage_split[:i+1])
+        chunked_passage_split = [bullet_tally]+[sum(chunked_passage_split[:i+1])+bullet_tally
                                 for i in range(len(chunked_passage_split))]
+        # set the new index of the bullet
+        bullet_tally = chunked_passage_split[-1]
         # we subtract one from each element to calculate the stop index
         chunked_passage_split_subtract = [i-1 for i in chunked_passage_split][1:]
         # and now, pair one-off-shift groups: this is the IDs of the start
         # and stop times we look for each utterance's new bullet
         shifts = list(zip(chunked_passage_split, chunked_passage_split_subtract))
+
         # finally, lookup the actual bullet values
         new_bullets = [(bullets[i[0]][0], bullets[i[1]][1]) for i in shifts]
 
@@ -482,7 +482,6 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     with open(outfile, 'w') as df:
         # write!
         df.writelines([i+'\n' for i in new_chat])
-
 
 def retokenize_directory(in_directory, model_path, interactive=False, key=None):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
