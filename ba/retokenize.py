@@ -339,7 +339,7 @@ def interactive_edit(name, string):
     top = ttk.Frame(root, padding=5)
     top.grid()
     # label
-    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 14 bold').grid(column=0, row=0)
+    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 18 bold').grid(column=0, row=0)
     ttk.Label(top, text="Use *** to seperate speakers, newlines to seperate utterances.").grid(column=1, row=0)
     # insert a textbox and place it
     text_box = ScrolledText(root, height=50, width=100, borderwidth=20, highlightthickness=0)
