@@ -301,9 +301,11 @@ def process_audio_file(f, key, interactive=False):
     # create client
     client = apiclient.RevAiAPIClient(key)
 
+    print(f"Uploading '{pathlib.Path(f).stem}'...")
     # we will send the file for processing
     job = client.submit_job_local_file(f,
-                                    metadata=f"batchalign_{pathlib.Path(f).stem}")
+                                       metadata=f"batchalign_{pathlib.Path(f).stem}",
+                                       skip_postprocessing=True)
 
     # we will wait
     status = client.get_job_details(job.id).status
