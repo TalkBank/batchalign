@@ -363,13 +363,32 @@ def interactive_edit(name, string):
         root.withdraw()
         # leave!
         root.quit()
+    # save the current contents to a file
+    def savepoint(auto=False):
+        # draft text
+        text = text_box.get("1.0","end-1c")
+        # save
+        with open(os.path.expanduser(f"~/.ba-checkpoint-{'a' if auto else 'm'}.cut"), 'w') as df:
+            df.write(text.strip())
+    # read the current contents from a file
+    def readpoint():
+        # save
+        with open(os.path.expanduser("~/.ba-checkpoint-m.cut"), 'r') as df:
+            text = df.read().strip()
+        text_box.delete(1.0, "end")
+        text_box.insert("end", text)
     # create the buttons
     ttk.Button(bottom, text="Reset", command=settext).grid(column=0, row=0,
                                                            padx=20, pady=5)
-    ttk.Button(bottom, text="Submit", command=stopit).grid(column=1, row=0,
+    ttk.Button(bottom, text="Restore Checkpoint", command=readpoint).grid(column=1, row=0,
+                                                                       padx=20, pady=5)
+    ttk.Button(bottom, text="Save Checkpoint", command=savepoint).grid(column=2, row=0,
+                                                                    padx=20, pady=5)
+    ttk.Button(bottom, text="Submit", command=stopit).grid(column=3, row=0,
                                                            padx=20, pady=5)
     # mainloop
     root.mainloop()
+    savepoint(True)
     final_text = text_box.get("1.0","end-1c")
     root.destroy()
 
