@@ -42,6 +42,7 @@ from tkinter.scrolledtext import ScrolledText
 
 # import the tokenization engine
 from .utokengine import UtteranceEngine
+from .utils import fix_transcript
 
 # silence huggingface
 os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
@@ -339,10 +340,10 @@ def interactive_edit(name, string):
     top = ttk.Frame(root, padding=5)
     top.grid()
     # label
-    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 18 bold').grid(column=0, row=0)
+    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 14 bold').grid(column=0, row=0)
     ttk.Label(top, text="Use *** to seperate speakers, newlines to seperate utterances.").grid(column=1, row=0)
     # insert a textbox and place it
-    text_box = ScrolledText(root, height=50, width=100, borderwidth=20, highlightthickness=0)
+    text_box = ScrolledText(root, font='TkFixedFont 16', height=40, width=100, borderwidth=20, highlightthickness=0)
     text_box.grid(column=0, row=1)
     # and insert our fixit string
     def settext():
@@ -404,6 +405,9 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
 
     # for each line, create chunks
     for line in tqdm(main):
+        # if the speaker line contains nothing, don't do anything
+        if len(line[1]) == 0:
+            continue
         # extract words and bullets
         words, bullets = zip(*line[1])
         # build a giant string for passage
@@ -481,6 +485,9 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     with open(outfile, 'w') as df:
         # write!
         df.writelines([i+'\n' for i in new_chat])
+
+    # and fix any errors
+    fix_transcript(outfile)
 
 
 def retokenize_directory(in_directory, model_path, interactive=False, key=None):

@@ -4,6 +4,7 @@ import string
 import random
 
 # tokenization utilitise
+import nltk
 from nltk import word_tokenize, sent_tokenize
 
 # torch

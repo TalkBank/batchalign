@@ -9,6 +9,69 @@ import pathlib
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
 
+def fix_transcript(f):
+    """Fix transcript by adding any needed annotations, retracings, etc.
+
+    Attributes:
+        f (string): file path
+
+    Returns:
+        none, used for side effects
+    """
+
+    # get dir
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    # get abspath of file
+    f = os.path.abspath(f)
+
+    ###########################################
+    ## Fix disfluencies and join group words ##
+    ###########################################
+
+    DISFLUENCY_FILE = os.path.abspath(os.path.join(dir_path, "../disfluencies.cut"))
+    REP_JOIN_FILE = os.path.abspath(os.path.join(dir_path, "../rep-join.cut"))
+    # run disfluency replacement
+    CMD = f"chstring +c{DISFLUENCY_FILE} {f} >/dev/null 2>&1"
+    os.system(CMD)
+    # move old file to backup
+    os.rename(f, f.replace("cha", "old.cha"))
+    # rename new file
+    os.rename(f.replace("cha", "chstr.cex"), f)
+    # run rep join replacement
+    CMD = f"chstring +c{REP_JOIN_FILE} {f} >/dev/null 2>&1"
+    os.system(CMD)
+    # rename new file
+    os.rename(f.replace("cha", "chstr.cex"), f)
+
+
+    ###############
+    ## Retracing ##
+    ###############
+
+    # run 
+    CMD = f"retrace +c {f} >/dev/null 2>&1"
+    os.system(CMD)
+    # rename new file
+    os.rename(f.replace("cha", "retrace.cex"), f)
+
+
+    #################
+    ## Lowercasing ##
+    #################
+
+    CAPS_FILE = os.path.abspath(os.path.join(dir_path, "../caps.cut"))
+    # save/change workdir for lowcase
+    workdir = os.getcwd()
+    # change it to the output
+    os.chdir(pathlib.Path(f).parent.absolute())
+    # run 
+    CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} >/dev/null 2>&1"
+    os.system(CMD)
+    # change it back to the output
+    os.chdir(workdir)
+    # rename new file
+    os.rename(f.replace("cha", "lowcas.cex"), f)
+
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
 
@@ -62,6 +125,12 @@ def cleanup(in_directory, out_directory, data_directory="data"):
 
     # move all the orig.cha files from repathing
     chafiles = globase(in_directory, "*.orig.cha")
+    # Rename each one
+    for f in chafiles:
+        os.rename(f, repath_file(f, DATA_DIR)) 
+
+    # move all the old.cha files from repathing
+    chafiles = globase(in_directory, "*.old.cha")
     # Rename each one
     for f in chafiles:
         os.rename(f, repath_file(f, DATA_DIR)) 
