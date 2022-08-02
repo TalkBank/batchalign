@@ -373,7 +373,7 @@ def interactive_edit(name, string):
     root.destroy()
 
     # return the new contents of the textbox
-    return final_text
+    return final_text.strip()
 
 # global realignment function
 def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
