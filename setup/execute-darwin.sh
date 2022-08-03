@@ -45,7 +45,7 @@ sed -i '' "s|+.*+|+$MODE+|" docker-compose.yml
 # prompt instructions
 case $MODE in
     "Analyze Raw Audio")
-        echo -n "Please place .wav files to analyze ONLY"
+        echo -n "Please place .wav files to analyze only"
         ;;
     "Analyze Rev.AI Output")
         echo -n "Please place .wav files and JSON from Rev.AI with paired names"
@@ -56,7 +56,8 @@ case $MODE in
 esac
 
 # Prompt
-prompt "inside $(realpath ./in), and tap enter."
+open ./in
+prompt " inside ./in, and tap enter."
 
 # run!
 docker-compose up --build
