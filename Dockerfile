@@ -10,7 +10,7 @@ RUN conda config --add channels conda-forge
 RUN conda install -y montreal-forced-aligner
 
 # install torch
-RUN conda install -y -c pytorch
+RUN conda install -y pytorch -c pytorch
 
 # install other dependencies
 RUN conda install -y nltk transformers tokenizers
