@@ -8,7 +8,7 @@ We now offer online installation of the `batchalign` pipeline for macOS devices.
 To install and use `batchalign`, please execute 
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/TalkBank/batchalign/master/setup.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/TalkBank/batchalign/master/setup/setup.sh)"
 ```
 
 and follow the on-screen instructions.
