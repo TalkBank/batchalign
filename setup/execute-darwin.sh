@@ -40,7 +40,7 @@ tput sgr0
 echo "."
 
 # edit the configuration for the mode
-sed -i '' "s|\+.*\+|+$MODE+|" docker-compose.yml
+sed -i '' "s|+.*+|+$MODE+|" docker-compose.yml
 
 # prompt instructions
 case $MODE in
