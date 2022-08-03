@@ -2,6 +2,8 @@
 services:
   # alignment tool service
   batchalign:
+    # use x86 emulation
+    platform: linux/x86_64
     # build in current directory
     build:
       context: batchalign

@@ -6,9 +6,8 @@ COPY . /root
 WORKDIR /root
 
 # install mfa
-RUN conda create -n aligner -c conda-forge montreal-forced-aligner
-ENV PATH /opt/conda/envs/aligner/bin:$PATH
-RUN /bin/bash -c "source activate aligner"
+RUN conda config --add channels conda-forge
+RUN conda install montreal-forced-aligner
 
 # install torch
 RUN conda install -c pytorch
