@@ -135,6 +135,12 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     for f in chafiles:
         os.rename(f, repath_file(f, DATA_DIR)) 
 
+    # delete all the old.cha files from output
+    chafiles = globase(out_directory, "*.old.cha")
+    # Rename each one
+    for f in chafiles:
+        os.rename(f, repath_file(f, DATA_DIR).replace(".old.cha", ".unfix.cha")) 
+
     # clean up the elans
     elanfiles = globase(out_directory, "*.eaf")
     # Rename each one

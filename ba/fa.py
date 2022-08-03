@@ -104,6 +104,36 @@ def elan2chat(directory):
     for f in globase(directory, "*.elan.cha"):
         os.rename(f, f.replace(".elan.cha", ".cha"))
 
+
+# fixbullets a whole path
+def fixbullets(directory):
+    """Fix a whole folder's bullets
+
+    files:
+        directory (string): the string directory in which .chas are in
+
+    Returns:
+        None
+    """
+   
+    # get all files in that directory
+    files = globase(directory, "*.cha")
+    # process each file
+    for fl in files:
+        # elan2chatit!
+        CMD = f"{os.path.join(CLAN_PATH, 'fixbullets ')} {fl} >/dev/null 2>&1"
+        # run!
+        os.system(CMD)
+    # delete any error logs
+    for f in globase(directory, "*.err.cex"):
+        os.remove(f)
+    # delete any preexisting chat files to old
+    for f in globase(directory, "*.cha"):
+        os.rename(f, f.replace("cha", "old.cha"))
+    # and rename the files
+    for f in globase(directory, "*.fxblts.cex"):
+        os.rename(f, f.replace(".fxblts.cex", ".cha"))
+
 # chat2elan a whole path
 def chat2elan(directory):
     """Convert a folder of CLAN .cha files to corresponding ELAN XMLs
@@ -426,6 +456,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     """
 
     transcript = elan2transcript(elan)["transcript"]
+    tiers = elan2transcript(elan)["tiers"]
 
     # Get alignment form
     if alignment_form == "long":
@@ -437,6 +468,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
     # cleaned transcirpt
     unaligned_words = []
+    unaligned_tiers = []
     sentence_starts = []
     sentence_ends = []
     
@@ -448,7 +480,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     i = 0
 
     # For each sentence
-    for current_sentence in transcript:
+    for tier, current_sentence in zip(tiers, transcript):
         # remove extra delimiters
         current_sentence = current_sentence.replace("+","+ ")
         current_sentence = current_sentence.replace("$","$ ")
@@ -475,6 +507,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
             # append the cleaned and uncleaned versions of words 
             unaligned_words.append((word, cleaned_word, i))
+            unaligned_tiers.append(tier)
             i += 1
 
         # append boundaries
@@ -520,8 +553,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
     # set the begin
     j = 0
 
-    # keep track the timestamp
-    last_end = 0
+    # for each tier, perform timestamp correction to prevent self-overlap talk
+    # which MFA sometimes generates, as well as fix the issues with sudden unbulleted
+    # words in the input
 
     # check if we need backtracking
     # (i.e. "we corrected an error, backpropegate")
@@ -529,18 +563,21 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
     # begin a loop to scan and correct errors
     while j < len(backplated_alignments):
-        
+
         # get the results 
         indx, word, interval = backplated_alignments[j]
+        tier = unaligned_tiers[indx]
 
-        # if no interval, we skip
+        # if we are at an unalignable word, we move on
+        # if we are backtracking, skip over anything that's
+        # not part of the tier to be backtracked
         if not interval and not backtracking:
             j += 1
             continue
-        elif not interval:
+        elif backtracking and ((not interval) or (tier != backtracking)):
             j -= 1 
             continue
-        
+
         # reset backtracking
         backtracking = False
 
@@ -554,7 +591,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         # go through in a while loop until we found
         # the next indexable element
-        while not rem and i<len(backplated_alignments):
+        while ((not rem) or (unaligned_tiers[i] != tier)) and i<len(backplated_alignments):
             rem = backplated_alignments[i][2]
             i += 1
 
@@ -562,17 +599,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
         # to be the next starting
         if rem and end > rem[0]:
             end = rem[0]
-            backtracking = True # backprop to correct prev. errors
+            backtracking = tier # backprop to correct prev. errors
 
         # if end is smaller than start, conform start to be
         # a bit before end
         if start > end:
             start = max(end, 0.0001)-0.0001
-            backtracking = True # backprop to correct prev. errors
-
-        # store the last end, if not backtracking
-        if not backtracking:
-            last_end = end
+            backtracking = tier # backprop to correct prev. errors
 
         # if we are unalignable, give up. Otherwise, don't give up
         if abs(start-end) < 0.001:
@@ -1013,6 +1046,8 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         eafalign(old_eaf_path, aligned_result, new_eaf_path)
     # convert the aligned eafs back into chat
     elan2chat(out_directory)
+    # and fix bullets
+    fixbullets(out_directory)
 
     ### CLEANUP OPS ###
 
