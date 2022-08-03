@@ -64,13 +64,6 @@ if which programname >/dev/null; then
     printdone "Installing Git..."
 fi
 
-
-# open docker
-gum spin --title "Opening Docker..." -- open /Applications/Docker.app
-printdone "Opening Docker..."
-
-# Wait for docker
-prompt "Please press enter after Docker Desktop starts and is running. "
 echo
 
 # Ask for work location 
