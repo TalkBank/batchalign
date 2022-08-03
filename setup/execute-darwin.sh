@@ -39,11 +39,24 @@ echo -n "Our current run will $(tput setaf 2)$MODE"
 tput sgr0
 echo "."
 
+# edit the configuration for the mode
+sed -i '' "s|\+.*\+|+$MODE+|" docker-compose.yml
+
+# prompt instructions
 case $MODE in
     "Analyze Raw Audio")
-        echo "test"
+        echo -n "Please place .wav files to analyze ONLY"
+        ;;
+    "Analyze Rev.AI Output")
+        echo -n "Please place .wav files and JSON from Rev.AI with paired names"
+        ;;
+    "Realign CHAT")
+        echo -n "Please place .wav files and utterance-bulleted .CHA files"
         ;;
 esac
+
+# Prompt
+prompt "inside $(realpath ./in), and tap enter."
 
 # run!
 docker-compose up --build
