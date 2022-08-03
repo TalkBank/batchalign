@@ -12,5 +12,5 @@ echo "We have detected your operating system as $OSTYPE."
 case $OSTYPE in
     *darwin*)
         echo -n "Pulling and running the darwin setup script! " 
-        /usr/bin/env bash -c "$(curl -fsSL https://raw.githubusercontent.com/TalkBank/batchalign/master/setup/darwin.sh)"
+        /usr/bin/env bash -c "$(curl -H 'Cache-Control: no-cache' -fsSL https://raw.githubusercontent.com/TalkBank/batchalign/master/setup/darwin.sh)"
 esac
