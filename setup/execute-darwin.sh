@@ -34,7 +34,7 @@ echo "#### Run Configuration ####"
 tput sgr0
 
 # choose main mode option
-MODE=$(gum choose --item.foreground 0 --cursor.foreground 1 "Analyze Raw Audio" "Analyze Rev.AI Output" "Realign CHAT")
+MODE=$(gum choose --item.foreground 3 --cursor.foreground 1 "Analyze Raw Audio" "Analyze Rev.AI Output" "Realign CHAT")
 echo -n "Our current run will $(tput setaf 2)$MODE"
 tput sgr0
 echo "."
