@@ -54,13 +54,14 @@ if [[ $? != 0 ]] ; then
 fi
 isdone
 
-# install gum and fzf for pretty prompts and select
-echo -n "Installing prompt tools..." 
-NONINTERACTIVE=1 brew install gum >/dev/null 2>&1
-isdone
-
-# create newline
-echo
+# install gum for pretty prompts and select
+if which gum !>/dev/null; then
+    echo -n "Installing prompt tools..." 
+    NONINTERACTIVE=1 brew install gum >/dev/null 2>&1
+    isdone
+    # create newline
+    echo
+fi
 
 # install docker
 if [ ! -d "/Applications/Docker.app" ]; then
@@ -69,8 +70,8 @@ if [ ! -d "/Applications/Docker.app" ]; then
 fi
 
 # install git
-if which programname >/dev/null; then
-    gum spin --title "Installing Git..." -- brew install --cask docker
+if which git !>/dev/null; then
+    gum spin --title "Installing Git..." -- brew install git
     printdone "Installing Git..."
 fi
 
@@ -80,18 +81,22 @@ echo
 
 # create newline
 tput bold
-echo "#### Configuration ####"
+echo "#### Install Location ####"
 tput sgr0
 
 # Ask for work location 
 # Directory question
 echo "We will need a empty directory to work off of."
-echo -e "This is where we will put everything that we are going to use.\n"
+echo "This is where we will put everything that we are going to use."
 read -e -p "Please select an empty directory (autocompletion enabled): $(tput setaf 2)" DIR
 tput sgr0
 
 # newline
 echo
+
+tput bold
+echo "#### Configuration ####"
+tput sgr0
 
 # get directory
 pushd $DIR > /dev/null
@@ -108,12 +113,12 @@ mkdir in
 mkdir out
 
 # Get a copy of the model
-# gum spin --title "Getting segmentation model..." -- wget $MODEL
-# printdone "Getting segmentation model..."
-# gum spin --title "Extracting segmentation model..." -- tar -xvf "model.tar.gz?dl=0"
-# printdone "Extracting segmentation model..."
-# mv $MODELNAME model
-# rm -rf "model.tar.gz?dl=0"
+gum spin --title "Getting segmentation model..." -- wget $MODEL
+printdone "Getting segmentation model..."
+gum spin --title "Extracting segmentation model..." -- tar -xvf "model.tar.gz?dl=0"
+printdone "Extracting segmentation model..."
+mv $MODELNAME model
+rm -rf "model.tar.gz?dl=0"
 
 echo
 

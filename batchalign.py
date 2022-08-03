@@ -58,8 +58,6 @@ if __name__=="__main__":
         # assert retokenize
         assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
-        if not args.prealigned:
-            print("--prealigned flag not provided. as source came from ASR, prealigned mode will be enabled.")
         print("Performing retokenization!")
         retokenize_directory(args.in_dir, args.retokenize, 'h' if args.headless else args.interactive, args.rev)
         print("Done. Handing off to MFA.")
