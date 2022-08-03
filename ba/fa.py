@@ -443,13 +443,14 @@ def parse_textgrid_short(file_path):
     return wordlist_alignments
 
 # Align the alignments!
-def transcript_word_alignment(elan, alignments, alignment_form="long"):
+def transcript_word_alignment(elan, alignments, alignment_form="long", debug=False):
     """Align the output of parse_transcript and parse_textgrid_* together
 
     Arguments:
         elan (string): path of elan files
         alignments (string): path of parse_alignments
         alignment_form (string): long or short (MFA or P2FA textGrid)
+        debug (bool): debug print mode
 
     Returns:
         {"alignments": ((start, end)...*num_lines), "terms": [bulleted results: string...*num_utterances], "raw": [(word/pause: (start, end)/None)]}
@@ -499,9 +500,11 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             cleaned_word = cleaned_word.replace("“","").replace("”","")
             cleaned_word = cleaned_word.replace(",","").replace("!","")
             cleaned_word = cleaned_word.replace("?","").replace(".","")
+            cleaned_word = cleaned_word.replace("&=","").replace("&-","")
             cleaned_word = cleaned_word.replace("+","").replace("&","")
             cleaned_word = cleaned_word.replace(":","").replace("^","")
             cleaned_word = cleaned_word.replace("$","").replace("\"","")
+            cleaned_word = cleaned_word.replace("&*","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
 
@@ -536,12 +539,15 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
             if i in aligned_indicies:
                 continue
 
+
             # if we can align, do align
             if cleaned_word == aligned_word: 
                 backplated_alignments.append((i, word, (start, end)))
                 aligned_indicies.append(i)
                 break
 
+        # if cleaned_word != aligned_word: 
+        #     print(f"'{cleaned_word}', '{aligned_word}'")
     
     # find missing elements
     to_reinsert = list(filter(lambda x:x[2] not in aligned_indicies, unaligned_words))
@@ -563,10 +569,14 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
     # begin a loop to scan and correct errors
     while j < len(backplated_alignments):
+    # while False:
 
         # get the results 
         indx, word, interval = backplated_alignments[j]
         tier = unaligned_tiers[indx]
+
+        if debug:
+            print(indx, word, interval)
 
         # if we are at an unalignable word, we move on
         # if we are backtracking, skip over anything that's
@@ -587,23 +597,29 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
 
         # get the first remaining indexable elements
         rem = None
+        remword = None
         i = indx+1
 
         # go through in a while loop until we found
         # the next indexable element
         while ((not rem) or (unaligned_tiers[i] != tier)) and i<len(backplated_alignments):
             rem = backplated_alignments[i][2]
+            remword = backplated_alignments[i]
             i += 1
 
         # if end is after the next starting, set the end
         # to be the next starting
         if rem and end > rem[0]:
+            if debug:
+                print("BACK1", end, remword)
             end = rem[0]
             backtracking = tier # backprop to correct prev. errors
 
         # if end is smaller than start, conform start to be
         # a bit before end
         if start > end:
+            if debug:
+                print("BACK2", start, end)
             start = max(end, 0.0001)-0.0001
             backtracking = tier # backprop to correct prev. errors
 
@@ -670,7 +686,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long"):
                     end = i[1][1]
 
                 # while we are open, keep reading
-                while (indx+1) < len(sentence):
+                while (indx+1) < len(sentence) and result[-1] != "]":
                     # increment reading
                     indx += 1
                     # if no start, but have start now, set start
