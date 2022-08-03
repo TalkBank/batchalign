@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# get dir
+BASEDIR=$(dirname "$0")
+
+pushd $BASEDIR > /dev/null
+
+
 # clear screen
 clear
 
@@ -62,3 +68,5 @@ prompt " inside ./in, and tap enter. "
 # run!
 docker-compose up --build
 
+
+popd > /dev/null
