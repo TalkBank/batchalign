@@ -42,9 +42,6 @@ tput bold
 echo "#### Initial Setup ####"
 tput sgr0
 
-# Setup
-echo 
-
 # Ok, first check if brew exists.
 echo -n "Checking and installing Homebrew, if needed..." 
 which -s brew
@@ -148,7 +145,7 @@ isdone
 # Moving user files out
 echo -n "Copying files..."
 mv ./docker-compose.yml ../
-mv ./setup/execute.sh ../
+mv ./setup/execute-darwin.sh ../
 isdone
 
 # move back

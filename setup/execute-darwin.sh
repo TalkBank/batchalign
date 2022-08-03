@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 
-# clear screen
+# # clear screen
 # clear
 
-# print done
-isdone () {
-    tput setaf 2
-    echo " Done."
-    tput sgr0
-}
-printdone () {
-    echo -n $1
-    isdone
-}
-prompt() {
-    read -rsn1 -p "$1"
+# # print done
+# isdone () {
+#     tput setaf 2
+#     echo " Done."
+#     tput sgr0
+# }
+# printdone () {
+#     echo -n $1
+#     isdone
+# }
+# prompt() {
+#     read -rsn1 -p "$1"
 
-    tput setaf 2
-    echo "Thanks."
-    tput sgr0
-}
+#     tput setaf 2
+#     echo "Thanks."
+#     tput sgr0
+# }
 
 # # prompt for info
 # tput bold
