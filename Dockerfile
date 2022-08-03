@@ -7,13 +7,13 @@ WORKDIR /root
 
 # install mfa
 RUN conda config --add channels conda-forge
-RUN conda install montreal-forced-aligner
+RUN conda install -y montreal-forced-aligner
 
 # install torch
-RUN conda install -c pytorch
+RUN conda install -y -c pytorch
 
 # install other dependencies
-RUN conda install nltk transformers tokenizers
+RUN conda install -y nltk transformers tokenizers
 RUN pip install rev_ai
 
 # download models
