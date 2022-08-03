@@ -9,6 +9,3 @@ tput setaf 2
 echo "Done!"
 tput sgr0
 
-
-
-
