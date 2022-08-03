@@ -52,7 +52,7 @@ fi
 isdone
 
 # install gum for pretty prompts and select
-if which gum !>/dev/null; then
+if ! command -v gum &> /dev/null; then
     echo -n "Installing prompt tools..." 
     NONINTERACTIVE=1 brew install gum >/dev/null 2>&1
     isdone
@@ -67,7 +67,7 @@ if [ ! -d "/Applications/Docker.app" ]; then
 fi
 
 # install git
-if which git !>/dev/null; then
+if ! command -v git &> /dev/null; then
     gum spin --title "Installing Git..." -- brew install git
     printdone "Installing Git..."
 fi

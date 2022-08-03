@@ -57,7 +57,7 @@ esac
 
 # Prompt
 open ./in
-prompt " inside ./in, and tap enter."
+prompt " inside ./in, and tap enter. "
 
 # run!
 docker-compose up --build
