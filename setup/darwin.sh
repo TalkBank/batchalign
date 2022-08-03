@@ -23,6 +23,26 @@ tput sgr0
 # create newline
 echo
 
+# Ok, first check if brew exists.
+echo -n "Checking and installing Homebrew, if needed... " 
+which -s brew
+if [[ $? != 0 ]] ; then
+    # Install Homebrew
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
+tput setaf 2
+echo "Done."
+tput sgr0
+
+# install gum for pretty prompts and select
+echo -n "Installing prompt tools... " 
+NONINTERACTIVE=1 brew install gum >/dev/null 2>&1
+tput setaf 2
+echo "Done."
+tput sgr0
+
+# create newline
+echo
 
 
 
