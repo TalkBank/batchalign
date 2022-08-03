@@ -148,7 +148,7 @@ isdone
 # Moving user files out
 echo -n "Copying files..."
 mv ./docker-compose.yml ../
-mv ./execute.sh ../
+mv ./setup/execute.sh ../
 isdone
 
 # move back
