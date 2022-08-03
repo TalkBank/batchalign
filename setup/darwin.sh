@@ -131,7 +131,7 @@ sed -i '' "s|__MODEL_PATH__|$(realpath ../model)|" docker-compose.yml
 isdone
 
 # Moving user files out
-echo -n "Editing config..."
+echo -n "Copying files..."
 mv ./docker-compose.yml ../
 mv ./execute.sh ../
 isdone

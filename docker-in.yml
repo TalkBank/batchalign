@@ -7,7 +7,7 @@ services:
       context: batchalign
     # exposed secrets
     environment:
-      - REV_API: __REV_API__
+      - REV_API: "__REV_API__"
     # volumes
     volumes:
       - __IN_PATH__: /root/in
