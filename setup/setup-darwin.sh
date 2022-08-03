@@ -72,6 +72,12 @@ if ! command -v git &> /dev/null; then
     printdone "Installing Git..."
 fi
 
+# install wget
+if ! command -v wget &> /dev/null; then
+    gum spin --title "Installing wget..." -- brew install wget
+    printdone "Installing wget..."
+fi
+
 echo
 
 #### SETUP ####
