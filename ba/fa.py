@@ -485,6 +485,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         # remove extra delimiters
         current_sentence = current_sentence.replace("+","+ ")
         current_sentence = current_sentence.replace("$","$ ")
+        current_sentence = current_sentence.replace("-","- ")
 
         # split results
         splits = current_sentence.split(" ")
@@ -504,8 +505,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
             cleaned_word = cleaned_word.replace("+","").replace("&","")
             cleaned_word = cleaned_word.replace(":","").replace("^","")
             cleaned_word = cleaned_word.replace("$","").replace("\"","")
-            cleaned_word = cleaned_word.replace("&*","")
+            cleaned_word = cleaned_word.replace("&*","").replace("∬","")
+            cleaned_word = cleaned_word.replace("-","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
+            cleaned_word = re.sub(r"&.", '', cleaned_word)
             cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
 
             # append the cleaned and uncleaned versions of words 
@@ -744,6 +747,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         # remove extra delimiters, as a final sanity check
         sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("_ ","_")
+        sentence = sentence.replace("- ","-")
         sentence = sentence.replace(" >",">")
         sentence = sentence.replace("< ","<")
         sentence = sentence.replace("$ ","$")
