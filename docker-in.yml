@@ -7,12 +7,12 @@ services:
       context: batchalign
     # exposed secrets
     environment:
-      - REV_API: "__REV_API__"
+      - REV_API="__REV_API__"
     # volumes
     volumes:
-      - __IN_PATH__: /root/in
-      - __OUT_PATH__: /root/out
-      - __MODEL_PATH__: /root/model
+      - __IN_PATH__:/root/in
+      - __OUT_PATH__:/root/out
+      - __MODEL_PATH__:/root/model
     # expose tty
     stdin_open: true # docker run -i
     tty: true        # docker run -t
