@@ -85,7 +85,7 @@ tput sgr0
 # Directory question
 echo "We will need a empty directory to work off of."
 echo "This is where we will put everything that we are going to use."
-read -e -p "Please select an empty directory (autocompletion enabled): $(tput setaf 2)" DIR
+read -e -p "Please select an empty directory (tab-completion enabled): $(tput setaf 2)" DIR
 tput sgr0
 
 # newline
