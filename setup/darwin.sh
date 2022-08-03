@@ -6,6 +6,6 @@
 # downloaded.
 
 tput setaf 2
-echo "Done!"
+echo "Done."
 tput sgr0
 
