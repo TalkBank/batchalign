@@ -7,12 +7,12 @@ services:
       context: .
     # exposed secrets
     environment:
-      - REV_API: {{REV_API}}
+      - REV_API: __REV_API__
     # volumes
     volumes:
-      - {{IN_PATH}}: /root/in
-      - {{OUT_PATH}}: /root/out
-      - {{MODEL_PATH}}: /root/model
+      - __IN_PATH__: /root/in
+      - __OUT_PATH__: /root/out
+      - __MODEL_PATH__: /root/model
     # expose tty
     stdin_open: true # docker run -i
     tty: true        # docker run -t

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# clear
+clear
+
 # Welcome the user
 tput bold 
 echo -e "\nWelcome to batchalign setup!"
