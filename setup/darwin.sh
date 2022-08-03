@@ -35,6 +35,16 @@ prompt "Please ensure 5GB of space is avaliable, press enter to continue. "
 # create newline
 echo
 
+#### SETUP ####
+
+# heading
+tput bold
+echo "#### Initial Setup ####"
+tput sgr0
+
+# Setup
+echo 
+
 # Ok, first check if brew exists.
 echo -n "Checking and installing Homebrew, if needed..." 
 which -s brew
@@ -65,6 +75,13 @@ if which programname >/dev/null; then
 fi
 
 echo
+
+#### SETUP ####
+
+# create newline
+tput bold
+echo "#### Configuration ####"
+tput sgr0
 
 # Ask for work location 
 # Directory question
