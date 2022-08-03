@@ -113,20 +113,28 @@ echo -e "Please provide your access key to Rev (http://rev.ai/)\n"
 echo -e "This will not be shared beyond your local machine. \n"
 KEY="$(gum input --placeholder "Rev.AI Key" --width 100)"
 
-echo $KEY 
 # get into batchalign
 pushd batchalign > /dev/null
+
+# remove git
+rm -rf .git
 
 echo -n "Editing config..."
 # create function to change paths
 # creating compose file
 cat docker-in.yml > docker-compose.yml 
 # sed and replace key
-sed -i "s/__REV_API__/$KEY/" docker-compose.yml
+sed -i '' "s|__REV_API__|$KEY|" docker-compose.yml
+sed -i '' "s|__IN_PATH__|$(realpath ../in)|" docker-compose.yml
+sed -i '' "s|__OUT_PATH__|$(realpath ../out)|" docker-compose.yml
+sed -i '' "s|__MODEL_PATH__|$(realpath ../model)|" docker-compose.yml
 isdone
 
-# updating batchalign config
-gum spin --title "Updating batchalign Docker Config..." -- change
+# Moving user files out
+echo -n "Editing config..."
+mv ./docker-compose.yml ../
+mv ./execute.sh ../
+isdone
 
 # move back
 popd > /dev/null
