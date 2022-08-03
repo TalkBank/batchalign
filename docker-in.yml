@@ -1,0 +1,18 @@
+# define services
+services:
+  # alignment tool service
+  batchalign:
+    # build in current directory
+    build:
+      context: .
+    # exposed secrets
+    environment:
+      - REV_API: {{REV_API}}
+    # volumes
+    volumes:
+      - {{IN_PATH}}: /root/in
+      - {{OUT_PATH}}: /root/out
+      - {{MODEL_PATH}}: /root/model
+    # expose tty
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t

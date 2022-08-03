@@ -42,6 +42,7 @@ parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
 parser.add_argument("--model", type=str, help='path to custom model')
 parser.add_argument("--retokenize", type=str, help='retokenize input with model')
 parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
+parser.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
 parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
@@ -60,7 +61,7 @@ if __name__=="__main__":
         if not args.prealigned:
             print("--prealigned flag not provided. as source came from ASR, prealigned mode will be enabled.")
         print("Performing retokenization!")
-        retokenize_directory(args.in_dir, args.retokenize, args.interactive, args.rev)
+        retokenize_directory(args.in_dir, args.retokenize, 'h' if args.headless else args.interactive, args.rev)
         print("Done. Handing off to MFA.")
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
     # otherwise prealign

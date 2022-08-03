@@ -327,19 +327,6 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         none
     """
 
-    # TODO for non-macOS systems
-    # check if the g2p model exists, if not, download them
-    if not os.path.exists(expanduser("~/Documents/MFA/pretrained_models/g2p/english_us_arpa.zip")):
-        # Get and download the model
-        CMD = "mfa model download g2p english_us_arpa"
-        os.system(CMD)
-
-    # check if the acoustic model exists, if not, download them
-    if not os.path.exists(expanduser("~/Documents/MFA/pretrained_models/acoustic/english_us_arpa.zip")):
-        # Get and download the model
-        CMD = "mfa model download acoustic english_us_arpa"
-        os.system(CMD)
-
     # define model
     if not model:
         model = "english_us_arpa"

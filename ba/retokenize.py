@@ -447,7 +447,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
 
     # if we need to the interactive fixit program,
     # run the routine
-    if interactive:
+    if interactive and (interactive != 'h'):
         # create the output string
         fixit_string = "\n\n***\n".join([(i[0]+"\n\n")+ "\n\n".join(i[1]) 
                                         for i in chunked_passages])
