@@ -32,10 +32,10 @@ import argparse
 import os
 
 # get mode from command line flag
-mode = os.environ.get("BA_MODE").replace("\"", "").strip()
+mode = os.environ.get("BA_MODE").strip()
 MODE = -1
 
-REV_API = os.environ.get("REV_API").replace("\"", "")
+REV_API = os.environ.get("REV_API")
 
 if mode == "+Analyze Raw Audio+":
     MODE = 1
