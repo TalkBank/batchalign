@@ -66,18 +66,38 @@ open ./in
 prompt " inside ./in, and tap enter. "
 echo
 
-# Run batchalign
+# BUild batchalign
 tput bold
-echo "#### Run Batchalign ####"
+echo "#### Building Batchalign ####"
 tput sgr0
 echo "If this is your first time, the initial Docker build takes about half an hour."
 echo "We are hoping to update this to be a full image and make the process quicker"
 echo "in the near future."
 
+docker compose build
+
+echo
+# Run batchalign
+tput bold
+echo "#### Run Batchalign ####"
+tput sgr0
+echo "Welcome to batchalign!"
+echo "Attaching to container, and letting the script take over."
+
 echo
 
 # run!
-docker-compose up --build
+docker compose run --rm batchalign
 
+
+echo
+# Run batchalign
+tput bold
+echo "#### All Done ####"
+tput sgr0
+echo "Thanks for running batchalign."
+open ./out
+
+echo
 
 popd > /dev/null

@@ -27,11 +27,9 @@ RUN wget https://dali.talkbank.org/clan/unix-clan.zip
 RUN unzip unix-clan.zip
 WORKDIR ./unix-clan/src
 # create new makefile
-RUN (printf "CC = g++\nCFLAGS = -O -DUNX -Wall"; cat makefile) > makefile.new
-RUN mv makefile makefile.old
-RUN mv makefile.new makefile
+RUN printf "CC = g++\nCFLAGS = -O -DUNX -Wall" >> makefile
 # build
-RUN make -j12
+RUN make -j4
 WORKDIR ../unix/
 # install
 RUN cp bin/* /usr/bin
@@ -41,5 +39,8 @@ RUN cp obj/* /usr/lib
 COPY . /root
 WORKDIR /root
 
+# make runner executable
+RUN chmod +x ./run.sh
+
 # run!
-ENTRYPOINT run.sh
+ENTRYPOINT ./run.sh
