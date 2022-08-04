@@ -587,8 +587,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         if not interval and not backtracking:
             j += 1
             continue
-        elif backtracking and ((not interval) or (tier != backtracking)):
+        elif backtracking and ((not interval) or (tier != backtracking)) and j!= 0:
             j -= 1 
+            continue
+        # if we are backtracking, and we can't do anything
+        elif backtracking and ((not interval) or (tier != backtracking)) and j == 0:
+            j += 1
+            backtracking = False
             continue
 
         # reset backtracking
