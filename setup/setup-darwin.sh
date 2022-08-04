@@ -176,8 +176,7 @@ echo "#### Configuration ####"
 tput sgr0
 
 echo "To run batchalign:"
-tput setaf 2
-echo -n "Please double click on the $(realpath ../execute) "
+echo -n "Please double click on the $(tput setaf 2)$(realpath ../execute) "
 tput sgr0
 echo "executable and follow its instructions."
 
