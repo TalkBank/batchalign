@@ -33,7 +33,7 @@ import os
 
 # get mode from command line flag
 mode = os.environ.get("BA_MODE")
-MODE = None
+MODE = -1
 
 REV_API = os.environ.get("REV_API")
 
@@ -69,9 +69,9 @@ if __name__=="__main__":
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     # if we need to retokenize or run with audio only (i.e. no files avaliable)
-    elif args.retokenize or ((len(globase(args.in_dir, "*.cha")) == 0) and
-                             (len(globase(args.in_dir, "*.json")) == 0)) or MODE == 1:
-        # assert retokenize
+    elif (args.retokenize and MODE != 0) or ((len(globase(args.in_dir, "*.cha")) == 0) and
+                                             (len(globase(args.in_dir, "*.json")) == 0)) or MODE == 1:
+    # assert retokenize
         assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
         print("Performing retokenization!")
