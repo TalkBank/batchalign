@@ -16,6 +16,16 @@ RUN pip install rev_ai
 RUN mfa model download g2p english_us_arpa
 RUN mfa model download acoustic english_us_arpa
 
+# install UnixClan
+RUN wget https://dali.talkbank.org/clan/unix-clan.zip
+RUN unzip unix-clan.zip
+WORKDIR ./unix-clan/src
+RUN (echo "CC = g++"; cat makefile) > makefile
+RUN make -j12
+WORKDIR ../unix/
+RUN cp bin/* /usr/bin
+RUN cp obj/* /usr/lib
+
 # copy all the dependency files
 COPY . /root
 WORKDIR /root
