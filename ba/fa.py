@@ -610,7 +610,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
 
         # go through in a while loop until we found
         # the next indexable element
-        while ((not rem) or (unaligned_tiers[i] != tier)) and i<len(backplated_alignments):
+        while i<len(backplated_alignments) and ((not rem) or (unaligned_tiers[i] != tier)):
             rem = backplated_alignments[i][2]
             remword = backplated_alignments[i]
             i += 1
