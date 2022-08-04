@@ -168,7 +168,7 @@ isdone
 echo
 
 tput bold
-echo "#### Configuration ####"
+echo "#### Running Instructions ####"
 tput sgr0
 
 echo "To run batchalign, please double click on the "
