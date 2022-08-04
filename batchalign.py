@@ -32,7 +32,7 @@ import argparse
 import os
 
 # get mode from command line flag
-mode = os.environ.get("BA_MODE").strip()
+mode = os.environ.get("BA_MODE")
 MODE = -1
 
 REV_API = os.environ.get("REV_API")
