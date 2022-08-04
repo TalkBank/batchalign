@@ -171,10 +171,11 @@ tput bold
 echo "#### Configuration ####"
 tput sgr0
 
-echo "To run batchalign:"
-echo "Please double click on the $(tput setaf 2)$(realpath ../execute) "
+echo "To run batchalign, please double click on the "
+tput setaf 2
+echo -n "$(realpath ../execute) "
 tput sgr0
-echo "executable and follow its instructions."
+echo -e "executable\nand follow its instructions."
 
 # move back
 popd > /dev/null
