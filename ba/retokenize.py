@@ -3,6 +3,8 @@ tokenize.py
 Parses output from AWS ASR for the front of the pipeline
 """
 
+# import uuid
+import uuid
 # os utilities
 import os
 # pathing
@@ -369,13 +371,17 @@ def interactive_edit(name, string):
     def savepoint(auto=False):
         # draft text
         text = text_box.get("1.0","end-1c")
+        # make the checkpoints directory
+        pathlib.Path(os.path.expanduser("~/.ba-checkpoints/")).mkdir(parents=True, exist_ok=True)
         # save
-        with open(os.path.expanduser(f"~/.ba-checkpoint-{'a' if auto else 'm'}.cut"), 'w') as df:
+        with open(os.path.expanduser(f"~/.ba-checkpoints/{f'{name}_{uuid.uuid4()}.auto' if auto else 'm'}.cut"), 'w') as df:
             df.write(text.strip())
     # read the current contents from a file
     def readpoint():
+        # make the checkpoints directory
+        pathlib.Path(os.path.expanduser("~/.ba-checkpoints/")).mkdir(parents=True, exist_ok=True)
         # save
-        with open(os.path.expanduser("~/.ba-checkpoint-m.cut"), 'r') as df:
+        with open(os.path.expanduser("~/.ba-checkpoints/m.cut"), 'w+') as df:
             text = df.read().strip()
         text_box.delete(1.0, "end")
         text_box.insert("end", text)
