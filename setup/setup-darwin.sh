@@ -78,6 +78,12 @@ if ! command -v wget &> /dev/null; then
     printdone "Installing wget..."
 fi
 
+# install coreutils
+if ! command -v wget &> /dev/null; then
+    gum spin --title "Installing coreutils..." -- brew install coreutils
+    printdone "Installing coreutils..."
+fi
+
 echo
 
 #### SETUP ####
@@ -92,6 +98,7 @@ tput sgr0
 echo "We will need a empty directory to work off of."
 echo "This is where we will put everything that we are going to use."
 read -e -p "Please select an empty directory (tab-completion and creation enabled): $(tput setaf 2)" DIR
+DIR=$(realpath $DIR)
 tput sgr0
 mkdir -p $DIR
 
