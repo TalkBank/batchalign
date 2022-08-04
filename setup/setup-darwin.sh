@@ -167,6 +167,20 @@ isdone
 popd > /dev/null
 popd > /dev/null
 
+# Run instructions
+# newline
+echo
+
+tput bold
+echo "#### Configuration ####"
+tput sgr0
+
+echo "To run batchalign:"
+tput setaf 2
+echo -n "Please double click on the $(realpath ../execute) executable "
+tput sgr0
+echo "and follow its instructions."
+
 # final newline
 echo
 
