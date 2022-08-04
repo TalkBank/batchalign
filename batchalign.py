@@ -35,6 +35,8 @@ import os
 mode = os.environ["BA_MODE"]
 MODE = None
 
+REV_API = os.environ["REV_API"]
+
 if mode == "+Analyze Raw Audio+":
     MODE = 1
 elif mode == "+Analyze Rev.AI Output+":
@@ -73,7 +75,7 @@ if __name__=="__main__":
         assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
         print("Performing retokenization!")
-        retokenize_directory(args.in_dir, args.retokenize, 'h' if args.headless else args.interactive, args.rev)
+        retokenize_directory(args.in_dir, args.retokenize, 'h' if args.headless else args.interactive, args.rev if args.rev else REV_API)
         if not args.asronly:
             print("Done. Handing off to MFA.")
             do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)

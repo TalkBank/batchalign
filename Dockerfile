@@ -21,4 +21,4 @@ COPY . /root
 WORKDIR /root
 
 # run!
-ENTRYPOINT python ./batchalign.py --retokenize /root/model -in /root/in /root/out --rev $REV_API
+ENTRYPOINT python ./batchalign.py --retokenize /root/model -in /root/in /root/out

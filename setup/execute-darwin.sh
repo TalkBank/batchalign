@@ -64,6 +64,17 @@ esac
 # Prompt
 open ./in
 prompt " inside ./in, and tap enter. "
+echo
+
+# Run batchalign
+tput bold
+echo "#### Run Batchalign ####"
+tput sgr0
+echo "If this is your first time, the initial Docker build takes about half an hour."
+echo "We are hoping to update this to be a full image and make the process quicker"
+echo "in the near future."
+
+echo
 
 # run!
 docker-compose up --build
