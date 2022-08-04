@@ -79,7 +79,7 @@ if ! command -v wget &> /dev/null; then
 fi
 
 # install coreutils
-if ! command -v wget &> /dev/null; then
+if ! command -v realpath &> /dev/null; then
     gum spin --title "Installing coreutils..." -- brew install coreutils
     printdone "Installing coreutils..."
 fi
