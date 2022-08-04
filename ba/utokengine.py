@@ -43,7 +43,7 @@ class UtteranceEngine(object):
 
         # "tokenize" the result by just splitting by space
         input_tokenized = passage.split(' ')
-        
+
         # pass it through the tokenizer and model
         tokd = self.tokenizer([input_tokenized],
                               return_tensors='pt',
