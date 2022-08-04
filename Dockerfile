@@ -42,4 +42,4 @@ COPY . /root
 WORKDIR /root
 
 # run!
-ENTRYPOINT REV_API=$REV_API BA_MODE=$BA_MODE python ./batchalign.py --retokenize /root/model /root/in /root/out
+ENTRYPOINT run.sh
