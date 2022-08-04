@@ -163,10 +163,6 @@ mv ./setup/execute.sh ../execute
 chmod +x ../execute
 isdone
 
-# move back
-popd > /dev/null
-popd > /dev/null
-
 # Run instructions
 # newline
 echo
@@ -176,9 +172,13 @@ echo "#### Configuration ####"
 tput sgr0
 
 echo "To run batchalign:"
-echo -n "Please double click on the $(tput setaf 2)$(realpath ../execute) "
+echo "Please double click on the $(tput setaf 2)$(realpath ../execute) "
 tput sgr0
 echo "executable and follow its instructions."
+
+# move back
+popd > /dev/null
+popd > /dev/null
 
 # final newline
 echo
