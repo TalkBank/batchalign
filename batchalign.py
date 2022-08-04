@@ -28,6 +28,8 @@ from ba.utils import cleanup, globase
 
 # import argparse
 import argparse
+# import os
+import os
 
 # manloop to take input
 parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
@@ -43,6 +45,7 @@ parser.add_argument("--model", type=str, help='path to custom model')
 parser.add_argument("--retokenize", type=str, help='retokenize input with model')
 parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
 parser.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
+parser.add_argument('-a', "--asronly", default=False, action='store_true', help='ASR only, don\'t run mfa')
 parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
@@ -60,8 +63,20 @@ if __name__=="__main__":
         # assert retokenize
         print("Performing retokenization!")
         retokenize_directory(args.in_dir, args.retokenize, 'h' if args.headless else args.interactive, args.rev)
-        print("Done. Handing off to MFA.")
-        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+        if not args.asronly:
+            print("Done. Handing off to MFA.")
+            do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+        else:
+            # Define the data_dir
+            DATA_DIR = os.path.join(args.out_dir, args.data_dir)
+
+            # Make the data directory if needed
+            if not os.path.exists(DATA_DIR):
+                os.mkdir(DATA_DIR)
+
+            # cleanup
+            cleanup(args.in_dir, args.out_dir, args.data_dir)
+            print("All done! Check the input folder.")
     # otherwise prealign
     else: 
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=args.prealigned, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)

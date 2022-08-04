@@ -140,8 +140,12 @@ def process_chat_file(f):
 
     return header_tiers, main_tiers_processed, closing_tiers
 
+corpus = None
+
 # process jsons (for both rev API and json files)
 def process_json(data, name=None, interactive=False):
+    global corpus
+    
     """Process JSON Data from Rev.ai
 
     Attributes:
@@ -189,8 +193,6 @@ def process_json(data, name=None, interactive=False):
     speaker_ids = {i[0] for i in utterance_col} # this is a set!
     speakers = {}
 
-    corpus = "corpus_name"
-
     # generate the speaker information, or
     # otherwise fill it out
     if interactive:
@@ -199,7 +201,7 @@ def process_json(data, name=None, interactive=False):
         # filter 2 statements for each speaker needed
         # and then push
         for speaker in speaker_ids:
-            speakers_filtered.append(list(filter(lambda x:x[0]==speaker, utterance_col))[:2])
+            speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x))[-2:])
 
         # prompt hello
         print("Welcome to interactive speaker identification!")
@@ -219,14 +221,20 @@ def process_json(data, name=None, interactive=False):
             speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant or P): ").strip()
             if len(speaker_name) == 1:
                 translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
+                while translation == "*":
+                    speaker_name = input(f"Invalid selection. Please enter identifying letter of speaker {speaker} (i.e. Participant or P): ").strip()
+                    translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
                 speaker_name = translation[0]
                 speaker_tier = translation[1]
             # if we don't have first capital and spelt correctly
             while not (speaker_name[0].isupper() and "*" not in speaker_name):
                 print("Invalid response. Please follow the formatting example provided.")
-                speaker_name = input(f"Please enter name of speaker {speaker} (i.e. Participant): ").strip()
+                speaker_name = input(f"Invalid selection. Please enter identifying letter of speaker {speaker} (i.e. Participant): ").strip()
                 if len(speaker_name) == 1:
                     translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
+                    while translation == "*":
+                        speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant or P): ").strip()
+                        translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
                     speaker_name = translation[0]
                     speaker_tier = translation[1]
             # if we are not using on letter shortcut, prompt for tier
@@ -241,7 +249,8 @@ def process_json(data, name=None, interactive=False):
             speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
             print()
         # Name of the corpus
-        corpus = input("Name of the corpus: ")
+        if not corpus:
+            corpus = input("Corpus name not found; please enter corpus name: ")
 
     else:
 
@@ -461,7 +470,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
         # let the user edit the fixit string
         edited_text = [(i.split("\n\n")[0], [j.strip() for j in i.split("\n\n")[1:]])
                    for i in interactive_edit(pathlib.Path(infile).stem,
-                                            fixit_string).split("\n\n***\n")]
+                                             fixit_string).split("\n\n***\n")]
 
         # set the chunked passage back
         chunked_passages = edited_text
@@ -476,6 +485,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
 
     # for each line, perform analysis and append
     for speaker, chunked_passage in chunked_passages:
+        # check if we have no content, if so, give up
+        if len(chunked_passage) == 0:
+            continue
+
         # split the passage align to realign with the bullets
         # that was previously provided. we do a len() here
         # because all we really need is the index at which
@@ -491,7 +504,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
         shifts = list(zip(chunked_passage_split, chunked_passage_split[1:]))
 
         # finally, lookup the actual bullet values
-        new_bullets = [[bullets[i[0]][0], bullets[min(i[1], len(bullets)-1)][1]] for i in shifts]
+        new_bullets = [[bullets[i[0]][0], bullets[min(i[1], len(bullets)-1)-1][1]] for i in shifts]
 
         # we will stringify it into new bullets
         new_bullets_str = [f'{i[0]}_{i[1]}' for i in new_bullets]
