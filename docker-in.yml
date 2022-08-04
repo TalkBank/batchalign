@@ -10,7 +10,7 @@ services:
     # exposed secrets
     environment:
       - REV_API="__REV_API__"
-      - MODE="+__MODE__+"
+      - BA_MODE="+__MODE__+"
     # volumes
     volumes:
       - __IN_PATH__:/root/in

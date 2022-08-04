@@ -31,6 +31,17 @@ import argparse
 # import os
 import os
 
+# get mode from command line flag
+mode = os.environ["BA_MODE"]
+MODE = None
+
+if mode == "+Analyze Raw Audio+":
+    MODE = 1
+elif mode == "+Analyze Rev.AI Output+":
+    MODE = 1
+elif mode == "+Realign CHAT+":
+    MODE = 0
+
 # manloop to take input
 parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
 parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
@@ -57,7 +68,7 @@ if __name__=="__main__":
         cleanup(args.in_dir, args.out_dir, args.data_dir)
     # if we need to retokenize or run with audio only (i.e. no files avaliable)
     elif args.retokenize or ((len(globase(args.in_dir, "*.cha")) == 0) and
-                             (len(globase(args.in_dir, "*.json")) == 0)):
+                             (len(globase(args.in_dir, "*.json")) == 0)) or MODE == 1:
         # assert retokenize
         assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
