@@ -159,7 +159,7 @@ isdone
 # Moving user files out
 echo -n "Copying files..."
 mv ./docker-compose.yml ../
-mv ./setup/execute-darwin.sh ../execute
+mv ./setup/execute.sh ../execute
 chmod +x ../execute
 isdone
 
