@@ -34,19 +34,12 @@ tput sgr0
 echo "Let's configure your current run."
 echo
 
-# open docker
-dockerstart () {
-    # On Mac OS this would be the terminal command to launch Docker
-    open /Applications/Docker.app
-    while (! docker stats --no-stream ); do
-        # Docker takes a few seconds to initialize
-        sleep 1
-    done
-}
 #Open Docker, only if is not running
 if (! docker stats --no-stream ); then
-    #Wait until Docker daemon is running and has completed initialisation
-    gum spin --title "Starting docker..." -- dockerstart
+    # open docker on the right version
+    open /Applications/Docker.app
+    # Wait until Docker daemon is running and has completed initialisation
+    gum spin --title "Starting docker..." -- ; while (! docker stats --no-stream ); do sleep 1; done
     printdone "Starting docker..."
 fi
 
