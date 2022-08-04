@@ -38,8 +38,10 @@ echo
 if (! docker stats --no-stream ); then
     # open docker on the right version
     open /Applications/Docker.app
-    # Wait until Docker daemon is running and has completed initialisation
-    gum spin --title "Starting docker..." -- $(; while (! docker stats --no-stream ); do sleep 1; done)
+    while (! docker stats --no-stream ); do
+        # Wait until Docker daemon is running and has completed initialisation
+        gum spin --title "Starting docker..." -- sleep 1
+    done
     printdone "Starting docker..."
 fi
 
