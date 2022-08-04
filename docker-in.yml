@@ -2,6 +2,8 @@
 services:
   # alignment tool service
   batchalign:
+    # host networking
+    network_mode: bridge
     # use x86 emulation
     platform: linux/x86_64
     # build in current directory
