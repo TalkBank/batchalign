@@ -694,7 +694,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
                     end = i[1][1]
 
                 # while we are open, keep reading
-                while (indx+1) < len(sentence) and result[-1] != "]":
+                while (indx+1) < len(sentence):
                     # increment reading
                     indx += 1
                     # if no start, but have start now, set start
