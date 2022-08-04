@@ -186,12 +186,12 @@ def process_json(data, name=None, interactive=False):
             for part in word_parts:
                 final_words.append([part.strip(), [cur, cur+div]])
                 cur += div
-        # if the final words is > 500, split into n parts
-        if len(final_words) > 500:
+        # if the final words is > 300, split into n parts
+        if len(final_words) > 300:
             # for each group, append
-            for i in range(0, len(final_words), 500):
+            for i in range(0, len(final_words), 300):
                 # concatenate with speaker tier and append to final collection
-                utterance_col.append((utterance["speaker"], final_words[i:i+500]))
+                utterance_col.append((utterance["speaker"], final_words[i:i+300]))
         else:
             # concatenate with speaker tier and append to final collection
             utterance_col.append((utterance["speaker"], final_words))
