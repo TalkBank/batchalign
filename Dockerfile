@@ -61,10 +61,9 @@ RUN conda install -y nltk transformers tokenizers
 RUN pip install rev_ai
 
 # copy more kaldi dependencies
-RUN cp -r /kaldi/src/featbin/* /usr/bin
-RUN cp -r /kaldi/src/gmmbin/* /usr/bin
-RUN cp -r /kaldi/src/latbin/* /usr/bin
-RUN cp -r /kaldi/src/fstbin/* /usr/bin
+# remove extra makefiles
+RUN rm /kaldi/src/*bin/Makefile
+RUN cp -r /kaldi/src/*bin/* /usr/bin
 
 # install UnixClan
 RUN wget https://dali.talkbank.org/clan/unix-clan.zip
@@ -83,6 +82,14 @@ RUN cp obj/* /usr/lib
 # remove all build cache
 RUN rm -r /root/*
 
+# install ffmpeg
+RUN apt-get install -y ffmpeg
+
+# export wheels for packages
+RUN mkdir /wheelhouse
+RUN pip wheel --wheel-dir=/wheelhouse Montreal-Forced-Aligner
+RUN pip wheel --wheel-dir=/wheelhouse pynini
+
 # main stage
 # pull conda again
 FROM continuumio/miniconda3 as program
@@ -95,6 +102,10 @@ COPY --from=base /opt /opt
 COPY --from=base /usr /usr
 COPY --from=base /etc /etc
 COPY --from=base /lib /lib
+COPY --from=base /wheelhouse /wheelhouse
+
+# install dependencies
+RUN pip install --no-index --find-links=/wheelhouse Montreal-Forced-Aligner pynini
 
 # download models
 RUN mfa model download g2p english_us_arpa
