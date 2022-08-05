@@ -17,14 +17,14 @@ RUN mkdir -p ./kaldi/tools/python/
 # make tools
 WORKDIR ./kaldi/tools
 RUN ./extras/check_dependencies.sh
-RUN make -j 4
+RUN make -j 2
 
 # make source
 WORKDIR ../src
 RUN  cd ../tools; extras/install_openblas.sh
 RUN ./configure --shared
-RUN make depend -j 8
-RUN make -j 8
+RUN make depend -j 2
+RUN make -j 2
 
 # copy tools
 RUN cp bin/* /usr/bin
@@ -40,15 +40,14 @@ RUN apt-get install -y curl
 RUN curl https://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.8.2.tar.gz -o openfst
 RUN tar -xzf openfst
 WORKDIR ./openfst-1.8.2
-RUN ./configure --enable-far=true  --enable-bin=false --enable-mpdt=true --enable-pdt=true
-RUN make 
+RUN ./configure --enable-far=true  --enable-bin=false --enable-mpdt=true  --enable-pdt=true
+RUN make -j4
 RUN make install
 
 # install pynini
 RUN pip install Cython
 RUN dpkg --print-architecture
 RUN pip install pynini
-
 
 # install MFA
 RUN pip3 install git+https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner.git
@@ -59,6 +58,12 @@ RUN conda install -y pytorch -c pytorch
 # install other dependencies
 RUN conda install -y nltk transformers tokenizers
 RUN pip install rev_ai
+
+# copy more kaldi dependencies
+RUN cp -r /kaldi/src/featbin/* /usr/bin
+RUN cp -r /kaldi/src/gmmbin/* /usr/bin
+RUN cp -r /kaldi/src/latbin/* /usr/bin
+RUN cp -r /kaldi/src/fstbin/* /usr/bin
 
 # download models
 RUN mfa model download g2p english_us_arpa
