@@ -5,7 +5,7 @@ services:
     # host networking
     network_mode: bridge
     # pull the latest docker image
-    image: "jemokajack/batchalign:latest"
+    image: jemokajack/batchalign:latest
     # build:
     #   context: batchalign
     # exposed secrets
