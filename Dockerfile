@@ -40,7 +40,7 @@ RUN apt-get install -y curl
 RUN curl https://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.8.2.tar.gz -o openfst
 RUN tar -xzf openfst
 WORKDIR ./openfst-1.8.2
-RUN ./configure --enable-far=true  --enable-bin=false --enable-mpdt=true  --enable-pdt=true --enable-python=true
+RUN ./configure --enable-far=true  --enable-bin=false --enable-mpdt=true --enable-pdt=true
 RUN make 
 RUN make install
 

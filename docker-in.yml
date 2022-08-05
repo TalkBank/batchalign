@@ -8,9 +8,10 @@ services:
     platform: linux/x86_64
     # memory limit
     memory: 4G
-    # build in current directory
-    build:
-      context: batchalign
+    # pull the latest docker image
+    image: "jemokajack/batchalign:latest"
+    # build:
+    #   context: batchalign
     # exposed secrets
     environment:
       - REV_API=__REV_API__

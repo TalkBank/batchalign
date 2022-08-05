@@ -80,13 +80,11 @@ echo
 
 # BUild batchalign
 tput bold
-echo "#### Building Batchalign ####"
+echo "#### Pulling Batchalign ####"
 tput sgr0
-echo "If this is your first time, the initial Docker build takes about half an hour."
-echo "We are hoping to update this to be a full image and make the process quicker"
-echo "in the near future."
+echo "If this is your first time, the initial Docker pull takes a few minutes."
 
-docker compose build
+docker compose pull
 
 echo
 # Run batchalign
