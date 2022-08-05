@@ -234,7 +234,7 @@ def process_json(data, name=None, interactive=False):
                 speaker_name = translation[0]
                 speaker_tier = translation[1]
             # if we don't have first capital and spelt correctly
-            while not (speaker_name[0].isupper() and "*" not in speaker_name):
+            while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
                 print("Invalid response. Please follow the formatting example provided.")
                 speaker_name = input(f"Invalid selection. Please enter identifying letter of speaker {speaker} (i.e. Participant): ").strip()
                 if len(speaker_name) == 1:
@@ -249,7 +249,7 @@ def process_json(data, name=None, interactive=False):
                 # get tier info
                 speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ")
                 # if we don't have first capital and spelt correctly
-                while not (speaker_tier.isupper() and "*" not in speaker_name):
+                while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
                     print("Invalid response. Please follow the formatting example provided.")
                     speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ").strip()
             # add to list
@@ -273,12 +273,12 @@ def process_json(data, name=None, interactive=False):
                     i[1]] for i in utterance_col]
 
     # create the @Participants tier
-    participants_tier = ", ".join([v["tier"]+f" {v['name']}"
-                                for k,v in speakers.items()])
+    participants_tier = ", ".join(set([v["tier"]+f" {v['name']}"
+                                       for k,v in speakers.items()]))
     participants_tier = ["@Participants:", participants_tier]
 
     # create the @ID tiers and @ID tier string
-    id_tiers = [f"eng|{corpus}|{v['tier']}|||||{v['name']}|||" for k,v in speakers.items()]
+    id_tiers = set([f"eng|{corpus}|{v['tier']}|||||{v['name']}|||" for k,v in speakers.items()])
     id_tiers = [["@ID:",i] for i in id_tiers]
 
     # finally, create media tier
