@@ -87,6 +87,9 @@ RUN rm -r /root/*
 # pull conda again
 FROM continuumio/miniconda3 as program
 
+# install python for paths
+RUN conda install -y python=3.8
+
 # copy all files
 COPY --from=base /opt /opt
 COPY --from=base /usr /usr
