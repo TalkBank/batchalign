@@ -4,8 +4,6 @@ services:
   batchalign:
     # host networking
     network_mode: bridge
-    # memory limit
-    memory: 4G
     # pull the latest docker image
     image: "jemokajack/batchalign:latest"
     # build:
