@@ -1,9 +1,57 @@
 # pull conda
 FROM continuumio/miniconda3
 
-# install mfa
-RUN conda config --add channels conda-forge
-RUN conda install -y montreal-forced-aligner
+# install zip and build utility
+RUN apt-get update
+RUN apt-get install -y zip unzip
+RUN apt-get install -y build-essential git aptitude
+
+# install cmake and other build tools 
+RUN apt-get install -y libopenblas-dev automake autoconf sox gfortran libtool python zlib1g-dev
+
+# install kaldi
+RUN git clone --recursive https://github.com/kaldi-asr/kaldi.git
+# KEEP THE FOLLWING LINE to keep cache
+RUN mkdir -p ./kaldi/tools/python/
+
+# make tools
+WORKDIR ./kaldi/tools
+RUN ./extras/check_dependencies.sh
+RUN make -j 4
+
+# make source
+WORKDIR ../src
+RUN  cd ../tools; extras/install_openblas.sh
+RUN ./configure --shared
+RUN make depend -j 8
+RUN make -j 8
+
+# copy tools
+RUN cp bin/* /usr/bin
+RUN cp lib/* /usr/lib
+RUN cp lib/* /usr/lib
+
+# Python time
+WORKDIR /root
+RUN conda install python=3.8
+
+# install openFST
+RUN apt-get install -y curl
+RUN curl https://www.openfst.org/twiki/pub/FST/FstDownload/openfst-1.8.2.tar.gz -o openfst
+RUN tar -xzf openfst
+WORKDIR ./openfst-1.8.2
+RUN ./configure --enable-far=true  --enable-bin=false --enable-mpdt=true
+RUN make 
+RUN make install
+
+# install pynini
+RUN pip install Cython
+RUN dpkg --print-architecture
+RUN pip install pynini
+
+
+# install MFA
+RUN pip3 install git+https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner.git
 
 # install torch
 RUN conda install -y pytorch -c pytorch
@@ -15,11 +63,6 @@ RUN pip install rev_ai
 # download models
 RUN mfa model download g2p english_us_arpa
 RUN mfa model download acoustic english_us_arpa
-
-# install zip and build utility
-RUN apt-get update
-RUN apt-get install -y zip unzip
-RUN apt-get install -y build-essential
 
 # install UnixClan
 RUN wget https://dali.talkbank.org/clan/unix-clan.zip
