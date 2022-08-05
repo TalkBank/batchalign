@@ -4,8 +4,6 @@ services:
   batchalign:
     # host networking
     network_mode: bridge
-    # use x86 emulation
-    platform: linux/x86_64
     # memory limit
     memory: 4G
     # pull the latest docker image
