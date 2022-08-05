@@ -64,6 +64,7 @@ RUN pip install rev_ai
 # remove extra makefiles
 RUN rm /kaldi/src/*bin/Makefile
 RUN cp -r /kaldi/src/*bin/* /usr/bin
+RUN cp -r /kaldi/tools/openfst*/lib/* /usr/lib
 
 # install UnixClan
 RUN wget https://dali.talkbank.org/clan/unix-clan.zip

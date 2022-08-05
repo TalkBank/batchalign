@@ -36,8 +36,9 @@ echo
 
 #Open Docker, only if is not running
 if (! docker stats --no-stream &> /dev/null ); then
+    # Wait until Docker daemon is running and has completed initialisation
     # open docker on the right version
-    open /Applications/Docker.app
+    gum spin --title "Starting docker..." -- open /Applications/Docker.app
     while (! docker stats --no-stream &> /dev/null ); do
         # Wait until Docker daemon is running and has completed initialisation
         gum spin --title "Starting docker..." -- sleep 1
