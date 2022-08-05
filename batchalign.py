@@ -92,6 +92,6 @@ if __name__=="__main__":
             print("All done! Check the input folder.")
     # otherwise prealign
     else: 
-        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=args.prealigned, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
 
 # ((word, (start_time, end_time))... x number_words)
