@@ -1,5 +1,6 @@
+# Base builder stage, with packages, etc.
 # pull conda
-FROM continuumio/miniconda3
+FROM continuumio/miniconda3 AS base
 
 # install zip and build utility
 RUN apt-get update
@@ -65,10 +66,6 @@ RUN cp -r /kaldi/src/gmmbin/* /usr/bin
 RUN cp -r /kaldi/src/latbin/* /usr/bin
 RUN cp -r /kaldi/src/fstbin/* /usr/bin
 
-# download models
-RUN mfa model download g2p english_us_arpa
-RUN mfa model download acoustic english_us_arpa
-
 # install UnixClan
 RUN wget https://dali.talkbank.org/clan/unix-clan.zip
 # unzip unix clan
@@ -82,6 +79,23 @@ WORKDIR ../unix/
 # install
 RUN cp bin/* /usr/bin
 RUN cp obj/* /usr/lib
+
+# remove all build cache
+RUN rm -r /root/*
+
+# main stage
+# pull conda again
+FROM continuumio/miniconda3 as program
+
+# copy all files
+COPY --from=base /opt /opt
+COPY --from=base /usr /usr
+COPY --from=base /etc /etc
+COPY --from=base /lib /lib
+
+# download models
+RUN mfa model download g2p english_us_arpa
+RUN mfa model download acoustic english_us_arpa
 
 # copy all the dependency files
 COPY . /root
