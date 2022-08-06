@@ -23,7 +23,7 @@ RUN make -j 2
 # make source
 WORKDIR ../src
 RUN  cd ../tools; extras/install_openblas.sh
-RUN ./configure --shared
+RUN ./configure --shared --mathlib=OPENBLAS
 RUN make depend -j 2
 RUN make -j 2
 
