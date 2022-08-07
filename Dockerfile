@@ -99,11 +99,11 @@ FROM continuumio/miniconda3 as program
 RUN conda install -y python=3.8
 
 # copy all files
-COPY --from=base /opt /opt
-COPY --from=base /usr /usr
-COPY --from=base /etc /etc
-COPY --from=base /lib /lib
-COPY --from=base /wheelhouse /wheelhouse
+COPY --from=jemokajack/batchalign:base /opt /opt
+COPY --from=jemokajack/batchalign:base /usr /usr
+COPY --from=jemokajack/batchalign:base /etc /etc
+COPY --from=jemokajack/batchalign:base /lib /lib
+COPY --from=jemokajack/batchalign:base /wheelhouse /wheelhouse
 
 # install dependencies
 RUN pip install --no-index --find-links=/wheelhouse Montreal-Forced-Aligner pynini
