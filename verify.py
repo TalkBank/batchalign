@@ -36,7 +36,7 @@ repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file
 parser = argparse.ArgumentParser(description="check batchalign output manually, and write result")
 parser.add_argument("in_dir", type=str, help='input directory with aligned .cha files and .wav audio')
 parser.add_argument('-o', "--out_file", type=str, help='path to output csv; if missing default to in_dir/check.csv')
-parser.add_argument("--rate", type=float, default=0.1, help='sampling rate to check per file')
+parser.add_argument("--rate", type=float, default=0.05, help='sampling rate to check per file')
 parser.add_argument("--seed", type=int, default=7, help='randomness seed for reproduction')
 
 # parse args
@@ -57,6 +57,74 @@ else:
 matched_files = list(zip(sorted(globase(VERIFY, "*.cha")), sorted(globase(VERIFY, "*.wav"))))
 # create global results array
 global_results = []
+
+input(f"""
+Welcome to interactive alignment verification
+----------------------------------------------
+We are verifying the contents of {VERIFY}. 
+
+There are {len(matched_files)} number of files,
+we are going to be listening to {round(CHECKRATE*100)}%
+of the words in each file.
+
+For every word prompted, you will have to tap
+*one* key to either confirm it is the word you
+heard (y), its not (n) or (r) to repeat the audio.
+
+There will be a progress bar on the left denoting
+the status of *ONE file*. If there are multiple files
+to verify, that bar will go from 0%-100% multiple times.
+
+Tap enter when you are ready. """)
+
+
+# function to getch
+import os
+import sys    
+import termios
+import fcntl
+
+def getch():
+    """Get a single character
+
+    Source:
+        https://stackoverflow.com/questions/510357/how-to-read-a-single-character-from-the-user
+    """
+    fd = sys.stdin.fileno()
+
+    oldterm = termios.tcgetattr(fd)
+    newattr = termios.tcgetattr(fd)
+    newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
+    termios.tcsetattr(fd, termios.TCSANOW, newattr)
+
+    oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
+
+    try:        
+        while 1:            
+            try:
+                c = sys.stdin.read(1)
+                break
+            except IOError: pass
+    finally:
+        termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
+        fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
+
+    return c
+
+def getprinch(t):
+    """Display message and get a single character
+
+    Attributes:
+        t (str): message to display
+    """
+    
+    print(t, end='')
+    sys.stdout.flush()
+    action = getch()
+    print()
+    return action
+
 
 # function to play sound
 def playsound(f, start, end):
@@ -83,6 +151,8 @@ def check(checkfile, checksound, checkrate=0.1):
     Returns:
         list [[file, word, start (ms), end (ms), '0' or '1' (STRING)for fail/success]...x words]
     """
+    
+    print(f"\nWe are now working on {pathlib.Path(checkfile).stem}")
 
     verify_results = []
 
@@ -157,15 +227,18 @@ def check(checkfile, checksound, checkrate=0.1):
     samples = random.sample(wordinfo, number_to_sample)
 
     # for each sample, playback sampling
-    for sample in samples:
+    for indx, sample in enumerate(samples):
+        # get progress
+        progress = str(round((indx/len(samples))*100))
         # play
         playsound(checksound, sample[1]/1000, sample[2]/1000)
         # ask
-        action = input(f"Did you hear '{sample[0]}' (y)es/(n)o/(r)epeat: ")
+        t = '\'' # to support fstring '
+        action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(y)es/(n)o/(r)epeat: ")
         # keep asking if response invalid or is repeat
         while action == "" or action[0].lower() not in ['y', 'n']:
             playsound(checksound, sample[1]/1000, sample[2]/1000)
-            action = input(f"Did you hear '{sample[0]}' (y)es/(n)o/(r)epeat: ")
+            action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(y)es/(n)o/(r)epeat: ")
         # and now, parse
         if action[0].lower() == 'y':
             verify_results.append([checkfile, sample[0], sample[1], sample[2], '1'])
@@ -187,4 +260,4 @@ with open(OUTFILE, 'w') as df:
     writer.writerow(["file", "word", "start", "end", "correct"])
     writer.writerows(global_results)
 
-
+print("\n Thanks. All done.")
