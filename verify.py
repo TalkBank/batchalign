@@ -156,7 +156,7 @@ def check(checkfile, checksound, checkrate=0.1):
     verify_results = []
 
     # run flo on the file
-    CMD = f"{os.path.join(CLAN_PATH, 'flo +t%xwor +t%wor -t*')} {checkfile} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'flo +t%xwor +t%wor -t*')} '{checkfile}' >/dev/null 2>&1"
     # run!
     os.system(CMD)
 
