@@ -240,11 +240,8 @@ def check(checkfile, checksound, checkrate=0.1):
             playsound(checksound, sample[1]/1000, sample[2]/1000)
             action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(y)es/(n)o/(r)epeat: ")
         # and now, parse
-        if action[0].lower() == 'y':
-            verify_results.append([checkfile, sample[0], sample[1], sample[2], '1'])
-        elif action[0].lower() == 'n':
-            verify_results.append([checkfile, sample[0], sample[1], sample[2], '0'])
-
+        verify_results.append([pathlib.Path(checkfile).stem, sample[0], sample[1], sample[2],
+                               '1' if action[0].lower() == 'y' else '0'])
     # return results
     return verify_results
 
