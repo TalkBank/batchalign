@@ -63,9 +63,8 @@ Welcome to interactive alignment verification
 ----------------------------------------------
 We are verifying the contents of {VERIFY}. 
 
-There are {len(matched_files)} number of files,
-we are going to be listening to {round(CHECKRATE*100)}%
-of the words in each file.
+There are {len(matched_files)} number of files, we are going to be listening
+to {round(CHECKRATE*100)}% of the words in each file.
 
 For every word prompted, you will have to tap
 *one* key to either confirm it is the word you
@@ -257,4 +256,9 @@ with open(OUTFILE, 'w') as df:
     writer.writerow(["file", "word", "start", "end", "correct"])
     writer.writerows(global_results)
 
-print("\n Thanks. All done.")
+print(f"""
+Thanks. We have processed {len(matched_files)} files in {VERIFY}.
+
+Within which, {round((len(list(filter(lambda x:x[-1] == '1', global_results)))/len(global_results))*100, 2)}% of words were correctly identified.
+""")
+
