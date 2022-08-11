@@ -15,6 +15,15 @@ import glob
 import argparse
 # randomness
 import random
+# import csv
+import csv
+
+# arguments!
+import argparse
+
+# path to CLAN. Empty string means system.
+CLAN_PATH=""
+
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -23,11 +32,31 @@ repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file
 # NOTE THAT THE INPUT DIRECTORY MUST ONLY CONTAIN .WAVS AND .CHA,
 # NOTHING ELSE SHOULD BE INSIDE THE INPUT DIRECTORY!
 
-# temp directory to verify
-verify = "../RevTest4/out"
+# file to check
+parser = argparse.ArgumentParser(description="check batchalign output manually, and write result")
+parser.add_argument("in_dir", type=str, help='input directory with aligned .cha files and .wav audio')
+parser.add_argument('-o', "--out_file", type=str, help='path to output csv; if missing default to in_dir/check.csv')
+parser.add_argument("--rate", type=float, default=0.1, help='sampling rate to check per file')
+parser.add_argument("--seed", type=int, default=7, help='randomness seed for reproduction')
+
+# parse args
+args = parser.parse_args()
+
+# seed seed
+random = random.Random(args.seed)
+# the percent to sample from each file
+CHECKRATE=args.rate
+VERIFY = args.in_dir
+# get out file, or generate if missing
+if args.out_file:
+    OUTFILE = args.out_file
+else:
+    OUTFILE = os.path.join(VERIFY, "check.csv")
 
 # open the temp files for writing
-matched_files = list(zip(sorted(globase(verify, "*.cha")), sorted(globase(verify, "*.wav"))))
+matched_files = list(zip(sorted(globase(VERIFY, "*.cha")), sorted(globase(VERIFY, "*.wav"))))
+# create global results array
+global_results = []
 
 # function to play sound
 def playsound(f, start, end):
@@ -35,13 +64,127 @@ def playsound(f, start, end):
 
     Arguments:
         f (str): file to play
-        start (int): integer in ms where to start
-        end (int): integer in ms where to end
+        start (int): integer in seconds where to start
+        end (int): integer in seconds where to end
     """
 
-    CMD = f"ffplay {f} -vn -t {(end-start)/1000} -ss {start/1000} -nodisp -autoexit &"
+    CMD = f"ffplay {f} -vn -t {(end-start)} -ss {start} -nodisp -autoexit  &> /dev/null &disown"
     os.system(CMD)
 
+# check a file
+def check(checkfile, checksound, checkrate=0.1):
+    """Check a file and return to results
 
+    Arguments:
+        checkfile (str): path to CHAT file to check
+        checksound (str): path to sound file to check
+        [checkrate[ (float): percentage to check, default 0.1
+
+    Returns:
+        list [[file, word, start (ms), end (ms), '0' or '1' (STRING)for fail/success]...x words]
+    """
+
+    verify_results = []
+
+    # run flo on the file
+    CMD = f"{os.path.join(CLAN_PATH, 'flo +t%xwor +t%wor -t*')} {checkfile} >/dev/null 2>&1"
+    # run!
+    os.system(CMD)
+
+    # path to result
+    result_path = checkfile.replace("cha", "flo.cex")
+
+    # read in the resulting file
+    with open(result_path, "r") as df:
+        # get alignment result
+        data = df.readlines()
+
+    # delete result file
+    os.remove(result_path)
+
+    # conform result with tab-seperated beginnings
+    result = []
+    # for each value
+    for value in data:
+        # if the value continues from the last line
+        if value[0] == "\t":
+            # pop the result
+            res = result.pop()
+            # append
+            res = res.strip("\n") + " " + value[1:]
+            # put back
+            result.append(res)
+        else:
+            # just append typical value
+            result.append(value)
+
+    # new the result
+    result = [re.sub(r"\x15(\d*)_(\d*)\x15", r"|pause|\1_\2|pause|", i) for i in result] # bullets
+    result = [re.sub("\(\.+\)", "", i) for i in result] # pause marks (we remove)
+    result = [re.sub("\.", "", i) for i in result] # doduble spaces
+    result = [re.sub("  ", " ", i).strip() for i in result] # doduble spaces
+    result = [re.sub("\[.*?\]", "", i).strip() for i in result] # doduble spaces
+    result = [[j.strip().replace("  ", " ")
+            for j in re.sub(r"(.*?)\t(.*)", r"\1±\2", i).split('±')]
+            for i in result] # tabs
+
+    # extract pause info
+    wordinfo = []
+
+    # calculate final results, which skips any in-between tiers
+    # isolate *PAR speaking time only. We do this by tallying
+    # a running offset which removes any time between two *PAR
+    # tiers, which may include an *INV tier
+    for tier, res in result:
+        lasttoken = None
+        # split tokens
+        for token in res.split(" "):
+            # if pause, calculate pause
+            if token != "" and token[0] == "|":
+                # split pause 
+                res = token.split("_")
+                # get pause values
+                res = [int(re.sub("\+.*", "", i.replace("|pause|>", "").replace("|pause|", "")))
+                        for i in token.split("_")]
+                    # append result
+                wordinfo.append((lasttoken, res[0], res[1]))
+
+            # save last token
+            lasttoken = token.replace("+","").replace("<","").replace(">","")
+
+    # calculate number to sample
+    number_to_sample = int(len(wordinfo)*checkrate)
+    samples = random.sample(wordinfo, number_to_sample)
+
+    # for each sample, playback sampling
+    for sample in samples:
+        # play
+        playsound(checksound, sample[1]/1000, sample[2]/1000)
+        # ask
+        action = input(f"Did you hear '{sample[0]}' (y)es/(n)o/(r)epeat: ")
+        # keep asking if response invalid or is repeat
+        while action == "" or action[0].lower() not in ['y', 'n']:
+            playsound(checksound, sample[1]/1000, sample[2]/1000)
+            action = input(f"Did you hear '{sample[0]}' (y)es/(n)o/(r)epeat: ")
+        # and now, parse
+        if action[0].lower() == 'y':
+            verify_results.append([checkfile, sample[0], sample[1], sample[2], '1'])
+        elif action[0].lower() == 'n':
+            verify_results.append([checkfile, sample[0], sample[1], sample[2], '0'])
+
+    # return results
+    return verify_results
+
+# for each result, run check
+for transcript, audio in matched_files:
+    # append
+    global_results += check(transcript, audio, CHECKRATE)
+
+# write
+with open(OUTFILE, 'w') as df:
+    # open writer and write results
+    writer = csv.writer(df)
+    writer.writerow(["file", "word", "start", "end", "correct"])
+    writer.writerows(global_results)
 
 
