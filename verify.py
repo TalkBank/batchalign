@@ -135,7 +135,7 @@ def playsound(f, start, end):
         end (int): integer in seconds where to end
     """
 
-    CMD = f"ffplay {f} -vn -t {(end-start)} -ss {start} -nodisp -autoexit  &> /dev/null &disown"
+    CMD = f"ffplay '{f}' -vn -t {(end-start)} -ss {start} -nodisp -autoexit  &> /dev/null &disown"
     os.system(CMD)
 
 # check a file
