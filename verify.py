@@ -24,6 +24,24 @@ import argparse
 # path to CLAN. Empty string means system.
 CLAN_PATH=""
 
+import numpy as np
+import scipy.stats
+
+def mean_confidence_interval(data, confidence=0.95):
+    """calculate confidence interval
+
+    Attributes:
+        data (array-like): data
+        [confidence] (float): confidence band
+
+    Returns:
+        (mean, lower bound, upper bound)
+    """
+    a = 1.0 * np.array(data)
+    n = len(a)
+    m, se = np.mean(a), scipy.stats.sem(a)
+    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
+    return m, m-h, m+h
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -252,6 +270,10 @@ for transcript, audio in matched_files:
     # append
     global_results += check(transcript, audio, CHECKRATE)
 
+# get confidence
+mean, bottom, top = mean_confidence_interval(np.array([int(i[-1]) for i in  global_results]))
+band = top - mean
+
 # write
 with open(OUTFILE, 'w') as df:
     # open writer and write results
@@ -262,6 +284,7 @@ with open(OUTFILE, 'w') as df:
 print(f"""
 Thanks. We have processed {len(matched_files)} files in {VERIFY}.
 
-Within which, {round((len(list(filter(lambda x:x[-1] == '1', global_results)))/len(global_results))*100, 2)}% of words were correctly identified.
+Within which, {(mean*100):.2f}%±{(band*100):.2f}% of words were correctly identified
+at a confidence interval of 95% based on a single-variable t test.
 """)
 
