@@ -269,6 +269,7 @@ def check(checkfile, checksound, checkrate=0.1):
 
         # move forward or back
         if action[0].lower() == 'c':
+            verify_results.pop(-1)
             indx -= 1
         else:
             indx += 1
