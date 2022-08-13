@@ -71,9 +71,9 @@ We are verifying the contents of {VERIFY}.
 There are {len(matched_files)} number of files, we are going to be listening
 to {round(CHECKRATE*100)}% of the words in each file.
 
-For every word prompted, you will have to tap
-*one* key to either confirm it is the word you
-heard (y), its not (n) or (r) to repeat the audio.
+For every word prompted, you will have to tap *one* key to indicate
+that you heard a (the full word) s (a part of the word) d (not the word.)
+You can also tap f to repeat and c to go back.
 
 There will be a progress bar on the left denoting
 the status of *ONE file*. If there are multiple files
@@ -244,21 +244,35 @@ def check(checkfile, checksound, checkrate=0.1):
     random.shuffle(samples)
 
     # for each sample, playback sampling
-    for indx, sample in enumerate(samples):
+    indx = 0
+    while indx < len(samples):
+        # get sample
+        sample = samples[indx]
         # get progress
         progress = str(round((indx/len(samples))*100))
         # play
         playsound(checksound, sample[1], sample[2])
         # ask
         t = '\'' # to support fstring '
-        action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(y)es/(n)o/(r)epeat: ")
+        action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(a)full/(s)part/(d)none/(f)repeat/(c)back: ")
         # keep asking if response invalid or is repeat
-        while action == "" or action[0].lower() not in ['y', 'n']:
+        while action == "" or action[0].lower() not in ['a', 's', 'd', 'c']:
             playsound(checksound, sample[1], sample[2])
-            action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(y)es/(n)o/(r)epeat: ")
+            action = getprinch(f"{progress+'%':>4} {f'{t}{sample[0]}{t}':<15}(a)full/(s)part/(d)none/(f)repeat/(c)back: ")
         # and now, parse
-        verify_results.append([pathlib.Path(checkfile).stem, sample[0], sample[1], sample[2],
-                               '1' if action[0].lower() == 'y' else '0'])
+        if action[0].lower() == 'a':
+            verify_results.append([pathlib.Path(checkfile).stem, sample[0], sample[1], sample[2], "1FULL"])
+        elif action[0].lower() == 's':
+            verify_results.append([pathlib.Path(checkfile).stem, sample[0], sample[1], sample[2], "1PART"])
+        elif action[0].lower() == 'd':
+            verify_results.append([pathlib.Path(checkfile).stem, sample[0], sample[1], sample[2], "0NONE"])
+
+        # move forward or back
+        if action[0].lower() == 'c':
+            indx -= 1
+        else:
+            indx += 1
+
     # return results
     return verify_results
 
@@ -268,7 +282,7 @@ for transcript, audio in matched_files:
     global_results += check(transcript, audio, CHECKRATE)
 
 # get confidence
-mean, bottom, top = mean_confidence_interval(np.array([int(i[-1]) for i in  global_results]))
+mean, bottom, top = mean_confidence_interval(np.array([int(i[-1][0]) for i in  global_results]))
 band = top - mean
 
 # write

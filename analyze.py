@@ -93,8 +93,8 @@ if __name__ == "__main__":
     df["syllables"] = df.word.apply(nsyl)
 
     # split the result
-    multisyllabic = df[df.syllables > 1].correct
-    monosyllabic = df[df.syllables == 1].correct
+    multisyllabic = df[df.syllables > 1].correct.apply(lambda x:int(x[0]))
+    monosyllabic = df[df.syllables == 1].correct.apply(lambda x:int(x[0]))
 
     # get the ranges for each segment
     mean, bot, top = mean_confidence_interval(df.correct)
