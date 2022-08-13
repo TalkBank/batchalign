@@ -3,6 +3,7 @@ analyze.py
 Analyze the results of verify.py
 """
 
+from os import pread
 import pathlib
 import csv
 import pandas as pd
@@ -92,12 +93,15 @@ if __name__ == "__main__":
     # calculate syllables
     df["syllables"] = df.word.apply(nsyl)
 
+    # get result percentage
+    percentage_part = len(df[df.correct == "1PART"])/(len(df)-len(df[df.correct == "0NONE"]))
+
     # split the result
     multisyllabic = df[df.syllables > 1].correct.apply(lambda x:int(x[0]))
     monosyllabic = df[df.syllables == 1].correct.apply(lambda x:int(x[0]))
 
     # get the ranges for each segment
-    mean, bot, top = mean_confidence_interval(df.correct)
+    mean, bot, top = mean_confidence_interval(df.correct.apply(lambda x:int(x[0])))
     multimean, multibot, multitop = mean_confidence_interval(multisyllabic)
     monomean, monobot, monotop = mean_confidence_interval(monosyllabic)
 
@@ -112,6 +116,8 @@ if __name__ == "__main__":
                   {(monomean*100):.2f}%±{(monoband*100):.2f}% of mono-syllabic words were correctly identified
                   {(mean*100):.2f}%±{(band*100):.2f}% of all words were correctly identified
     at a confidence interval of 95% based on a single-variable t test.
+
+    Within sucesseses, {(percentage_part*100):.2f}% are partial.
     """)
 
 
