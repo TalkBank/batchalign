@@ -240,7 +240,8 @@ def check(checkfile, checksound, checkrate=0.1):
     multisyllabic_samples = random.sample(multisyllabic_samples,
                                           number_to_sample)
     # add and shuffle
-    samples = random.shuffle(monosyllabic_samples+multisyllabic_samples)
+    samples = monosyllabic_samples+multisyllabic_samples
+    random.shuffle(samples)
 
     # for each sample, playback sampling
     for indx, sample in enumerate(samples):
