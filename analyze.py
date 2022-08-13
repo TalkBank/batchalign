@@ -3,7 +3,7 @@ analyze.py
 Analyze the results of verify.py
 """
 
-# CSV
+import pathlib
 import csv
 import pandas as pd
 
@@ -106,11 +106,11 @@ if __name__ == "__main__":
     band = top-mean
 
     print(f"""
-    Thanks. We have processed {SCANFILE}.
+    Thanks. We have processed {pathlib.Path(SCANFILE).stem}.
 
     Within which, {(multimean*100):.2f}%±{(multiband*100):.2f}% of multi-syllabic words were correctly identified
-                {(monomean*100):.2f}%±{(monoband*100):.2f}% of mono-syllabic words were correctly identified
-                {(mean*100):.2f}%±{(band*100):.2f}% of all words were correctly identified
+                  {(monomean*100):.2f}%±{(monoband*100):.2f}% of mono-syllabic words were correctly identified
+                  {(mean*100):.2f}%±{(band*100):.2f}% of all words were correctly identified
     at a confidence interval of 95% based on a single-variable t test.
     """)
 
