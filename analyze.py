@@ -43,6 +43,9 @@ def syllables(word):
     count = 0
     vowels = 'aeiouy'
     word = word.lower()
+    if word == '':
+        print("Empty word found!")
+        return 0
     if word[0] in vowels:
         count +=1
     for index in range(1,len(word)):
