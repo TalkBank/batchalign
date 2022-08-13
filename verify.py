@@ -18,30 +18,17 @@ import random
 # import csv
 import csv
 
+# numpy
+import numpy as np
+
+# import analyze tools
+from analyze import mean_confidence_interval, nsyl
+
 # arguments!
 import argparse
 
 # path to CLAN. Empty string means system.
 CLAN_PATH=""
-
-import numpy as np
-import scipy.stats
-
-def mean_confidence_interval(data, confidence=0.95):
-    """calculate confidence interval
-
-    Attributes:
-        data (array-like): data
-        [confidence] (float): confidence band
-
-    Returns:
-        (mean, lower bound, upper bound)
-    """
-    a = 1.0 * np.array(data)
-    n = len(a)
-    m, se = np.mean(a), scipy.stats.sem(a)
-    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
-    return m, m-h, m+h
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -237,14 +224,23 @@ def check(checkfile, checksound, checkrate=0.1):
                 res = [int(re.sub("\+.*", "", i.replace("|pause|>", "").replace("|pause|", "")))
                         for i in token.split("_")]
                     # append result
-                wordinfo.append((lasttoken, res[0], res[1]))
+                wordinfo.append((lasttoken, res[0], res[1], nsyl(lasttoken)))
 
             # save last token
             lasttoken = token.replace("+","").replace("<","").replace(">","")
 
     # calculate number to sample
     number_to_sample = int(len(wordinfo)*checkrate)
-    samples = random.sample(wordinfo, number_to_sample)
+    # sample equal parts of monosyllabic and multisyllabic
+    monosyllabic_samples = list(filter(lambda x:x[3] == 1, wordinfo))
+    multisyllabic_samples = list(filter(lambda x:x[3] > 1, wordinfo))
+    # actual do sampling
+    monosyllabic_samples = random.sample(monosyllabic_samples,
+                                         number_to_sample)
+    multisyllabic_samples = random.sample(multisyllabic_samples,
+                                          number_to_sample)
+    # add and shuffle
+    samples = random.shuffle(monosyllabic_samples+multisyllabic_samples)
 
     # for each sample, playback sampling
     for indx, sample in enumerate(samples):
