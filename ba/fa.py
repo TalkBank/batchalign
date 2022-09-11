@@ -495,7 +495,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
 
         # we generate a cleaned and uncleaned match list
         for word in splits:
-            cleaned_word = word.lower().replace("(","").replace(")","")
+            cleaned_word = word.lower().replace("[/]","") # because of weird spacing inclusions
+            cleaned_word = cleaned_word.replace("(","").replace(")","")
             cleaned_word = cleaned_word.replace("[","").replace("]","")
             cleaned_word = cleaned_word.replace("<","").replace(">","")
             cleaned_word = cleaned_word.replace("“","").replace("”","")
@@ -510,6 +511,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"&.", '', cleaned_word)
             cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
+            cleaned_word = cleaned_word.strip()
+
+            if debug:
+                print(word, cleaned_word)
 
             # append the cleaned and uncleaned versions of words 
             unaligned_words.append((word, cleaned_word, i))
@@ -541,7 +546,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
             # if the i is seen, we skip
             if i in aligned_indicies:
                 continue
-
 
             # if we can align, do align
             if cleaned_word == aligned_word: 
@@ -1071,8 +1075,6 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         eafalign(old_eaf_path, aligned_result, new_eaf_path)
     # convert the aligned eafs back into chat
     elan2chat(out_directory)
-    # and fix bullets
-    fixbullets(out_directory)
 
     ### CLEANUP OPS ###
 
