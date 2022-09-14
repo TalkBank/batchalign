@@ -301,7 +301,7 @@ def mp32wav(directory):
 
     # convert each file
     for f in mp3s:
-        os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
+        os.system(f"ffmpeg -i {f} -map_channel 0.1.0 {f.replace('mp3','wav')} -c copy")
 
 # optionally convert mp4 to wav files
 def mp42wav(directory):
@@ -319,7 +319,7 @@ def mp42wav(directory):
 
     # convert each file
     for f in mp4s:
-        os.system(f"ffmpeg -i {f} {f.replace('mp4','wav')} -c copy")
+        os.system(f"ffmpeg -i {f} -map_channel 0.1.0 {f.replace('mp4','wav')} -ac 1 -c copy")
 
 def wavconformation(directory):
     """Reconform wav files
