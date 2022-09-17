@@ -486,6 +486,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         current_sentence = current_sentence.replace("+","+ ")
         current_sentence = current_sentence.replace("$","$ ")
         current_sentence = current_sentence.replace("-","- ")
+        current_sentence = current_sentence.replace("↫","↫ ")
 
         # split results
         splits = current_sentence.split(" ")
@@ -511,6 +512,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"&.", '', cleaned_word)
             cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
+            cleaned_word = re.sub(r"↫", r'', cleaned_word)
             cleaned_word = cleaned_word.strip()
 
             if debug:
@@ -761,6 +763,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         sentence = sentence.replace("< ","<")
         sentence = sentence.replace("$ ","$")
         sentence = sentence.replace("& ","&")
+        sentence = sentence.replace("↫ ","↫")
         # however, double < should have a space between
         sentence = sentence.replace("<<","< <")
         sentence = sentence.replace("+<"," +< ")
