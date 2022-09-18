@@ -34,6 +34,10 @@ os.environ["KMP_WARNINGS"] = "FALSE"
 # import cleanup
 from .utils import cleanup
 
+# mfa
+from montreal_forced_aligner.command_line.align import run_align_corpus
+from montreal_forced_aligner.command_line.g2p import run_g2p
+
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
@@ -46,6 +50,19 @@ CLAN_PATH=""
 ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 
 DISFLULENCY_CODE = re.compile("\[.*?\]")
+
+# default MFA settings
+def make_config_base():
+    commands = argparse.Namespace()
+    # we want to clean each time
+    commands.clean = True
+    # pathing
+    commands.temporary_directory = ""
+    commands.config_path = ""
+    commands.speaker_characters = "0"
+
+    return commands
+    
 
 # import textgrid
 from .opt.textgrid.textgrid import Interval, TextGrid, IntervalTier
@@ -367,13 +384,32 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
-        CMD = f"mfa g2p --clean {model} {directory} {dictionary}"
-        os.system(CMD)
+        commands = make_config_base()
+
+        # here are the input and output paths
+        commands.g2p_model_path = model
+        commands.input_path = directory
+        commands.output_path = dictionary
+
+        # run mfa
+        run_g2p(commands, [])
 
     # and finally, align!
-    CMD = f"mfa align -j 8 --clean {directory} {dictionary} english_us_arpa {data_dir} --beam {beam} --retry_beam 100"
-    os.system(CMD)
+    commands = make_config_base()
+    # we want to run clean each time
+    commands.NUM_JOBS = 8
+    # i/o
+    commands.temporary_directory = ""
+    commands.corpus_directory = directory
+    commands.dictionary_path = dictionary
+    commands.acoustic_model_path = model
+    commands.output_directory = data_dir
+    # settings
+    commands.beam = beam
+    commands.retry_beam = 100
 
+    run_align_corpus(commands, [])
+   
 # Parse a TextGrid file for word tier
 def parse_textgrid_long(file_path):
     """Parse a TextGrid file for the word tier
