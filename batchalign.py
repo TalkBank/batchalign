@@ -31,6 +31,9 @@ import argparse
 # import os
 import os
 
+# freezing support for pyinstaller
+from multiprocessing import Process, freeze_support
+
 # get mode from command line flag
 mode = os.environ.get("BA_MODE")
 MODE = -1
@@ -63,6 +66,10 @@ parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
 parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
 if __name__=="__main__":
+    # code freezing helper
+    freeze_support()
+
+    # parse!
     args = parser.parse_args()
 
     # if we are cleaning

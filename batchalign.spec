@@ -15,6 +15,10 @@ datas += copy_metadata('filelock')
 datas += copy_metadata('numpy')
 datas += copy_metadata('rev_ai')
 datas += copy_metadata('montreal_forced_aligner')
+datas += copy_metadata('textwrap3')
+
+# librosa's needs
+datas += [("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/python3.9/site-packages/librosa/util/example_data/*", "librosa/util/example_data")] 
 
 
 block_cipher = None
@@ -23,8 +27,13 @@ block_cipher = None
 a = Analysis(
     ['batchalign.py'],
     pathex=[],
-    binaries=[ ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/bin/mfa", '.'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/bin/ffmpeg", '.'),
+    binaries=[ ("./ba/opt/textwrap3.py", '.'),
+               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libsndfile.dylib", '_soundfile_data'),
+               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libFLAC.8.dylib", '.'),
+               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libvorbis.0.4.9.dylib", '.'),
+               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libvorbisenc.2.0.12.dylib", '.'),
+               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libopus.0.dylib", '.'),
+               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libogg.0.dylib", '.'),
                ("/usr/local/bin/praat2chat", '.'),
                ("/usr/local/bin/chat2praat", '.'),
                ("/usr/local/bin/chat2elan", '.'),
@@ -33,7 +42,9 @@ a = Analysis(
                ("/usr/local/bin/kwal", '.'),
                ("/usr/local/bin/lowcase", '.')],
     datas=datas,
-    hiddenimports=['torch', 'montreal_forced_aligner'],
+    hiddenimports=['torch',
+                   'montreal_forced_aligner',
+                   'textwrap3'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

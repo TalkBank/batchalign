@@ -249,3 +249,7 @@ To install and use `batchalign`, please execute
 
 and follow the on-screen instructions.
 
+
+# dependencies
+- brew install openfst
+
