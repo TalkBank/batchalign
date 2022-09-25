@@ -54,7 +54,7 @@ def cli():
     parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
     parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
 
-    return MODE, parser.parse_args()
+    return MODE, REV_API, parser.parse_args()
 
 if __name__=="__main__":
     # import our utilities
@@ -74,7 +74,7 @@ if __name__=="__main__":
     freeze_support()
 
     # parse!
-    MODE, args = cli()
+    MODE, REV_API, args = cli()
 
     # if we are cleaning
     if args.clean:

@@ -5,6 +5,17 @@ import glob
 # pathlib
 import pathlib
 
+
+# resolve CLAN
+def resolve_clan():
+    # resolve for where CLAN is
+    if os.path.isfile("./flo"):
+        return "."
+    else:
+        return ""
+
+CLAN_PATH=resolve_clan()
+
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
@@ -31,14 +42,14 @@ def fix_transcript(f):
     DISFLUENCY_FILE = os.path.abspath(os.path.join(dir_path, "../disfluencies.cut"))
     REP_JOIN_FILE = os.path.abspath(os.path.join(dir_path, "../rep-join.cut"))
     # run disfluency replacement
-    CMD = f"chstring +c{DISFLUENCY_FILE} {f} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{DISFLUENCY_FILE} {f} >/dev/null 2>&1"
     os.system(CMD)
     # move old file to backup
     os.rename(f, f.replace("cha", "old.cha"))
     # rename new file
     os.rename(f.replace("cha", "chstr.cex"), f)
     # run rep join replacement
-    CMD = f"chstring +c{REP_JOIN_FILE} {f} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{REP_JOIN_FILE} {f} >/dev/null 2>&1"
     os.system(CMD)
     # rename new file
     os.rename(f.replace("cha", "chstr.cex"), f)

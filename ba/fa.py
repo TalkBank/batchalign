@@ -32,7 +32,7 @@ from collections import defaultdict
 os.environ["KMP_WARNINGS"] = "FALSE" 
 
 # import cleanup
-from .utils import cleanup
+from .utils import cleanup, resolve_clan
 
 # mfa
 from montreal_forced_aligner.command_line.align import run_align_corpus
@@ -47,7 +47,7 @@ bullet = lambda start,end: f" {int(round(start*1000))}_{int(round(end*1000))}"
 # Get the default path of UnitCLAN installation
 # from the path of the current file
 CURRENT_PATH=pathlib.Path(__file__).parent.resolve()
-CLAN_PATH=""
+CLAN_PATH=resolve_clan()
 ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 
 DISFLULENCY_CODE = re.compile("\[.*?\]")

@@ -247,6 +247,6 @@ Place batchalign in
 Then, run
 
 ```
-echo 'export PATH="~/Documents/mfa_data/batchalign:$PATH"' >> ~/.zshrc
-echo 'export LD_LIBRARY_PATH="~/Documents/mfa_data/batchalign:$LD_LIBRARY_PATH"' >> ~/.zshrc
+echo 'export PATH="$HOME/Documents/mfa_data/batchalign:$PATH"' >> ~/.zshrc
+echo 'export LD_LIBRARY_PATH="$HOME/Documents/mfa_data/batchalign:$LD_LIBRARY_PATH"' >> ~/.zshrc
 ```
