@@ -237,3 +237,16 @@ optional arguments:
   --clean               don't align, just call cleanup
 ```
 
+# New Setup
+Place batchalign in
+
+```
+~/Documents/mfa_data/batchalign
+```
+
+Then, run
+
+```
+echo 'export PATH="~/Documents/mfa_data/batchalign:$PATH"' >> ~/.zshrc
+echo 'export LD_LIBRARY_PATH="~/Documents/mfa_data/batchalign:$LD_LIBRARY_PATH"' >> ~/.zshrc
+```
