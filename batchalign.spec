@@ -2,6 +2,13 @@
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import copy_metadata
 
+import os
+
+ENVIRONMENT = "/opt/homebrew/Caskroom/miniforge/base/envs/batchalign"
+# utility to build enviroment-specific path
+envpath = lambda x:os.path.join(ENVIRONMENT, x)
+
+
 datas = []
 datas += collect_data_files('torch')
 datas += copy_metadata('torch')
@@ -18,7 +25,10 @@ datas += copy_metadata('montreal_forced_aligner')
 datas += copy_metadata('textwrap3')
 
 # librosa's needs
-datas += [("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/python3.9/site-packages/librosa/util/example_data/*", "librosa/util/example_data")] 
+datas += [(envpath("lib/python3.9/site-packages/librosa/util/example_data/*"), "librosa/util/example_data")] 
+datas += [("./ba/opt/acoustic", "./ba/opt/acoustic")] 
+datas += [("./ba/opt/g2p", "./ba/opt/g2p")] 
+datas += [(envpath("bin/*"), '.')]
 
 
 block_cipher = None
@@ -28,12 +38,8 @@ a = Analysis(
     ['batchalign.py'],
     pathex=[],
     binaries=[ ("./ba/opt/textwrap3.py", '.'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libsndfile.dylib", '_soundfile_data'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libFLAC.8.dylib", '.'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libvorbis.0.4.9.dylib", '.'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libvorbisenc.2.0.12.dylib", '.'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libopus.0.dylib", '.'),
-               ("/opt/homebrew/Caskroom/miniforge/base/envs/batchalign/lib/libogg.0.dylib", '.'),
+               (envpath("lib/libsndfile.dylib"), '_soundfile_data'),
+               (envpath("lib/*.dylib"), '.'),
                ("/usr/local/bin/praat2chat", '.'),
                ("/usr/local/bin/chat2praat", '.'),
                ("/usr/local/bin/chat2elan", '.'),

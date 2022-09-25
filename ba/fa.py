@@ -37,6 +37,7 @@ from .utils import cleanup
 # mfa
 from montreal_forced_aligner.command_line.align import run_align_corpus
 from montreal_forced_aligner.command_line.g2p import run_g2p
+from montreal_forced_aligner.command_line.validate import run_validate_corpus
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -375,8 +376,11 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     """
 
     # define model
+    g2p_model = os.path.join(os.path.dirname(__file__), "./opt/g2p")
     if not model:
-        model = "english_us_arpa"
+        acoustic_model = os.path.join(os.path.dirname(__file__), "./opt/acoustic")
+    else:
+        acoustic_model = model # TODO
 
     # define dictionary path
     if not dictionary:
@@ -387,7 +391,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         commands = make_config_base()
 
         # here are the input and output paths
-        commands.g2p_model_path = model
+        commands.g2p_model_path = g2p_model
         commands.input_path = directory
         commands.output_path = dictionary
 
@@ -402,7 +406,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     commands.temporary_directory = ""
     commands.corpus_directory = directory
     commands.dictionary_path = dictionary
-    commands.acoustic_model_path = model
+    commands.acoustic_model_path = acoustic_model
     commands.output_directory = data_dir
     # settings
     commands.beam = beam

@@ -18,59 +18,63 @@
 #
 # Of course, this can be changed if needed.
 
-# import our utilities
-# directory retokenization tools
-from ba.retokenize import retokenize_directory
-# directory forced alignment tools 
-from ba.fa import do_align
-# utilities
-from ba.utils import cleanup, globase
-
-# import argparse
-import argparse
-# import os
-import os
-
-# freezing support for pyinstaller
+# progra freezing utilities
 from multiprocessing import Process, freeze_support
 
-# get mode from command line flag
-mode = os.environ.get("BA_MODE")
-MODE = -1
+# wrap everything in a mainloop for multiprocessing guard
+def cli():
+    # get mode from command line flag
+    mode = os.environ.get("BA_MODE")
+    MODE = -1
 
-REV_API = os.environ.get("REV_API")
+    REV_API = os.environ.get("REV_API")
 
-if mode == "+Analyze Raw Audio+":
-    MODE = 1
-elif mode == "+Analyze Rev.AI Output+":
-    MODE = 1
-elif mode == "+Realign CHAT+":
-    MODE = 0
+    if mode == "+Analyze Raw Audio+":
+        MODE = 1
+    elif mode == "+Analyze Rev.AI Output+":
+        MODE = 1
+    elif mode == "+Realign CHAT+":
+        MODE = 0
 
-# manloop to take input
-parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
-parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
-parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
-parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
-parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
-parser.add_argument("--beam", type=int, default=30, help='beam width for MFA, ignored for P2FA')
-parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
-parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
-parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
-parser.add_argument("--model", type=str, help='path to custom model')
-parser.add_argument("--retokenize", type=str, help='retokenize input with model')
-parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
-parser.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
-parser.add_argument('-a', "--asronly", default=False, action='store_true', help='ASR only, don\'t run mfa')
-parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
-parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
+    # manloop to take input
+    parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
+    parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
+    parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
+    parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
+    parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
+    parser.add_argument("--beam", type=int, default=30, help='beam width for MFA, ignored for P2FA')
+    parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
+    parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
+    parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
+    parser.add_argument("--model", type=str, help='path to custom model')
+    parser.add_argument("--retokenize", type=str, help='retokenize input with model')
+    parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
+    parser.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
+    parser.add_argument('-a', "--asronly", default=False, action='store_true', help='ASR only, don\'t run mfa')
+    parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
+    parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
+
+    return MODE, parser.parse_args()
 
 if __name__=="__main__":
+    # import our utilities
+    # directory retokenization tools
+    from ba.retokenize import retokenize_directory
+    # directory forced alignment tools 
+    from ba.fa import do_align
+    # utilities
+    from ba.utils import cleanup, globase
+
+    # import argparse
+    import argparse
+    # import os
+    import os
+
     # code freezing helper
     freeze_support()
 
     # parse!
-    args = parser.parse_args()
+    MODE, args = cli()
 
     # if we are cleaning
     if args.clean:
