@@ -237,15 +237,3 @@ optional arguments:
   --clean               don't align, just call cleanup
 ```
 
-# Online Installation (alpha)
-
-We now offer a _highly experimental_ online installation with Docker of the `batchalign` pipeline for macOS devices. 
-
-To install and use `batchalign`, please execute 
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/TalkBank/batchalign/master/setup/setup.sh)"
-```
-
-and follow the on-screen instructions.
-
