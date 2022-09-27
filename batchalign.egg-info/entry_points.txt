@@ -1,0 +1,2 @@
+[console_scripts]
+batchalign = baln.command_line:mainloop

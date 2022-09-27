@@ -1,5 +1,6 @@
 import os
-from setuptools import setup
+from glob import glob
+from setuptools import setup, find_packages
 
 # Utility function to read the README file.
 # Used for the long_description.  It's nice, because now 1) we have a top level
@@ -14,10 +15,10 @@ setup(
     author = "TalkBank",
     author_email = "macw@cmu.edu",
     description = ("an utility to generate and align CHAT files with ASR + Forced Alignment"),
-    packages=['ba'],
+    packages=find_packages(),
     long_description=read('README.md'),
     entry_points = {
-        'console_scripts': ['batchalign=batchalign:main'],
+        'console_scripts': ['batchalign=baln.command_line:mainloop'],
     },
     install_requires=[
         'nltk',
@@ -27,6 +28,7 @@ setup(
         'tokenizers',
         'rev_ai'
     ],
+    include_package_data=True,
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities"

@@ -1,0 +1,6 @@
+nltk
+Montreal-Forced-Aligner
+torch
+transformers
+tokenizers
+rev_ai
