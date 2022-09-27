@@ -21,6 +21,13 @@
 # progra freezing utilities
 from multiprocessing import Process, freeze_support
 
+# import argparse
+import argparse
+# import os
+import os
+
+
+
 # wrap everything in a mainloop for multiprocessing guard
 def cli():
     # get mode from command line flag
@@ -56,19 +63,14 @@ def cli():
 
     return MODE, REV_API, parser.parse_args()
 
-if __name__=="__main__":
+def main():
     # import our utilities
     # directory retokenization tools
-    from ba.retokenize import retokenize_directory
+    from BatchAlign.retokenize import retokenize_directory
     # directory forced alignment tools 
-    from ba.fa import do_align
+    from BatchAlign.fa import do_align
     # utilities
-    from ba.utils import cleanup, globase
-
-    # import argparse
-    import argparse
-    # import os
-    import os
+    from BatchAlign.utils import cleanup, globase
 
     # code freezing helper
     freeze_support()
@@ -79,10 +81,10 @@ if __name__=="__main__":
     # if we are cleaning
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)
-    # if we need to retokenize or run with audio only (i.e. no files avaliable)
+        # if we need to retokenize or run with audio only (i.e. no files avaliable)
     elif (args.retokenize and MODE != 0) or ((len(globase(args.in_dir, "*.cha")) == 0) and
                                              (len(globase(args.in_dir, "*.json")) == 0)) or MODE == 1:
-    # assert retokenize
+        # assert retokenize
         assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
         print("Performing retokenization!")
@@ -101,8 +103,11 @@ if __name__=="__main__":
             # cleanup
             cleanup(args.in_dir, args.out_dir, args.data_dir)
             print("All done! Check the input folder.")
-    # otherwise prealign
+            # otherwise prealign
     else: 
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
 
 # ((word, (start_time, end_time))... x number_words)
+
+if __name__=="__main__":
+    main()
