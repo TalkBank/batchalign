@@ -12,12 +12,12 @@ source:
 build:
   noarch: python
   number: 0
-  script: python -m pip install --no-deps --ignore-installed .
+  script: python -m pip install --ignore-installed .
 
 requirements:
   build:
     - python
-    - numpy 1.22.4
+    - numpy 1.22.*
     - montreal-forced-aligner
     - pip
     - pytorch
@@ -25,7 +25,7 @@ requirements:
     - tokenizers
   run:
     - python
-    - numpy 1.22.4
+    - numpy 1.22.*
     - montreal-forced-aligner
     - pytorch
     - transformers
