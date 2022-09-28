@@ -11,7 +11,7 @@ source:
 
 build:
   noarch: python
-  number: 0
+  number: 1
   script: python -m pip install --ignore-installed .
 
 requirements:
@@ -23,6 +23,7 @@ requirements:
     - pytorch
     - transformers
     - tokenizers
+    - nltk
   run:
     - python
     - numpy 1.22.*
@@ -30,6 +31,7 @@ requirements:
     - pytorch
     - transformers
     - tokenizers
+    - nltk
 
 test:
   imports:
