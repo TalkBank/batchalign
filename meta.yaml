@@ -10,20 +10,14 @@ source:
   git_rev: feat/conda
 
 build:
-  noarch: python
-  number: 1
-  script: python -m pip install --ignore-installed .
+  number: 0
 
 requirements:
   build:
     - python
-    - numpy 1.22.*
-    - montreal-forced-aligner
     - pip
-    - pytorch
-    - transformers
-    - tokenizers
-    - nltk
+    - make
+    - {{ compiler('c') }}
   run:
     - python
     - numpy 1.22.*

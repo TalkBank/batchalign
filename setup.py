@@ -21,11 +21,6 @@ setup(
         'console_scripts': ['batchalign=baln.command_line:mainloop'],
     },
     install_requires=[
-        'nltk',
-        'Montreal-Forced-Aligner',
-        'torch',
-        'transformers',
-        'tokenizers',
         'rev_ai'
     ],
     include_package_data=True,
