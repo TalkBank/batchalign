@@ -27,7 +27,7 @@ requirements:
     - transformers
     - tokenizers
     - nltk
-    - libgcc
+    - libcxx
 
 about:
   home: https://github.com/TalkBank/batchalign
