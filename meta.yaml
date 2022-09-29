@@ -17,9 +17,13 @@ requirements:
     - {{ compiler('c') }}
   run:
     - python
+    - requests
+    - six
+    - websocket-client
     - numpy 1.22.*
     - montreal-forced-aligner
     - pytorch
+    - pytest-runner 4.2
     - transformers
     - tokenizers
     - nltk
