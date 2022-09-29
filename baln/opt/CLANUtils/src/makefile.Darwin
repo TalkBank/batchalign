@@ -4,11 +4,11 @@ DD  = ../unix/bin
 OBJ = ../unix/obj
 
 # for Apple Unix AND FreeBSD >= 3.2:
-#	CC = g++
+CC = g++
 # for Apple prior to MacOS 11 Big Sur, uncomment next one
 #	CFLAGS = -O -DUNX -DAPPLEUNX -fwritable-strings -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body -arch i386
 # for Apple MacOS 11 Big Sur and later, uncomment next one
-#	CFLAGS = -O -DUNX -DAPPLEUNX -fwritable-strings -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body
+CFLAGS = -O -DUNX -DAPPLEUNX -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body
 # do not uncomment this line: -m32
 #
 # Debian 'sid' distribution
