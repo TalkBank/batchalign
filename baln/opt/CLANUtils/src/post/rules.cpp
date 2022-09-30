@@ -253,7 +253,7 @@ void add_rules_dic(AMBTAG at, int atsz, TAG nc)
 	} else {
 //msg ("do not exists\n");
 		// do not exist. Create an element
-		int v[4] = { 4, 1, nc, 1 };
+		int v[4] = { 4, 1, (int) nc, 1 };
 		hashPutII( _rules_hashdic_, at, atsz*sizeof(TAG), (Int4*)v );
 	}
 }
