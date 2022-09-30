@@ -10,11 +10,12 @@ source:
   git_rev: feat/conda
 
 requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make
   host:
     - python
     - pip
-    - make
-    - {{ compiler('c') }}
   run:
     - python
     - requests
