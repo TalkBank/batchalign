@@ -7,7 +7,7 @@ OBJ = ../unix/obj
 # for Apple prior to MacOS 11 Big Sur, uncomment next one
 #	CFLAGS = -O -DUNX -DAPPLEUNX -fwritable-strings -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body -arch i386
 # for Apple MacOS 11 Big Sur and later, uncomment next one
-CFLAGS = -O -DUNX -DAPPLEUNX -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body
+CFLAGS = -O -DUNX -DAPPLEUNX -fshort-wchar -Wcomment -Wdeprecated-declarations -Wdeprecated-register -Wempty-body -lstdc++
 # do not uncomment this line: -m32
 #
 # Debian 'sid' distribution
