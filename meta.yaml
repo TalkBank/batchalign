@@ -11,7 +11,7 @@ source:
 
 requirements:
   build:
-    #- {{ compiler('cxx') }}
+    - {{ compiler('cxx') }}
     - make
   host:
     - python
