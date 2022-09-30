@@ -11,7 +11,7 @@ source:
 
 requirements:
   build:
-    - {{ compiler('g++') }}
+    - {{ compiler('gcc') }}
     - make
   host:
     - python
