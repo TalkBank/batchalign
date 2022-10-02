@@ -1,0 +1,9 @@
+name: batchalign
+channels:
+  - talkbank
+  - conda-forge
+dependencies:
+  - batchalign
+  - pip
+  - pip:
+    - rev_ai
