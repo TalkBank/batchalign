@@ -7,7 +7,7 @@ package:
 
 source:
   git_url: https://github.com/TalkBank/batchalign.git
-  git_rev: feat/conda
+  git_rev: master
 
 requirements:
   build:
