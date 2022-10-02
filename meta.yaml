@@ -1,0 +1,38 @@
+{% set name = "batchalign" %}
+{% set version = "0.0.1" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/TalkBank/batchalign.git
+  git_rev: feat/conda
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - requests
+    - six
+    - websocket-client
+    - numpy 1.22.*
+    - montreal-forced-aligner
+    - pytorch
+    - pytest-runner 4.2
+    - transformers
+    - tokenizers
+    - nltk
+    - libcxx
+
+about:
+  home: https://github.com/TalkBank/batchalign
+  summary: 'an utility to generate and align CHAT files with ASR + Forced Alignment'
+  dev_url: https://github.com/TalkBank/batchalign.git
+  doc_url: https://github.com/TalkBank/batchalign
+
