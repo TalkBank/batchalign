@@ -24,6 +24,9 @@ setup(
         'rev_ai'
     ],
     include_package_data=True,
+    package_data={
+        'baln': [os.path.basename(i) for i in glob("baln/*.cut")],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities"

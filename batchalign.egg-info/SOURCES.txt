@@ -1,8 +1,12 @@
 README.md
 setup.py
 baln/__init__.py
+baln/attribs.cut
+baln/caps.cut
 baln/command_line.py
+baln/disfluencies.cut
 baln/fa.py
+baln/rep-join.cut
 baln/retokenize.py
 baln/utils.py
 baln/utokengine.py

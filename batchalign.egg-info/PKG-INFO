@@ -4,8 +4,6 @@ Version: 0.0.1
 Summary: an utility to generate and align CHAT files with ASR + Forced Alignment
 Author: TalkBank
 Author-email: macw@cmu.edu
-License: UNKNOWN
-Platform: UNKNOWN
 Classifier: Development Status :: 3 - Alpha
 Classifier: Topic :: Utilities
 
@@ -261,5 +259,3 @@ Then, run
 echo 'export PATH="$HOME/mfa_data/batchalign:$PATH"' >> ~/.zshrc
 echo 'export LD_LIBRARY_PATH="$HOME/mfa_data/batchalign:$LD_LIBRARY_PATH"' >> ~/.zshrc
 ```
-
-

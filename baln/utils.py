@@ -39,8 +39,8 @@ def fix_transcript(f):
     ## Fix disfluencies and join group words ##
     ###########################################
 
-    DISFLUENCY_FILE = os.path.abspath(os.path.join(dir_path, "../disfluencies.cut"))
-    REP_JOIN_FILE = os.path.abspath(os.path.join(dir_path, "../rep-join.cut"))
+    DISFLUENCY_FILE = os.path.abspath(os.path.join(dir_path, "disfluencies.cut"))
+    REP_JOIN_FILE = os.path.abspath(os.path.join(dir_path, "rep-join.cut"))
     # run disfluency replacement
     CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{DISFLUENCY_FILE} {f} >/dev/null 2>&1"
     os.system(CMD)
@@ -70,7 +70,7 @@ def fix_transcript(f):
     ## Lowercasing ##
     #################
 
-    CAPS_FILE = os.path.abspath(os.path.join(dir_path, "../caps.cut"))
+    CAPS_FILE = os.path.abspath(os.path.join(dir_path, "caps.cut"))
     # save/change workdir for lowcase
     workdir = os.getcwd()
     # change it to the output
