@@ -1,4 +1,7 @@
 # batchalign
+
+[![Anaconda-Server Badge](https://anaconda.org/talkbank/batchalign/badges/version.svg)](https://anaconda.org/talkbank/batchalign) [![Anaconda-Server Badge](https://anaconda.org/talkbank/batchalign/badges/latest_release_date.svg)](https://anaconda.org/talkbank/batchalign) [![Anaconda-Server Badge](https://anaconda.org/talkbank/batchalign/badges/platforms.svg)](https://anaconda.org/talkbank/batchalign)
+
 `batchalign` is a Python script that uses the Montreal Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
 
 # Setup and Usage 
