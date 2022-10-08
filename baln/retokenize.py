@@ -566,8 +566,8 @@ def retokenize_directory(in_directory, model_path="~/mfa_data/model", interactiv
         model_data = request.urlopen(MODEL_PATH)
         # put it down
         model_zip = os.path.expanduser("~/mfa_data/model.tar.gz")
-        # with open(model_zip, 'wb') as df:
-        #     df.write(model_data.read())
+        with open(model_zip, 'wb') as df:
+            df.write(model_data.read())
         # open it
         tar = tarfile.open(model_zip, "r:gz")
         tar.extractall(os.path.expanduser("~/mfa_data"))
