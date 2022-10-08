@@ -3,190 +3,66 @@
 
 # Setup and Usage 
 
-Unfortunately, the process to setting up `batchalign` is slightly complicated at the moment. However, this guide will walk you through detailed steps for setup on a `macOS` machine.
+`batchalign` is available through the `TalkBank` channel in Miniconda. To get started, begin by installing Miniconda following the instructions for your platform: [macOS](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html), [Linux](https://conda.io/projects/conda/en/latest/user-guide/install/linux.html). Windows users, please refer to [this guide](https://ubuntu.com/tutorials/install-ubuntu-on-wsl2-on-windows-10#1-overview) to install WSL, and proceed with the Linux instructions. For the rest of the guide, we will be assuming the usage of your default command prompt with a working Miniconda installation.
 
-## Initial Setup
-
-Begin by setting up a machine with a default package manager. For macOS (M1 or otherwise) this means setting up Homebrew with instrucitons at https://brew.sh/.
-
-Acquire also a copy of UnixCLAN from https://dali.talkbank.org/clan/unix-clan.zip. Its `0readme.txt` should contain its own setup instructions. Remember to set the shell `PATH` variable to ensure that the UnixCLAN suite can be called. **This is important!** A lot of vague errors arise if any of the UnixCLAN utilities called by `batchalign` is not found.
-
-Finally, install anaconda, the environment building tool:
+## First Time Setup
+If you have never used `batchalign` before, execute the following
 
 ```bash
-brew install miniforge ffmpeg
+conda env create -f https://raw.githubusercontent.com/TalkBank/batchalign/master/environment.yml
 ```
 
-## Setup Anaconda
-After `conda` installation, there is usually a set of setup instructions needed. Firstly, remember to initialize the shell you are using; on the recent versions of `macOS` presumably, this means:
+This will create an environment named `batchalign` following our preselected settings, which we will enable in your terminal each time.
+
+## Using batchalign
+Before any of the following commands apply, we first have to enable the `batchalign` environment we created above.
 
 ```bash
-conda init zsh
+conda activate batchalign
 ```
 
-Close and repoen the current shell. Then, create an environment called aligner with the required dependencies:
-
-```bash
-conda create -n aligner montreal-forced-aligner pynini
-```
-
-Finally, activate the working environment:
-
-```bash
-conda activate aligner
-```
-
-## Setup Models
-In the working environment, we have to download all the basic US English models needed for alignment:
-
-```bash
-mfa model download acoustic english_us_arpa
-mfa model download dictionary english_us_arpa
-mfa model download g2p english_us_arpa 
-```
-
-Furthermore, we have to download the right versions of Python (rolling it back for `torch` in case your model is wrong), and the Huggingface Transformers and Tokenizers.
-
-```bash
-conda install python==3.9 transformers tokenizers
-```
-
-We also need the Natural Language Processing toolkit:
-
-```bash
-conda install nltk
-```
-
-Lastly, we need the `Rev.AI`, the `ASR` API that we build into `batchalign`.
-
-```bash
-pip install rev_ai
-```
-
-## A Haphazard Change
-Under cases where the `.cha` files are occasionally malformed, containing diarizations which the generated `textGrid` are not used to, or otherwise empty (such as for "placeholder" files), MFA is supposed to skip the file and move on; however, it seems like the error reporting code of the tool is broken and require us to manually comment it out in order for the MFA pipeline to skip broken files.
-
-Begin by finding the location of a specific file in `MFA` by running:
-
-```bash
-echo $CONDA_PREFIX/envs/aligner/lib/python3.9/site-packages/montreal_forced_aligner/corpus/text_corpus.py
-```
-
-Navigate to that file whose directory we just presented. Search for lines with contents:
-
-```python
-getattr(self, k).update(error_dict[k])
-```
-
-then, comment them out. Change these lines to be:
-
-```python
-# getattr(self, k).update(error_dict[k])
-```
-
-## Typical Usage
-You are now ready to run MFA. Begin by placing .cha and .wav/.mp3/.mp4 to align together in your input folder. For instance, `~/mfa_data/input`. Create also an empty folder at `~/mfa_data/output`, which will contain the output of MFA.
+You are now ready to run `batchalign`. Begin by placing .cha (if present with "utterance-level bullets") and .wav/.mp3/.mp4 to align together in your input folder. For instance, `~/mfa_data/input`. Create also an empty folder at `~/mfa_data/output`, which will contain the output of MFA.
 
 The input folder has to be organized in a very specific way. Inside it, place ONLY `.cha` files and `.mp3`, `.mp4`, or `.wav` files to align with the `.cha` files with the same name. Do not mix input media types: the folder should contain only one type of media file.
 
-Therefore, a successful placement of the input folder may look like
-
-ls ~/mfa_data/input
-
-  413.cha 572.wav 727.cha 871.cha
-  413.wav 573.cha 727.wav 871.wav
-  420.cha 573.wav 729.cha 872.cha
-  420.wav 574.cha 729.wav 872.wav
-  427.cha 574.wav 731.cha 874.cha
-  427.wav 575.cha 731.wav 874.wav
-  444.cha 576.cha 733.cha 875.cha
-  444.wav 576.wav 733.wav 875.wav
-  474.cha 607.cha 735.cha 877.cha
-
 The output folder should be empty.
 
-Make sure that the batchalign tarball is cloned at `~/mfa_data/batchalign-dist/`. If this is not the case, clone it there with:
+### Process Raw Audio Files
+`batchalign` has the ability to handle pure audio files by calling the ASR facilities of [rev.ai](https://www.rev.ai/). This functionality assumes that you already have an API key to `Rev.AI`. This key should be a string with a large series of numbers.
+
+If this is the first time you are running this command, we will prompt for you `Rev.AI` API key. After you enter it once, it will be stored in `~/mfa_data/rev_key` as a text file. We will also download a copy of our pretrained NER model, if not already present, and store it in `~/mfa_data/model`.
 
 ```bash
-git clone https://github.com/TalkBank/batchalign ~/mfa_data/batchalign-dist
+batchalign ~/mfa_data/input ~/mfa_data/output 
 ```
 
-# Main Functionality
-
-## Align with Existing Utterance-Level Alignments
-This form assumes that there is already utterance-level alignments ("bullets") inside the `.cha` files placed in `~/mfa_data/input`. If not, please use the "Audio/Transcript Alignment" (triggered with key "F5") functionality in CLAN to preliminary annotate utterance alignments.
-
-To align, execute:
+There is also an interactive prompt facility available for the user to easily fix segmentation results. To use it, add the `-i` flag to the end of the command.
 
 ```bash
-python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --prealigned
+batchalign ~/mfa_data/input ~/mfa_data/output -i
+```
+
+and follow on screen instructions.
+
+### Align with Existing Utterance-Level Alignments
+This form assumes that there is already utterance-level alignments ("bullets") inside the `.cha` files placed in `~/mfa_data/input`. If not, please use the "Audio/Transcript Alignment" (triggered with key "F5") functionality in CLAN to preliminary annotate utterance alignments to use the raw audio files functionality above to get started fresh.
+
+To align with existing utterance bullets, execute:
+
+```bash
+batchalign ~/mfa_data/input ~/mfa_data/output --prealigned
 ```
 
 The resulting aligned files will be located at `~/mfa_data/output`.
-
-## Process Audio Files Only
-`batchalign` has also the ability to handle pure audio files by calling the ASR facilities of [rev.ai](https://www.rev.ai/). This functionality assumes that you already have an API key to `rev.ai`, which we will call `[key]`. This key should be a string with a large series of numbers.
-
-In to addition to `~/mfa_data/input`, this model assumes that there is a trained tokenization model according to the NER training scheme documented in the article located at `~/mfa_data/model/`. If one does not already exist there, you can follow the following steps to download a reference training.
-
-### Get Segmentation Model
-
-First download the model:
-
-```bash
-curl "https://dl.dropboxusercontent.com/s/4qhixi742955p35/model.tar.gz?dl=0" > ~/mfa_data/model.tar.gz
-```
-
-Then, extract the model:
-
-```bash
-tar -xzf ~/mfa_data/model.tar.gz -C ~/mfa_data/
-```
-
-Finally, move the model to the correct path. This is dependent on the name of the model you are working with; for the model named above, it is named `flowing-salad-6`. Therefore, we will move it to `model` with the following command:
-
-```bash
-mv ~/mfa_data/flowing-salad-6 ~/mfa_data/model/
-```
-
-Awesome! You are now ready to ASR + align.
-
-### ASR + Align
-To actually call ASR and alignment, issue the following command:
-
-```bash
-python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --retokenize ~/mfa_data/model --rev [key]
-```
-Please note again that `[key]` refers to any live `Rev.AI` API key.
-
-### Tokenize Interactively
-
-There is additionally a `-i` flag that allows interactive tokenization fixes as well as speaker identification.
-
-```bash
-python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --retokenize ~/mfa_data/model --rev [key] -i
-```
-
-Follow the on-screen prompts for details and next steps.
 
 # Other Commands
-
-## Align without Existing Utterance-Level Alignments
-This method removes the need for pre-alignment. However, on files longer than one to two minutes, the results are quite rough and not as precise as that with utterance-level alignments.
-
-To align, execute:
-
-```bash
-python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output
-```
-The resulting aligned files will be located at `~/mfa_data/output`.
 
 ## Align with existing TextGrid files
 
 This command assumes, in to addition to `~/mfa_data/input`, that there is a `data/` subfolder in `~/mfa_data/output` which contains already-aligned TextGrid files. We therefore don't actually run MFA, instead, we just run the postprocessing and code-generation facilities.
 
 ```bash
-python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --skipalign
+batchalign ~/mfa_data/input ~/mfa_data/output --skipalign
 ```
 
 ## Align with existing dictionary
@@ -194,25 +70,25 @@ python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/outp
 This command assumes, in to addition to `~/mfa_data/input`, there is a dictionary located at `~/mfa_data/dictionary.dict`.
 
 ```bash
-python ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --dictionary ~/mfa_data/dictionary.dict
+batchalign ~/mfa_data/input ~/mfa_data/output --dictionary ~/mfa_data/dictionary.dict
 ```
 
 ## Clean up
 If there is stray files in the input folder (`.eaf`, `.lab`, etc.) after alignment, it is likely that the program crashed. To clean up all stray files, run:
 
 ```bash
-python3 ~/mfa_data/batchalign-dist/batchalign.py ~/mfa_data/input ~/mfa_data/output --clean
+batchalign ~/mfa_data/input ~/mfa_data/output --clean
 ```
 
 # Full Usage Documentation 
 
 ```
-usage: batchalign.py [-h] [--prealigned] [--data_dir DATA_DIR] [--beam BEAM] [--skipalign] [--skipclean]
-                     [--dictionary DICTIONARY] [--model MODEL] [--retokenize RETOKENIZE] [-i] [-n] [-a]
-                     [--rev REV] [--clean]
-                     in_dir out_dir
+usage: batchalign [-h] [--prealigned] [--data_dir DATA_DIR] [--beam BEAM] [--skipalign] [--skipclean]
+                  [--dictionary DICTIONARY] [--model MODEL] [--retokenize RETOKENIZE] [-i] [-n] [-a]
+                  [--rev REV] [--clean]
+                  in_dir out_dir
 
-batch align .cha to audio in a directory with MFA
+batch align .cha to audio in a directory with MFA/P2FA
 
 positional arguments:
   in_dir                input directory containing .cha and .mp3/.wav files
@@ -235,18 +111,4 @@ optional arguments:
   -a, --asronly         ASR only, don't run mfa
   --rev REV             rev.ai API key, to submit audio
   --clean               don't align, just call cleanup
-```
-
-# New Setup
-Place batchalign in
-
-```
-~/mfa_data/batchalign
-```
-
-Then, run
-
-```
-echo 'export PATH="$HOME/mfa_data/batchalign:$PATH"' >> ~/.zshrc
-echo 'export LD_LIBRARY_PATH="$HOME/mfa_data/batchalign:$LD_LIBRARY_PATH"' >> ~/.zshrc
 ```
