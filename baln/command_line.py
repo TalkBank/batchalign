@@ -1,10 +1,16 @@
+# import os
+import os
+
+
+# silence huggingface
+os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
+
+
 # progra freezing utilities
 from multiprocessing import Process, freeze_support
 
 # import argparse
 import argparse
-# import os
-import os
 
 
 
@@ -65,12 +71,12 @@ def mainloop():
     elif (args.retokenize and MODE != 0) or ((len(globase(args.in_dir, "*.cha")) == 0) and
                                              (len(globase(args.in_dir, "*.json")) == 0)) or MODE == 1:
         # assert retokenize
-        assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
+        # assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
-        print("Performing retokenization!")
-        retokenize_directory(args.in_dir, args.retokenize, 'h' if args.headless else args.interactive, args.rev if args.rev else REV_API)
+        print("Stage 1: Performing ASR")
+        retokenize_directory(args.in_dir, args.retokenize if args.retokenize else "~/mfa_data/model", 'h' if args.headless else args.interactive, args.rev)
         if not args.asronly:
-            print("Done. Handing off to MFA.")
+            print("Stage 2: Performing Forced Alignment")
             do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
         else:
             # Define the data_dir
@@ -85,4 +91,6 @@ def mainloop():
             print("All done! Check the input folder.")
             # otherwise prealign
     else: 
+        print("Stage 1: Performing Forced Alignment")
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+        print("All done! Check the input folder.")

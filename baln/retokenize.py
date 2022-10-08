@@ -21,6 +21,9 @@ from collections import defaultdict
 import string
 # import temporary file
 import tempfile
+# tarball handler
+import tarfile
+from urllib import request
 
 # json utilities
 import json
@@ -45,6 +48,9 @@ from tkinter.scrolledtext import ScrolledText
 # import the tokenization engine
 from .utokengine import UtteranceEngine
 from .utils import fix_transcript
+
+MODEL_PATH="https://dl.dropboxusercontent.com/s/4qhixi742955p35/model.tar.gz?dl=0"
+MODEL="flowing-salad-6"
 
 # silence huggingface
 os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
@@ -537,7 +543,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     fix_transcript(outfile)
 
 
-def retokenize_directory(in_directory, model_path, interactive=False, key=None):
+def retokenize_directory(in_directory, model_path="~/mfa_data/model", interactive=False, key=None):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -551,7 +557,24 @@ def retokenize_directory(in_directory, model_path, interactive=False, key=None):
         None, used for .cha file generation side effects.
     """
 
-    # we import here for backwards dependency capatability
+    # check if model exists. If not, download it
+    if not os.path.exists(os.path.expanduser("~/mfa_data/model")):
+        print("Getting segmentation model...")
+        # make the path
+        os.makedirs(os.path.expanduser("~/mfa_data/"), exist_ok=True)
+        # download the tarball
+        model_data = request.urlopen(MODEL_PATH)
+        # put it down
+        model_zip = os.path.expanduser("~/mfa_data/model.tar.gz")
+        # with open(model_zip, 'wb') as df:
+        #     df.write(model_data.read())
+        # open it
+        tar = tarfile.open(model_zip, "r:gz")
+        tar.extractall(os.path.expanduser("~/mfa_data"))
+        tar.close()
+        # and then rename it
+        basepath = os.path.expanduser("~/mfa_data")
+        os.rename(os.path.join(basepath, MODEL), os.path.join(basepath, "model"))
 
     # find all the JSON files
     files = globase(in_directory, "*.json")
@@ -568,8 +591,20 @@ def retokenize_directory(in_directory, model_path, interactive=False, key=None):
         files = globase(in_directory, "*.cha")
     # if we STILL have no files, we need to run ASR
     if len(files) == 0:
-        # assert for key
-        assert key, "Need to run ASR, but Rev.AI API key not found with --rev argument."
+        # find key; if non-existant, ask for it.
+        if not key:
+            # find keyfile
+            with open(os.path.expanduser("~/mfa_data/rev_key"), "a+") as df:
+                # seek beginning
+                df.seek(0,0)
+                # get contents
+                cont = df.read()
+                # if no content, prompt
+                if cont == "":
+                    cont = input("Enter your Rev.AI API key: ")
+                    df.write(cont.strip())
+                # anyways, its just the keyfile
+                key = cont.strip()
         # scan for wav files
         files = globase(in_directory, "*.wav")
         # if we don't have wav files, find mp3/4 and convert
@@ -590,7 +625,7 @@ def retokenize_directory(in_directory, model_path, interactive=False, key=None):
             files = globase(in_directory, "*.wav")
     # so, we will convert the input directory to
     # seed an utterance engine to use
-    E = UtteranceEngine(model_path)
+    E = UtteranceEngine(os.path.expanduser(model_path))
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
