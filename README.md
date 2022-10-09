@@ -26,7 +26,7 @@ conda activate batchalign
 
 You are now ready to run `batchalign`. Begin by placing .cha (if present with "utterance-level bullets") and .wav/.mp3/.mp4 to align together in your input folder. For instance, `~/mfa_data/input`. Create also an empty folder at `~/mfa_data/output`, which will contain the output of MFA.
 
-The input folder has to be organized in a very specific way. Inside it, place ONLY `.cha` files and `.mp3`, `.mp4`, or `.wav` files to align with the `.cha` files with the same name. Do not mix input media types: the folder should contain only one type of media file.
+The input folder has to be organized in a very specific way. Inside it, place ONLY `.mp3`, `.mp4`, or `.wav` files and---if needed and available---CHAT files with utterance-level prealignments to align with the `.cha` files with the same name. Do not mix input media types: the folder should contain only one type of media file.
 
 The output folder should be empty.
 
