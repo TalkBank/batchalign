@@ -58,6 +58,22 @@ batchalign ~/mfa_data/input ~/mfa_data/output --prealigned
 
 The resulting aligned files will be located at `~/mfa_data/output`.
 
+## Update batchalign
+We can use conda to update `batchalign`, in much of a similar way as installing it.
+
+First, start by activating `batchalign`.
+
+```bash
+conda activate batchalign
+```
+
+Then, run the following command to check and perform updates
+
+
+```bash
+conda update batchalign -c talkbank
+```
+
 # Other Commands
 
 ## Align with existing TextGrid files
