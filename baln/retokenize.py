@@ -61,7 +61,8 @@ globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 SPEAKER_TRANSLATIONS = {
     "p": ("Participant", "PAR"),
     "i": ("Investigator", "INV"),
-    "c": ("Child", "CHI")
+    "c": ("Child", "CHI"),
+    # "n": ("Partner", "PTN")
 }
 
 # read all chat files
@@ -214,7 +215,7 @@ def process_json(data, name=None, interactive=False):
         # filter 2 statements for each speaker needed
         # and then push
         for speaker in speaker_ids:
-            speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x))[-2:])
+            speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
 
         # prompt hello
         print("Welcome to interactive speaker identification!")
@@ -223,7 +224,7 @@ def process_json(data, name=None, interactive=False):
         # print out samples from speaker
         for indx, speaker in enumerate(speaker_ids):
             print(f"\033[1mSpeaker {speaker}\033[0m")
-            print("\n".join([" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+            print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
             print()
 
         # prompt for info
@@ -236,9 +237,15 @@ def process_json(data, name=None, interactive=False):
                 translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
                 while translation == "*":
                     speaker_name = input(f"Invalid selection. Please enter identifying letter of speaker {speaker} (i.e. Participant or P): ").strip()
+                    if len(speaker_name) > 1:
+                        break
                     translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
-                speaker_name = translation[0]
-                speaker_tier = translation[1]
+                try: 
+                    speaker_name = translation[0]
+                    speaker_tier = translation[1]
+                except IndexError:
+                    # this means that the user chose to type the rest in
+                    pass
             # if we don't have first capital and spelt correctly
             while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
                 print("Invalid response. Please follow the formatting example provided.")
