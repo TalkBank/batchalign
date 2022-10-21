@@ -9,21 +9,23 @@ jobs:
   conda_build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-arm]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: check out repository
+      - name: Check out repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: install Conda
+      - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
           activate-environment: ""
-      - name: install Conda build tools
+          miniforge-version: latest
+      - name: Install Conda build tools
         run: conda install -y conda-build conda-verify
-      - name: build batchalign
-        run: conda build . -c conda-forge
+      - name: Build batchalign
+        run: conda build .
         
+
 
