@@ -1,0 +1,29 @@
+name: Build and Release for Anaconda
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  conda_build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: check out repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-activate-base: true
+          activate-environment: ""
+      - name: install Conda build tools
+        run: conda install -y conda-build conda-verify
+      - name: build batchalign
+        run: conda build . -c conda-forge
+        
+
