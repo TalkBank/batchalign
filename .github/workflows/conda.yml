@@ -21,7 +21,9 @@ jobs:
         run: rm -rf .github
       - name: Remove actions folder (Win) # this is required for Conda to not freak out at the yml file inside
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: rmdir /s .github
+        run: |
+          rm .github/* .github/.* 
+          rmdir .github
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
