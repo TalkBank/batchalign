@@ -1,5 +1,23 @@
 # CLAN has to be 32bit app. Please use -m32 option when compiling CLAN.
 
+
+
+
+######## PLEASE READ ########
+
+# THIS IS THE WINDOWS MAKEFILE!!
+# Windows make doesn't seem to be able to set a makefile
+# so we will just use the defile name
+
+######## PLEASE READ ########
+
+
+
+
+
+
+
+
 DD  = ../unix/bin
 OBJ = ../unix/obj
 
