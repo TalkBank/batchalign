@@ -1,6 +1,4 @@
 pip install .
-where make
-make -v
 make -C ./baln/opt/CLANUtils/src/
 dir $PREFIX/bin
 rem mkdir -p $PREFIX/bin

@@ -21,7 +21,7 @@
 DD  = ../unix/bin
 OBJ = ../unix/obj
 
-CC = $(CC) -lstdc++
+CC = cl -lstdc++
 CFLAGS = -DUNX -Wno-deprecated -Wno-deprecated-declarations
 
 MORFILES = mor/arules.cpp mor/crules.cpp mor/drules.cpp mor/globals.cpp \
