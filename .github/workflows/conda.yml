@@ -24,8 +24,12 @@ jobs:
           miniforge-version: latest
       - name: Install Conda build tools
         run: conda install -y conda-build conda-verify
+      - name: Update Conda
+        run: conda update -y conda
+      - name: Install mamba
+        run: conda install -y mamba
       - name: Build batchalign
-        run: conda build .
+        run: conda mambabuild .
         
 
 
