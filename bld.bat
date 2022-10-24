@@ -1,6 +1,7 @@
 pip install .
-make -d -C ./baln/opt/CLANUtils/src/ -f Makefile.Windows
+cd ./baln/opt/CLANUtils/unix
+cmake ../src
+make 
 mkdir -p %PREFIX%/bin
-rem mv ./baln/opt/CLANUtils/unix/bin/* $PREFIX/bin
-rem chmod u+x $PREFIX/bin/*
-
+mv ./bin/* $PREFIX/bin
+chmod u+x $PREFIX/bin/*
