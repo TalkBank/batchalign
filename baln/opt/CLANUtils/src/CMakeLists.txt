@@ -16,7 +16,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "./bin")
 
 # define to copmile unix
 add_compile_definitions(UNX)
-remove_definitions(-D_WIN32)
 
 #### shared libraries ####
 # create libaries to link against

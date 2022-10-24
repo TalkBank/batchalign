@@ -17,11 +17,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#if defined(_WIN32)
-	#include "stdafx.h"
-	#include "Clan2.h"
-#endif
-
 #include "wstring.h"
 
 extern "C"
