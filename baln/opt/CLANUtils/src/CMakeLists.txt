@@ -7,7 +7,7 @@
 #
 # Sources for the program are available at github.com/TalkBank/batchalign
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.20)
 project(CLANUtils)
 set(CMAKE_CXX_STANDARD 14)
 
