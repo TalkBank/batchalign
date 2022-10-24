@@ -35,9 +35,9 @@ jobs:
         run: conda update -y conda
       - name: Install mamba and boa (dependency resolver)
         run: conda install -y mamba boa
-      # - name: Install mingw gcc (Win)
-      #   if: ${{ matrix.os == 'windows-latest' }} 
-      #   run: conda install -y m2w64-toolchain
+      - name: Install mingw gcc (Win)
+        if: ${{ matrix.os == 'windows-latest' }} 
+        run: conda install -y m2w64-toolchain
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
         
