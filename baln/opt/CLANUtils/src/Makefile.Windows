@@ -18,17 +18,17 @@
 
 
 
-DD  = ../unix/bin
+DD = ../unix/bin
 OBJ = ../unix/obj
 
-CC = cl -lstdc++
-CFLAGS = -DUNX 
+CC = cl 
+CFLAGS = /DUNX
 
 MORFILES = mor/arules.cpp mor/crules.cpp mor/drules.cpp mor/globals.cpp \
-		   mor/lex-trie.cpp mor/morlib.cpp mor/mor.cpp
+		  mor/lex-trie.cpp mor/morlib.cpp mor/mor.cpp
 
 VOCD = vocd/args.cpp vocd/speaker.cpp vocd/tokens.cpp vocd/filter.cpp \
-	   vocd/dcompute.cpp vocd/vocd.cpp 
+	  vocd/dcompute.cpp vocd/vocd.cpp 
 
 POSTC = post/anaalgo.cpp post/atom.cpp post/brillanx.cpp \
 		post/brilltagger.cpp post/compoundlib.cpp post/database.cpp \
@@ -43,7 +43,7 @@ MEGRASPC = megrasp/megrasp.cpp megrasp/maxent.cpp megrasp/blmvm.cpp
 MEGRASPH = megrasp/ksutil.h megrasp/maxent.h megrasp/blmvm.h
 
 all:	anvil2chat chains chat2anvil chat2ca chat2elan chat2praat chat2xmar check \
-	chip chstring codes combo combtier compound cooccur  dataclean dates delim dist \
+	chip chstring codes combo combtier compound cooccur dataclean dates delim dist \
 	dss elan2chat eval eval-d fixbullets fixit flo flucalc freq freqpos gem gemfreq \
 	gemlist indent ipsyn keymap kideval kwal lines lena2chat lipp2chat longtier \
 	lowcase makemod maxwd megrasp mlt mlu modrep mor mortable ort play2chat phonfreq \
@@ -51,8 +51,8 @@ all:	anvil2chat chains chat2anvil chat2ca chat2elan chat2praat chat2xmar check \
 	quotes rely repeat retrace salt2chat script srt2chat sugar text2chat timedur \
 	tierorder trnfix uniq validateMFA vocd wdlen test
 
-anvil2chat:	  	$(DD)/anvil2chat
-chains:	  		$(DD)/chains
+anvil2chat:	 	$(DD)/anvil2chat
+chains:	 		$(DD)/chains
 chat2anvil:		$(DD)/chat2anvil
 chat2ca:		$(DD)/chat2ca
 chat2elan:		$(DD)/chat2elan
@@ -117,7 +117,7 @@ repeat:			$(DD)/repeat
 retrace:		$(DD)/retrace
 salt2chat:		$(DD)/salt2chat
 script:			$(DD)/script
-srt2chat:	  	$(DD)/srt2chat
+srt2chat:	 	$(DD)/srt2chat
 sugar:			$(DD)/sugar
 text2chat:		$(DD)/text2chat
 timedur:		$(DD)/timedur
@@ -131,251 +131,251 @@ wdlen:			$(DD)/wdlen
 test:			$(DD)/test
 
 $(OBJ)/c_ver.o: c_ver.cpp
-	$(CC) -c $(CFLAGS) -o $(OBJ)/c_ver.o c_ver.cpp
+	$(CC) $(CFLAGS) /Fo $(OBJ)/c_ver.o c_ver.cpp
 
 $(OBJ)/cut.o: cutt.cpp cu.h common.h mul.h
-	$(CC) -c $(CFLAGS) -o $(OBJ)/cut.o cutt.cpp
+	$(CC) $(CFLAGS) /Fo $(OBJ)/cut.o cutt.cpp
 
 $(OBJ)/stp.o: stringparser.cpp stringparser.h fontconvert.h
-	$(CC) -c $(CFLAGS) -o $(OBJ)/stp.o stringparser.cpp
+	$(CC) $(CFLAGS) /Fo $(OBJ)/stp.o stringparser.cpp
 
 $(OBJ)/fntc.o: fontconvert.cpp fontconvert.h
-	$(CC) -c $(CFLAGS) -o $(OBJ)/fntc.o fontconvert.cpp
+	$(CC) $(CFLAGS) /Fo $(OBJ)/fntc.o fontconvert.cpp
 
 $(OBJ)/cxml.o: cutt-xml.cpp cu.h common.h mul.h
-	$(CC) -c $(CFLAGS) -o $(OBJ)/cxml.o cutt-xml.cpp
+	$(CC) $(CFLAGS) /Fo $(OBJ)/cxml.o cutt-xml.cpp
 
 
 $(DD)/anvil2chat: Anvil2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Anvil2Chat.cpp -o $(DD)/anvil2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Anvil2Chat.cpp /Fo $(DD)/anvil2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/chains: chains.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) chains.cpp -o $(DD)/chains $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
+	$(CC) $(CFLAGS) chains.cpp /Fo $(DD)/chains $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
 
 $(DD)/chat2anvil: Chat2Anvil.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Chat2Anvil.cpp -o $(DD)/chat2anvil $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
+	$(CC) $(CFLAGS) Chat2Anvil.cpp /Fo $(DD)/chat2anvil $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
 
 $(DD)/chat2ca: Chat2CA.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Chat2CA.cpp -o $(DD)/chat2ca $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Chat2CA.cpp /Fo $(DD)/chat2ca $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/chat2elan: Chat2Elan.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Chat2Elan.cpp -o $(DD)/chat2elan $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Chat2Elan.cpp /Fo $(DD)/chat2elan $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/chat2praat: Chat2Praat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Chat2Praat.cpp -o $(DD)/chat2praat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Chat2Praat.cpp /Fo $(DD)/chat2praat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/chat2xmar: Chat2Xmar.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Chat2Xmar.cpp -o $(DD)/chat2xmar $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Chat2Xmar.cpp /Fo $(DD)/chat2xmar $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/check: check.cpp cu.h common.h check.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) check.cpp -o $(DD)/check $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
+	$(CC) $(CFLAGS) check.cpp /Fo $(DD)/check $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
 
 $(DD)/chip: chip.cpp chip_utl.cpp chip.h cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) chip.cpp chip_utl.cpp -o $(DD)/chip $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
+	$(CC) $(CFLAGS) chip.cpp chip_utl.cpp /Fo $(DD)/chip $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
 
 $(DD)/chstring: chstring.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) chstring.cpp -o $(DD)/chstring $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) chstring.cpp /Fo $(DD)/chstring $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/codes: codes-p.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) codes-p.cpp -o $(DD)/codes $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) codes-p.cpp /Fo $(DD)/codes $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/combo: combo.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) combo.cpp -o $(DD)/combo $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) combo.cpp /Fo $(DD)/combo $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/compound: post/compound.cpp $(POSTH) $(POSTC) 
-	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/compound.cpp -o $(DD)/compound
+	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/compound.cpp /Fo $(DD)/compound
 
 $(DD)/combtier: combtier.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) combtier.cpp -o $(DD)/combtier $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) combtier.cpp /Fo $(DD)/combtier $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/cooccur: cooccur.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) cooccur.cpp -o $(DD)/cooccur $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) cooccur.cpp /Fo $(DD)/cooccur $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/dataclean: DataCleanUp.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) DataCleanUp.cpp -o $(DD)/dataclean $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) DataCleanUp.cpp /Fo $(DD)/dataclean $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/dates: dates.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) dates.cpp -o $(DD)/dates $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) dates.cpp /Fo $(DD)/dates $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/delim: delim.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) delim.cpp -o $(DD)/delim $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) delim.cpp /Fo $(DD)/delim $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/dist: dist.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) dist.cpp -o $(DD)/dist $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) dist.cpp /Fo $(DD)/dist $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/dss: dss.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) dss.cpp -o $(DD)/dss $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) dss.cpp /Fo $(DD)/dss $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/elan2chat: Elan2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Elan2Chat.cpp -o $(DD)/elan2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Elan2Chat.cpp /Fo $(DD)/elan2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/eval: eval.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) eval.cpp -o $(DD)/eval $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) eval.cpp /Fo $(DD)/eval $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/eval-d: eval-d.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) eval-d.cpp -o $(DD)/eval-d $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) eval-d.cpp /Fo $(DD)/eval-d $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/fixbullets: FixBullets.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) FixBullets.cpp -o $(DD)/fixbullets $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) FixBullets.cpp /Fo $(DD)/fixbullets $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/fixit: fixit.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) fixit.cpp -o $(DD)/fixit $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) fixit.cpp /Fo $(DD)/fixit $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/flo: flo.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) flo.cpp -o $(DD)/flo $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) flo.cpp /Fo $(DD)/flo $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/flucalc: flucalc.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) flucalc.cpp -o $(DD)/flucalc $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) flucalc.cpp /Fo $(DD)/flucalc $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/freq: freq.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) freq.cpp -o $(DD)/freq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) freq.cpp /Fo $(DD)/freq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/freqpos: freqpos.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) freqpos.cpp -o $(DD)/freqpos $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) freqpos.cpp /Fo $(DD)/freqpos $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/gem: gem.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) gem.cpp -o $(DD)/gem $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) gem.cpp /Fo $(DD)/gem $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/gemfreq: gemfreq.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) gemfreq.cpp -o $(DD)/gemfreq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) gemfreq.cpp /Fo $(DD)/gemfreq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/gemlist: gemlist.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) gemlist.cpp -o $(DD)/gemlist $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) gemlist.cpp /Fo $(DD)/gemlist $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/imdi: imdi.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) imdi.cpp -o $(DD)/imdi $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) imdi.cpp /Fo $(DD)/imdi $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/indent: indent.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) indent.cpp -o $(DD)/indent $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) indent.cpp /Fo $(DD)/indent $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/ipsyn: ipsyn.cpp ipsyn.h cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) ipsyn.cpp -o $(DD)/ipsyn $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) ipsyn.cpp /Fo $(DD)/ipsyn $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/keymap: keymap.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) keymap.cpp -o $(DD)/keymap $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) keymap.cpp /Fo $(DD)/keymap $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/kideval: kideval.cpp dss.cpp dss.h ipsyn.h $(VOCD) cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) -Ivocd -I. $(CFLAGS) -DKIDEVAL_LIB kideval.cpp dss.cpp ipsyn.cpp $(VOCD) -o $(DD)/kideval $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) -Ivocd -I. $(CFLAGS) -DKIDEVAL_LIB kideval.cpp dss.cpp ipsyn.cpp $(VOCD) /Fo $(DD)/kideval $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/kwal: kwal.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) kwal.cpp -o $(DD)/kwal $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) kwal.cpp /Fo $(DD)/kwal $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/lines: lines.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) lines.cpp -o $(DD)/lines $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) lines.cpp /Fo $(DD)/lines $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/lena2chat: Lena2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Lena2Chat.cpp -o $(DD)/lena2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Lena2Chat.cpp /Fo $(DD)/lena2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/lipp2chat: lippUTF2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) lippUTF2Chat.cpp -o $(DD)/lipp2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) lippUTF2Chat.cpp /Fo $(DD)/lipp2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/longtier: longtier.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) longtier.cpp -o $(DD)/longtier $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) longtier.cpp /Fo $(DD)/longtier $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/lowcase: lowcase.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) lowcase.cpp -o $(DD)/lowcase $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) lowcase.cpp /Fo $(DD)/lowcase $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/makemod: makemod.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) makemod.cpp -o $(DD)/makemod $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) makemod.cpp /Fo $(DD)/makemod $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/maxwd: maxwd.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) maxwd.cpp -o $(DD)/maxwd $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) maxwd.cpp /Fo $(DD)/maxwd $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/megrasp: $(MEGRASPC) $(MEGRASPH) cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) $(MEGRASPC) -o $(DD)/megrasp $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) $(MEGRASPC) /Fo $(DD)/megrasp $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/mlt: mlt.cpp mllib.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) mlt.cpp mllib.cpp -o $(DD)/mlt $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) mlt.cpp mllib.cpp /Fo $(DD)/mlt $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/mlu: mlu.cpp mllib.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) mlu.cpp mllib.cpp -o $(DD)/mlu $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
+	$(CC) $(CFLAGS) mlu.cpp mllib.cpp /Fo $(DD)/mlu $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o -lm
 
 $(DD)/modrep: modrep.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) modrep.cpp -o $(DD)/modrep $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) modrep.cpp /Fo $(DD)/modrep $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/ort: ort.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) ort.cpp -o $(DD)/ort $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) ort.cpp /Fo $(DD)/ort $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/mor: $(MORFILES) mor/mor.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) -Imor -I. $(CFLAGS) $(MORFILES) -o $(DD)/mor $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) -Imor -I. $(CFLAGS) $(MORFILES) /Fo $(DD)/mor $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/mortable: mortable.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) mortable.cpp -o $(DD)/mortable $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) mortable.cpp /Fo $(DD)/mortable $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/play2chat: Play2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Play2Chat.cpp -o $(DD)/play2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Play2Chat.cpp /Fo $(DD)/play2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/phonfreq: phonfreq.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) phonfreq.cpp -o $(DD)/phonfreq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) phonfreq.cpp /Fo $(DD)/phonfreq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/post: post/post.cpp $(POSTH) $(POSTC) post/postana.cpp
-	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/postana.cpp post/post.cpp -o $(DD)/post
+	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/postana.cpp post/post.cpp /Fo $(DD)/post
 
 $(DD)/postlist: post/postlist.cpp $(POSTH) $(POSTC) post/trainproc.cpp
-	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/trainproc.cpp post/postlist.cpp -o $(DD)/postlist
+	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/trainproc.cpp post/postlist.cpp /Fo $(DD)/postlist
 
 $(DD)/postmodrules: post/postmodrules.cpp $(POSTH) $(POSTC)
-	$(CC) -Ipost -I. $(CFLAGS)  $(POSTC) post/postmodrules.cpp -o $(DD)/postmodrules
+	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/postmodrules.cpp /Fo $(DD)/postmodrules
 
 $(DD)/postmortem: postmortem.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) postmortem.cpp -o $(DD)/postmortem $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) postmortem.cpp /Fo $(DD)/postmortem $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/praat2chat: Praat2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Praat2Chat.cpp -o $(DD)/praat2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Praat2Chat.cpp /Fo $(DD)/praat2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/posttrain: post/posttrain.cpp $(POSTH) $(POSTC) post/trainproc.cpp post/trainbrill.cpp post/contextrl.cpp post/darray.cpp post/darray.hpp post/registry.cpp post/registry.hpp post/registryP.hpp post/memory.cpp post/memory.hpp
-	$(CC) -Ipost -I. $(CFLAGS)  $(POSTC) post/trainproc.cpp post/trainbrill.cpp post/contextrl.cpp post/darray.cpp post/registry.cpp post/memory.cpp post/posttrain.cpp -o $(DD)/posttrain
+	$(CC) -Ipost -I. $(CFLAGS) $(POSTC) post/trainproc.cpp post/trainbrill.cpp post/contextrl.cpp post/darray.cpp post/registry.cpp post/memory.cpp post/posttrain.cpp /Fo $(DD)/posttrain
 
 $(DD)/quotes: Quotes.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Quotes.cpp -o $(DD)/quotes $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Quotes.cpp /Fo $(DD)/quotes $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/rely: rely.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) rely.cpp -o $(DD)/rely $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) rely.cpp /Fo $(DD)/rely $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/repeat: repeat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) repeat.cpp -o $(DD)/repeat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) repeat.cpp /Fo $(DD)/repeat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/retrace: retrace.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) retrace.cpp -o $(DD)/retrace $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) retrace.cpp /Fo $(DD)/retrace $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/salt2chat: salt2chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) salt2chat.cpp -o $(DD)/salt2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) salt2chat.cpp /Fo $(DD)/salt2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/script: script.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) script.cpp -o $(DD)/script $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) script.cpp /Fo $(DD)/script $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/srt2chat: Srt2Chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) Srt2Chat.cpp -o $(DD)/srt2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) Srt2Chat.cpp /Fo $(DD)/srt2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/cxml.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/sugar: sugar.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) sugar.cpp -o $(DD)/sugar $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) sugar.cpp /Fo $(DD)/sugar $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/text2chat: text2chat.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) text2chat.cpp -o $(DD)/text2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) text2chat.cpp /Fo $(DD)/text2chat $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/timedur: timedur.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) timedur.cpp -o $(DD)/timedur $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) timedur.cpp /Fo $(DD)/timedur $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/tierorder: tierorder.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) tierorder.cpp -o $(DD)/tierorder $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) tierorder.cpp /Fo $(DD)/tierorder $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/trnfix: TrnFix.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) TrnFix.cpp -o $(DD)/trnfix $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) TrnFix.cpp /Fo $(DD)/trnfix $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/validateMFA: validateMFA.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) validateMFA.cpp -o $(DD)/validateMFA $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) validateMFA.cpp /Fo $(DD)/validateMFA $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/uniq: uniq.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) uniq.cpp -o $(DD)/uniq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) uniq.cpp /Fo $(DD)/uniq $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/vocd: $(VOCD) cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) -Ivocd -I. $(CFLAGS) $(VOCD) -o $(DD)/vocd $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) -Ivocd -I. $(CFLAGS) $(VOCD) /Fo $(DD)/vocd $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/wdlen: wdlen.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) wdlen.cpp -o $(DD)/wdlen $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) wdlen.cpp /Fo $(DD)/wdlen $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 $(DD)/test: test.cpp cu.h common.h $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
-	$(CC) $(CFLAGS) test.cpp -o $(DD)/test $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
+	$(CC) $(CFLAGS) test.cpp /Fo $(DD)/test $(OBJ)/c_ver.o $(OBJ)/cut.o $(OBJ)/stp.o $(OBJ)/fntc.o
 
 clean:
 	-rm -f $(DD)/* $(OBJ)/*
