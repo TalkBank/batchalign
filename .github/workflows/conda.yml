@@ -37,7 +37,7 @@ jobs:
         run: conda install -y mamba boa
       - name: Install cmake and mingw (Win)
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: conda install -y cmake m2w64-toolchain
+        run: conda install -y cmake m2w64-toolchain m2w64-gcc
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
         

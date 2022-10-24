@@ -1,6 +1,6 @@
 pip install .
 cd ./baln/opt/CLANUtils/unix
-cmake -G "MinGW Makefiles" -D CMAKE_CXX_COMPILER=g++ ../src
+cmake -G "MinGW Makefiles" -D CMAKE_C_COMPILER=gcc -D CMAKE_CXX_COMPILER=g++ ../src
 make 
 mkdir -p %PREFIX%/bin
 mv ./bin/* %PREFIX%/bin
