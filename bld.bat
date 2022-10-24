@@ -1,5 +1,5 @@
 pip install .
-make -C ./baln/opt/CLANUtils/src/
+make -d -C ./baln/opt/CLANUtils/src/
 dir $PREFIX/bin
 rem mkdir -p $PREFIX/bin
 rem mv ./baln/opt/CLANUtils/unix/bin/* $PREFIX/bin
