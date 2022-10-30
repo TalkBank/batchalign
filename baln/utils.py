@@ -42,14 +42,14 @@ def fix_transcript(f):
     DISFLUENCY_FILE = os.path.abspath(os.path.join(dir_path, "disfluencies.cut"))
     REP_JOIN_FILE = os.path.abspath(os.path.join(dir_path, "rep-join.cut"))
     # run disfluency replacement
-    CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{DISFLUENCY_FILE} {f} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{DISFLUENCY_FILE} {f} "
     os.system(CMD)
     # move old file to backup
     os.rename(f, f.replace("cha", "old.cha"))
     # rename new file
     os.rename(f.replace("cha", "chstr.cex"), f)
     # run rep join replacement
-    CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{REP_JOIN_FILE} {f} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{REP_JOIN_FILE} {f} "
     os.system(CMD)
     # rename new file
     os.rename(f.replace("cha", "chstr.cex"), f)
@@ -60,7 +60,7 @@ def fix_transcript(f):
     ###############
 
     # run 
-    CMD = f"retrace +c {f} >/dev/null 2>&1"
+    CMD = f"retrace +c {f} "
     os.system(CMD)
     # rename new file
     os.rename(f.replace("cha", "retrace.cex"), f)
@@ -76,7 +76,7 @@ def fix_transcript(f):
     # change it to the output
     os.chdir(pathlib.Path(f).parent.absolute())
     # run 
-    CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} >/dev/null 2>&1"
+    CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} "
     os.system(CMD)
     # change it back to the output
     os.chdir(workdir)

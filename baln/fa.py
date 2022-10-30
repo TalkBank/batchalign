@@ -112,7 +112,7 @@ def elan2chat(directory):
     # process each file
     for fl in files:
         # elan2chatit!
-        CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} >/dev/null 2>&1"
+        CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} "
         # run!
         os.system(CMD)
     # delete any error logs
@@ -139,7 +139,7 @@ def fixbullets(directory):
     # process each file
     for fl in files:
         # elan2chatit!
-        CMD = f"{os.path.join(CLAN_PATH, 'fixbullets ')} {fl} >/dev/null 2>&1"
+        CMD = f"{os.path.join(CLAN_PATH, 'fixbullets ')} {fl} "
         # run!
         os.system(CMD)
     # delete any error logs
@@ -185,7 +185,7 @@ def chat2elan(directory):
             df.write(cleaned_content)
             
     # chat2elan it!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +c +e.wav {' '.join(files_cleaned)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +c +e.wav {' '.join(files_cleaned)} "
 
     # run!
     os.system(CMD)
@@ -265,7 +265,7 @@ def chat2transcript(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} "
     # run!
     os.system(CMD)
 
@@ -287,7 +287,7 @@ def chat2praat(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.wav +c -t% -t@')} {' '.join(files)} >/dev/null 2>&1"
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.wav +c -t% -t@')} {' '.join(files)} "
     # run!
     os.system(CMD)
 
