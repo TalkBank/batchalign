@@ -400,17 +400,19 @@ def interactive_edit(name, string):
     def savepoint(auto=False):
         # draft text
         text = text_box.get("1.0","end-1c")
+        # basepath
+        basepath = os.path.join("~", ".ba-checkpoints")
         # make the checkpoints directory
-        pathlib.Path(os.path.expanduser("~/.ba-checkpoints/")).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(os.path.expanduser(basepath)).mkdir(parents=True, exist_ok=True)
         # save
-        with open(os.path.expanduser(f"~/.ba-checkpoints/{f'{name}_{uuid.uuid4()}.auto' if auto else 'm'}.cut"), 'w') as df:
+        with open(os.path.expanduser(os.path.join(basepath, f"{f'{name}_{uuid.uuid4()}.auto' if auto else 'm'}.cut")), 'w') as df:
             df.write(text.strip())
     # read the current contents from a file
     def readpoint():
         # make the checkpoints directory
-        pathlib.Path(os.path.expanduser("~/.ba-checkpoints/")).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(os.path.expanduser(basepath)).mkdir(parents=True, exist_ok=True)
         # save
-        with open(os.path.expanduser("~/.ba-checkpoints/m.cut"), 'w+') as df:
+        with open(os.path.expanduser(os.path.join(basepath, "m.cut")), 'w+') as df:
             text = df.read().strip()
         text_box.delete(1.0, "end")
         text_box.insert("end", text)
@@ -550,7 +552,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     fix_transcript(outfile)
 
 
-def retokenize_directory(in_directory, model_path="~/mfa_data/model", interactive=False, key=None):
+def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, key=None):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -564,23 +566,26 @@ def retokenize_directory(in_directory, model_path="~/mfa_data/model", interactiv
         None, used for .cha file generation side effects.
     """
 
+    defaultmodel = lambda x:os.path.join("~","mfa_data",x)
+    defaultfolder = os.path.join("~","mfa_data")
+
     # check if model exists. If not, download it
-    if not os.path.exists(os.path.expanduser("~/mfa_data/model")):
+    if not os.path.exists(os.path.expanduser(defaultmodel("model"))):
         print("Getting segmentation model...")
         # make the path
-        os.makedirs(os.path.expanduser("~/mfa_data/"), exist_ok=True)
+        os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
         # download the tarball
         model_data = request.urlopen(MODEL_PATH)
         # put it down
-        model_zip = os.path.expanduser("~/mfa_data/model.tar.gz")
+        model_zip = os.path.expanduser(defaultmodel("model.tar.gz"))
         with open(model_zip, 'wb') as df:
             df.write(model_data.read())
         # open it
         tar = tarfile.open(model_zip, "r:gz")
-        tar.extractall(os.path.expanduser("~/mfa_data"))
+        tar.extractall(os.path.expanduser(defaultfolder))
         tar.close()
         # and then rename it
-        basepath = os.path.expanduser("~/mfa_data")
+        basepath = os.path.expanduser(defaultfolder)
         os.rename(os.path.join(basepath, MODEL), os.path.join(basepath, "model"))
 
     # find all the JSON files
@@ -601,7 +606,7 @@ def retokenize_directory(in_directory, model_path="~/mfa_data/model", interactiv
         # find key; if non-existant, ask for it.
         if not key:
             # find keyfile
-            with open(os.path.expanduser("~/mfa_data/rev_key"), "a+") as df:
+            with open(os.path.expanduser(defaultmodel("rev_key")), "a+") as df:
                 # seek beginning
                 df.seek(0,0)
                 # get contents

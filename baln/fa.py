@@ -38,6 +38,7 @@ from .utils import cleanup, resolve_clan
 from montreal_forced_aligner.command_line.align import run_align_corpus
 from montreal_forced_aligner.command_line.g2p import run_g2p
 from montreal_forced_aligner.command_line.validate import run_validate_corpus
+from montreal_forced_aligner.models import ModelManager
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -375,10 +376,26 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         none
     """
 
+    defaultmodel = lambda x:os.path.join("~","mfa_data",x)
+    defaultfolder = os.path.join("~","mfa_data")
+    # make the path
+    os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
+
+    # if models are not downloaded (signified by the note)
+    if not os.path.isfile(os.path.expanduser(defaultmodel(".mfamodels"))):
+        # create model manager
+        manager = ModelManager()
+        # download english models
+        manager.download_model("g2p", "english_us_arpa", True)
+        manager.download_model("acoustic", "english_us_arpa", True)
+        manager.download_model("dictionary", "english_us_arpa", True)
+        # create note file
+        with open(os.path.expanduser(defaultmodel(".mfamodels")), "w") as df:
+            df.write("")
+
     # define model
-    g2p_model = os.path.join(os.path.dirname(__file__), "./opt/g2p")
     if not model:
-        acoustic_model = os.path.join(os.path.dirname(__file__), "./opt/acoustic")
+        acoustic_model = "english_us_arpa"
     else:
         acoustic_model = model # TODO
 
@@ -391,7 +408,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         commands = make_config_base()
 
         # here are the input and output paths
-        commands.g2p_model_path = g2p_model
+        commands.g2p_model_path = "english_us_arpa"
         commands.input_path = directory
         commands.output_path = dictionary
 
