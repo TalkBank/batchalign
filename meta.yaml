@@ -30,6 +30,10 @@ requirements:
     - nltk
     - libcxx
 
+build:
+  entry_points:
+    - batchalign = baln.command_line:mainloop
+
 about:
   home: https://github.com/TalkBank/batchalign
   summary: 'an utility to generate and align CHAT files with ASR + Forced Alignment'
