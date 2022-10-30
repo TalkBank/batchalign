@@ -39,6 +39,27 @@ jobs:
         run: conda install -y m2w64-toolchain m2w64-gcc
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
+      - name: Upload Build Artifact (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        uses: actions/upload-artifact@v3
+        with:
+          name: Linux batchalign
+          path: /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2
+      - name: Upload Build Artifact (macOS)
+        if: ${{ matrix.os == 'macos-latest' }} 
+        uses: actions/upload-artifact@v3
+        with:
+          name: macOS batchalign
+          path: /Users/runner/miniconda3/conda-bld/osx-64/*.tar.bz2
+      - name: Upload Build Artifact (Windows)
+        if: ${{ matrix.os == 'windows-latest' }} 
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows batchalign
+          path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
+
+
+
         
 
 
