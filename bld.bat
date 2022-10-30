@@ -7,4 +7,3 @@ cd ..\unix
 mkdir %PREFIX%\bin
 dir
 move bin\* %PREFIX%\bin
-chmod u+x %PREFIX%\bin\*
