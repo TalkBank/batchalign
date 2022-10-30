@@ -1,4 +1,30 @@
+# @@@IMPORTANT IMPORTANT@@@
+# This is the *WINDOWS* makefile
+# Windows MinGW Make doesn't take an argument for what the makefile is
+# So we just use this as the Makefile.
 # CLAN has to be 32bit app. Please use -m32 option when compiling CLAN.
+#
+#
+# Other operating system specific makefiles are named Makefile.$ARCH
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# @@@@@ READ THE NOTE ABOVE @@@@@ #
 
 DD  = ../unix/bin
 OBJ = ../unix/obj

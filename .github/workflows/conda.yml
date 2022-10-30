@@ -9,8 +9,8 @@ jobs:
   conda_build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        #os: [windows-latest]
+        #os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -35,9 +35,9 @@ jobs:
         run: conda update -y conda
       - name: Install mamba and boa (dependency resolver)
         run: conda install -y mamba boa
-      - name: Install cmake and mingw (Win)
+      - name: Install mingw (Win)
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: conda install -y cmake m2w64-toolchain m2w64-gcc
+        run: conda install -y m2w64-toolchain m2w64-gcc
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
         
