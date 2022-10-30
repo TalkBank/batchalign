@@ -4,7 +4,7 @@ pip install .
 cd baln\opt\CLANUtils\src
 make
 cd ..\unix
-mkdir -p %PREFIX%\bin
+mkdir %PREFIX%\bin
 dir
-mv bin\* %PREFIX%\bin
+move bin\* %PREFIX%\bin
 chmod u+x %PREFIX%\bin\*
