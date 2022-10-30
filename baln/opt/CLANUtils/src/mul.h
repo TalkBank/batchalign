@@ -21,13 +21,8 @@
 
 extern FNType openFileName[];
 
-#if defined(UNX)
 	#define CLAN_MAIN_RETURN int
 	extern int  main(int argc, char *argv[]);
-#else
-	#define CLAN_MAIN_RETURN void
-	extern void main(int argc, char *argv[]);
-#endif
 extern void init(char); 	
 extern void usage(void);
 extern void getflag(char *, char *, int *);

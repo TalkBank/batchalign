@@ -10,11 +10,7 @@
 
 #include "common.h"
 #include "c_clan.h"
-#ifdef UNX
-	#include <ctype.h>
-#else
-	#include "my_ctype.h"
-#endif
+#include <ctype.h>
 #include "progs.h"
 
 extern "C"
@@ -32,99 +28,10 @@ additional files necessary:
 */
 /* ************************************************************** */
 
-#if defined(_MAC_CODE)
+#include <unistd.h>
 
-	#include <utime.h>
-  #if (__dest_os == __mac_os)
- #ifndef _COCOA_APP
-	#include <csignal>
- #endif
-  #endif
-
-	#ifdef getc
-		#undef getc
-	#endif
-	#ifdef feof
-		#undef feof
-	#endif
-	#ifdef putc
-		#undef putc
-	#endif
-	#ifdef putchar
-		#undef putchar
-	#endif
-	#define isatty my_isatty
-	#define rewind my_rewind
-	#define feof my_feof
-	#define getc my_getc
-//	#define gets my_gets
-	#define fprintf my_fprintf
-	#define printf my_printf
-	#define fputs my_fputs
-	#define puts my_puts
-	#define putc my_putc
-	#define fputc my_putc
-	#define putchar my_putchar
-	#define main(x,y) _main(x,y)
-
-	extern void ListAvailable(char isAll);
-	extern void globinit(void);
-	extern void myjmp(int jval);
-	#define exit(x) myjmp(x)
-
-	extern const char *clan_name[];
-	extern char isWinMode;
-
-#elif defined(_WIN32)
-
-	#ifdef getc
-		#undef getc
-	#endif
-	#ifdef feof
-		#undef feof
-	#endif
-	#ifdef putc
-		#undef putc
-	#endif
-	#ifdef putchar
-		#undef putchar
-	#endif
-	#define isatty my_isatty
-	#define rewind my_rewind
-	#define feof my_feof
-	#define getc my_getc
-//	#define gets my_gets
-	#define fprintf my_fprintf
-	#define printf my_printf
-	#define fputs my_fputs
-	#define puts my_puts
-	#define putc my_putc
-	#define fputc my_putc
-	#define putchar my_putchar
-	#define main(x,y) _main(x,y)
-
-	extern void ListAvailable(char isAll);
-	extern void globinit(void);
-	extern void myjmp(int jval);
-	#define exit(x) myjmp(x)
-
-	extern const char *clan_name[];
-	extern char isWinMode;
-
-#elif defined(UNX)
-
-	#include <unistd.h>
-
-  #if defined(CLAN_SRV)
-	#ifdef stderr
-	#undef stderr
-	#endif
-	#define stderr stdout
-  #endif
-	extern const char *clan_name[];
-	extern char isWinMode;
-
-#endif 
+extern const char *clan_name[];
+extern char isWinMode;
 
 #ifndef NEW
 	#define NEW(type) ((type *)malloc((size_t) sizeof(type)))
@@ -329,7 +236,6 @@ extern char MBF, C_MBF;
 extern char *rootmorf;
 extern char FilterTier;
 extern char LocalTierSelect;
-extern char CntWUT, CntFUttLen;
 extern char replaceFile;
 extern char linkMain2Mor;
 extern char linkMain2Sin;
@@ -367,7 +273,6 @@ extern int  ExcludeScope(char *wline, int pos, char blankit);
 extern int  getwholeutter(void);
 extern int  checktier(char *);
 extern int  CheckOutTier(char *s);
-extern int  rightrange(char,char *,char *);
 extern int  rightUttLen(const char *sp, char *line, char *tLine, long *cUttLen);
 extern int  gettextspeaker(void);
 extern int  getspeaker(char *, AttTYPE *att, register int index);
@@ -393,14 +298,12 @@ extern float getPauseTimeDuration(char *s);
 extern char isUttDel(char *s);
 extern char isPostCodeOnUtt(char *line, const char *postcode);
 extern char isAge(char *b, int *agef, int *aget);
-extern char isTierContSymbol(char *line, int i, char isForced);
 extern char isMORSearch(void);
 extern char isMorPatMatchedWord(MORWDLST *pats, char *word);
 extern char isMorPat(char *f);
 extern char isMorSearchOption(char *f, char spc, char ch);
 extern char isWordFromMORTier(char *word);
 extern char isWordFromGRATier(char *word);
-extern char isLangSearch(void);
 extern char isGRASearch(void);
 extern char isGraPat(char *f);
 extern char isGRASearchOption(char *f, char spc, char ch);
@@ -419,8 +322,6 @@ extern char ParseXMLData(char *word, char isAddToWord);
 extern char RemPercWildCard;
 extern char getMediaTagInfo(char *line, long *Beg, long *End);
 extern char getOLDMediaTagInfo(char *line, const char *tag, FNType *fname, long *Beg, long *End);
-extern char getLanguageCodeAndName(char *code, char isReplace, char *name);
-extern char ReadLangsFile(char isCED);
 extern char isEqual(const char *pat, const char *st);
 extern char isnEqual(const char *pat, const char *st, int len);
 extern char isEqualIxes(const char *pat, IXXS *ixes, int max);
@@ -430,13 +331,10 @@ extern char bmain(int argc, char *argv[], void (*pr_result)(void));
 
 extern void IsSearchR7(char *w);
 extern void IsSearchCA(char *w);
-extern void initLanguages(void);
 extern void freeUpFeats(MORFEATS *p);
 extern void addIxesToSt(char *item, IXXS *ixes, int max, const char *sym, char isAddFront);
 extern void freeUpIxes(IXXS *ixes, int max);
 extern void cleanupGRAWord(char *word);
-extern void cleanupLanguages(void) ;
-extern void cleanUttline(char *line);
 extern void processSPTier(char *spTier, char *line);
 extern void filterMorTier(char *morUtt, char *morLine, char isReplace, char linkDepTier2OtherTier);
 extern void createMorUttline(char *new_mor_tier, char *spTier, const char *dcode, char *mor_tier, char isFilterSP, char linkTiers);
@@ -478,8 +376,6 @@ extern void aftprintout(char isChangeBullets);
 extern void init_punct(char which);
 extern void displayOoption(void);
 extern void checkOptions(char *st);
-extern void InitLanguagesTable(void);
-extern void addToLanguagesTable(char *line, char *sp);
 extern void clean_s_option(void);
 extern void remove_CRs_Tabs(char *line);
 extern void HandleParans(char *s, int beg, int end);

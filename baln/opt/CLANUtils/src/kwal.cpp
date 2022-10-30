@@ -27,23 +27,10 @@ kwal +o@ +o% +r2 +r4 +r6 +r7 +d3 +d t.cha
 #include "cu.h"
 #include "check.h"
 
-#if !defined(UNX)
-#define _main kwal_main
-#define call kwal_call
-#define getflag kwal_getflag
-#define init kwal_init
-#define usage kwal_usage
-#endif
-
 #define IS_WIN_MODE TRUE
 #include "mul.h"
 
 #define MAXKEYS 35
-
-#if defined(CLAN_SRV)
-extern char SRV_PATH[];
-extern char SRV_NAME[];
-#endif
 
 struct utts_list {
 	unsigned char keys[MAXKEYS];
@@ -175,10 +162,6 @@ void init(char t) {
 					fprintf(stderr,"The +d7 can't be used with multi-word search specified with +s option\n");
 					cutt_exit(0);
 				}
-				if (CntWUT || CntFUttLen) {
-					fprintf(stderr,"The +d7 can't be used with either +x or +z option\n");
-					cutt_exit(0);
-				}
 				if (fDepTierName[0] == EOS && chatmode) {
 					if (isGRASearch()) {
 						strcpy(fDepTierName, "%gra:");
@@ -202,8 +185,6 @@ void init(char t) {
 				if (isGRASearch())
 					maketierchoice("%gra",'+',FALSE);
 			}
-			if (CntWUT)
-				isBlankSpeakerName = FALSE;
 			if (onlydata == 5 && !f_override)
 				stout = FALSE;
 			if (kwal_sort)
@@ -374,34 +355,10 @@ static struct utts_list *AddLinearUtts(struct utts_list *root, long lineno, char
 	if (u->line == NULL)
 		out_of_mem();
 	strcpy(u->line, line);
-#if defined(CLAN_SRV)
-	int  len;
-	FNType *s;
-
-	if (oldfname[0] == PATHDELIMCHR) {
-		len = strlen(SRV_PATH);
-		for (s=oldfname; *s != EOS; s++) {
-			if (uS.mStrnicmp(SRV_PATH, s, len) == 0) {
-				s = s + len;
-				if (*s == PATHDELIMCHR)
-					s++;
-				break;
-			}
-		}
-		if (s == EOS)
-			s = oldfname;
-	} else
-		s = oldfname;
-	u->fname = (FNType *)malloc((strlen(s)+1)*sizeof(FNType));
-	if (u->fname == NULL)
-		out_of_mem();
-	strcpy(u->fname, s);
-#else
 	u->fname = (FNType *)malloc((strlen(oldfname)+1)*sizeof(FNType));
 	if (u->fname == NULL)
 		out_of_mem();
 	strcpy(u->fname, oldfname);
-#endif
 	return(root);
 }
 
@@ -692,41 +649,6 @@ CLAN_MAIN_RETURN main(int argc, char *argv[]) {
 }
 
 static void pr_idfld(const char *pref, char *wd, long lineno) {
-#if defined(CLAN_SRV)
-	int  len;
-	FNType *s;
-
-	if (oldfname[0] == PATHDELIMCHR) {
-		len = strlen(SRV_PATH);
-		for (s=oldfname; *s != EOS; s++) {
-			if (uS.mStrnicmp(SRV_PATH, s, len) == 0) {
-				s = s + len;
-				if (*s == PATHDELIMCHR)
-					s++;
-				break;
-			}
-		}
-		if (s == EOS)
-			s = oldfname;
-	} else
-		s = oldfname;
-	if (isFPrTime) {
-		isFPrTime = FALSE;
-		fprintf(stdout,"<a href=\"http://%s/index.php?url=%s/%s\">From file \"%s\"</a>\n", SRV_NAME, SRV_PATH, s, s);
-	}
-	if (pref[0] == '@')
-		fputs("@Comment:\t----------------------------------------\n", fpout);
-	else
-		fputs("----------------------------------------\n",fpout);
-	if (*s == EOS)
-		fprintf(fpout,"%s File \"%s\": ", pref, "Stdin");
-	else
-		fprintf(fpout,"%s File \"%s\": ", pref, s);
-	fprintf(fpout,"line %ld. ", lineno);
-	if (*wd && (WordMode == 'i' || WordMode == 'I'))
-		fprintf(fpout,"Keyword%s: %s ",((kw) ? "s" : ""),wd);
-	putc('\n',fpout);
-#else
 	if (pref[0] == '@')
 		fputs("@Comment:\t----------------------------------------\n", fpout);
 	else
@@ -739,7 +661,6 @@ static void pr_idfld(const char *pref, char *wd, long lineno) {
 	if (*wd && (WordMode == 'i' || WordMode == 'I'))
 		fprintf(fpout,"Keyword%s: %s ",((kw) ? "s" : ""),wd);
 	putc('\n',fpout);
-#endif
 }
 
 static char excludeutter(char isCheckNomain, char *isKeywordChecked) {
@@ -849,10 +770,6 @@ static char excludeutter(char isCheckNomain, char *isKeywordChecked) {
 	if (kwal_isOnlyOne && otherFound)
 		found = oldFound;
 
-	if (CntWUT == 2) {
-		if (!found && wdptr == NULL && mwdptr == NULL && !isMORSearch() && !isGRASearch() && !isLangSearch())
-			WUCounter--;
-	}
 	return(!found);
 }
 
@@ -1179,23 +1096,7 @@ if (uttline[strlen(uttline)-1] != '\n') putchar('\n');
 				continue;
 			}
 		}
-		if (CntWUT == 1) {
-			outLine = uttline;
-			strcpy(templineC2, utterance->line);
-			if (utterance->speaker[0] != '@' || !CheckOutTier(utterance->speaker)) {
-				tnomap = nomap;
-				nomap = TRUE;
-				if (FilterTier > 0)
-					filterwords(utterance->speaker,templineC2,excludedef);
-				if (FilterTier > 1 && WordMode != 'e' && !CntWUT && !CntFUttLen)
-					filterwords(utterance->speaker,templineC2,exclude);
-				nomap = tnomap;
-			}
-			for (i=0L; templineC2[i]; i++) {
-				if (!isSpace(uttline[i]))
-					uttline[i] = templineC2[i];
-			}
-		} else if (outputOnlyMatched) {
+		if (outputOnlyMatched) {
 			blankoSelectedSpeakers(uttline);
 			outLine = uttline;
 		} else {
@@ -1320,10 +1221,6 @@ if (uttline[strlen(uttline)-1] != '\n') putchar('\n');
 					isShow = (*utterance->speaker== '*' && nomain && isDepTierIncluded && !excludeutter(FALSE, &isKeywordChecked) && !BlanckLine(uttline) && HeadOutTier == NULL && onlydata != 5);
 				if (!isShow)
 					isShow = (*utterance->speaker== '*' && nomain && FullLine(uttline, FALSE) && !excludeutter(FALSE, &isKeywordChecked) && CheckOutTier(utterance->speaker));
-				if (!isShow)
-					isShow = ((CntWUT || CntFUttLen) && !excludeutter(FALSE, &isKeywordChecked) && CheckOutTier(utterance->speaker) && utterance->nextutt == utterance);
-				if (!isShow)
-					isShow = ((CntWUT || CntFUttLen) && WordMode == '\0' && CheckOutTier(utterance->speaker) && utterance->nextutt == utterance);
 				if (!isShow)
 					isShow = (*utterance->speaker== '@' && CheckOutTier(utterance->speaker) /*&& utterance->nextutt == utterance*/);
 				if (isExpandXForAll == TRUE)

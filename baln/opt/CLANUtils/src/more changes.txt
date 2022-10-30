@@ -1,0 +1,62 @@
+CLAN_SRV
+
+$ grep _MAC_CODE *.cpp *.h
+Chat2Elan.cpp:#ifdef _MAC_CODE
+Chat2Praat.cpp:#ifdef _MAC_CODE
+Praat2Chat.cpp:#ifdef _MAC_CODE
+Praat2Chat.cpp:#ifdef _MAC_CODE
+Praat2Chat.cpp:#ifdef _MAC_CODE
+cutt.cpp:#if defined(_MAC_CODE)
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#endif // _MAC_CODE
+cutt.cpp:#if defined(_MAC_CODE) || defined(_DOS)
+cutt.cpp:#endif /* defined(_MAC_CODE) || defined(_DOS)  */
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#ifdef _MAC_CODE
+cutt.cpp:#endif // _MAC_CODE
+cutt.cpp:  #else // #ifdef defined(_MAC_CODE) || defined(UNX)
+cutt.cpp:  #endif // #else defined(_MAC_CODE) || defined(UNX)
+fontconvert.cpp:#ifdef _MAC_CODE
+mul.cpp:#ifdef _MAC_CODE
+mul.cpp:#ifdef _MAC_CODE
+mul.cpp:#ifdef _MAC_CODE
+stringparser.cpp:#if defined(_MAC_CODE)
+c_clan.h:#ifdef _MAC_CODE
+c_clan.h:#endif // _MAC_CODE
+my_unix.h:#ifndef _MAC_CODE
+[ZEE:]~/Downloads/clandos/src/
+
+_MAC_CODE
+
+$ grep CLAN_SRV *.cpp *.h
+cutt.cpp: g++ -O -DUNX -DCLAN_SRV -fwritable-strings freq.c -o freq
+cutt.cpp:#if defined(CLAN_SRV)
+cutt.cpp:char stin_override=FALSE;/* TRUE is +0 option used with CLAN_SRV */
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#if defined(CLAN_SRV)
+cutt.cpp:#if defined(CLAN_SRV)
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#if defined(CLAN_SRV)
+cutt.cpp:#if defined(CLAN_SRV)
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#endif // !defined(CLAN_SRV)
+cutt.cpp:#if defined(CLAN_SRV)
+cutt.cpp:#else // CLAN_SRV
+cutt.cpp:#endif // !CLAN_SRV
+cutt.cpp:#if !defined(CLAN_SRV)
+cutt.cpp:#endif // !defined(CLAN_SRV)
+cutt.cpp:#if defined(CLAN_SRV)
+kwal.cpp:#if defined(CLAN_SRV)
+kwal.cpp:#if defined(CLAN_SRV)
+kwal.cpp:#if defined(CLAN_SRV)
+[ZEE:]~/Downloads/clandos/src/
+$ 

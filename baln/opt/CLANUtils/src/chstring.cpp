@@ -8,14 +8,6 @@
 #include "cu.h"
 #include "check.h"
 
-#if !defined(UNX)
-#define _main chstring_main
-#define call chstring_call
-#define getflag chstring_getflag
-#define init chstring_init
-#define usage chstring_usage
-#endif
-
 #define IS_WIN_MODE FALSE
 #include "mul.h"
 
@@ -211,9 +203,7 @@ void usage() {
 	puts("+lx: do not show the list of changes specified with +s or +c option");
 	puts("+q : clean up tiers. (add tabs after colons and remove blank spaces)");
 	puts("+q1: clean up tiers for CORELEX command");
-#ifdef UNX
 	puts("+LF: specify full path F of the lib folder");
-#endif
 	puts("+sS S: string to change followed by string to change to (\"\\t\"=tab, \"\\n\"=newline)");
 	puts("-w : do string oriented search and replacement");
 //	puts("-w1: do string oriented search and replacement except within \"quoted\" text");
@@ -1018,17 +1008,6 @@ if (uttline[strlen(uttline)-1] != '\n') putchar('\n');
 	}
 	if (!stout)
 		fprintf(stderr,"\n");
-#ifndef UNX
-	if (isFound == 0L && fpout != stdout && !stout && !WD_Not_Eq_OD) {
-		fprintf(stderr,"**- NO changes made in this file\n");
-		if (!replaceFile) {
-			fclose(fpout);
-			fpout = NULL;
-			if (unlink(newfname))
-				fprintf(stderr, "Can't delete output file \"%s\".", newfname);
-		}
-	} else
-#endif
 	if (isFound > 0L)
 		fprintf(stderr,"**+ %ld changes made in this file\n", isFound);
 	else
@@ -1101,7 +1080,6 @@ void getflag(char *f, char *f1, int *i) {
 				}
 //				no_arg_option(f);
 				break;
-#ifdef UNX
 		case 'L':
 			int len;
 			strcpy(lib_dir, f);
@@ -1109,7 +1087,6 @@ void getflag(char *f, char *f1, int *i) {
 			if (len > 0 && lib_dir[len-1] != '/')
 				strcat(lib_dir, "/");
 			break;
-#endif
 		case 'w':
 				if (*f == EOS)
 					stringOriented = 1;

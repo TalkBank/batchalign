@@ -7,20 +7,7 @@
 #define CHAT_MODE 4
 
 #include "cu.h"
-#ifndef UNX
-	#include "ced.h"
-#else
-	#include "c_curses.h"
-#endif
-
-#if !defined(UNX)
-#define _main lowcase_main
-#define call lowcase_call
-#define getflag lowcase_getflag
-#define init lowcase_init
-#define usage lowcase_usage
-#endif
-
+#include "c_curses.h"
 
 #define IS_WIN_MODE FALSE
 #include "mul.h" 
@@ -53,9 +40,7 @@ void usage() {
 	fprintf(stdout, "+d : do NOT change words from \"%s\" file, lower case the rest\n", DICNAME);
 	fprintf(stdout, "+d1: capitalize words from \"%s\" file, do NOT change the rest\n", DICNAME);
 	fprintf(stdout, "+iF: file F with capitalize words (default: %s)\n", DICNAME);
-#ifdef UNX
 	puts("+LF: specify full path F of the lib folder");
-#endif
 	mainusage(TRUE);
 }
 
@@ -603,17 +588,6 @@ void call() {
 	}
 	if (!stout)
 		fprintf(stderr,"\n");
-#ifndef UNX
-	if (isFound == 0L && fpout != stdout && !stout && !WD_Not_Eq_OD) {
-		fprintf(stderr,"**- NO changes made in this file\n");
-		if (!replaceFile) {
-			fclose(fpout);
-			fpout = NULL;
-			if (unlink(newfname))
-				fprintf(stderr, "Can't delete output file \"%s\".", newfname);
-		}
-	} else
-#endif
 	if (isFound > 0L)
 		fprintf(stderr,"**+ %ld changes made in this file\n", isFound);
 	else
@@ -646,7 +620,6 @@ void getflag(char *f, char *f1, int *i) {
 				isCapsSpecified = TRUE;
 				uS.str2FNType(lc_dicname, 0L, getfarg(f,f1,i));
 				break;
-#ifdef UNX
 		case 'L':
 			int len;
 			strcpy(lib_dir, f);
@@ -654,7 +627,6 @@ void getflag(char *f, char *f1, int *i) {
 			if (len > 0 && lib_dir[len-1] != '/')
 				strcat(lib_dir, "/");
 			break;
-#endif
 		default:
 				maingetflag(f-2,f1,i);
 				break;

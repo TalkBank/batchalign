@@ -5,21 +5,8 @@
 
 
 #include "cu.h"
-#ifdef _WIN32 
-	#include "stdafx.h"
-#endif
-#ifndef UNX
-	#include "ced.h"
-#else
-	#include "c_curses.h"
-#endif
-
-#if !defined(UNX)
-#define _main fixbullets_main
-#define call fixbullets_call
-#define getflag fixbullets_getflag
-#define init fixbullets_init
-#define usage fixbullets_usage
+#ifdef _DOS 
+//	#include "stdafx.h"
 #endif
 
 #include "mul.h" 
@@ -27,9 +14,7 @@
 #define IS_WIN_MODE FALSE
 #define CHAT_MODE 3
 
-#if defined(UNX)
 #define SPLIST struct speakers
-#endif
 
 SPLIST {
 	char *sp;

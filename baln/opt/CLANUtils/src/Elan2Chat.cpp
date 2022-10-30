@@ -8,18 +8,6 @@
 
 #include "cu.h"
 #include "cutt-xml.h"
-/* // NO QT
-#ifdef _WIN32
-	#include <TextUtils.h>
-#endif
-*/
-#if !defined(UNX)
-#define _main elan2chat_main
-#define call elan2chat_call
-#define getflag elan2chat_getflag
-#define init elan2chat_init
-#define usage elan2chat_usage
-#endif
 
 #define IS_WIN_MODE FALSE
 #include "mul.h" 

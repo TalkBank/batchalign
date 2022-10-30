@@ -7,17 +7,6 @@
 #ifndef _C_CURSES_
 #define _C_CURSES_
 
-#ifdef _MAC_CODE
-	#define LEFTMARGIN 5
-#endif
-#ifdef _WIN32
-	#define LEFTMARGIN 3
-#endif
-
-#ifdef UNX
-#undef CTRL
-#endif
-#define	CTRL(c)	(c & 037)
 #define SCROLL_BAR_SIZE	15
 #define ActualWinSize(w) ((w == global_df->w1) ? global_df->EdWinSize : w->num_rows)
 
@@ -167,11 +156,6 @@ extern "C"
 
 extern NewFontInfo cedDFnt;
 
-#ifndef UNX
-#ifndef _COCOA_APP
-extern char SetKeywordsColor(COLORTEXTLIST *lRootColorText, int cCol, RGBColor *theColor);
-#endif
-#endif
 extern WINDOW *newwin(int num_rows, int num_cols, int LT_row, int LT_col, int tOff);
 extern COLORTEXTLIST *FindColorKeywordsBounds(COLORTEXTLIST *lRootColorText, AttTYPE *sAtts,unCH *sData,int lnoff,int ecol,COLORTEXTLIST *cl);
 extern COLORTEXTLIST *createColorTextKeywordsList(COLORTEXTLIST *lRootColorText, char *st);

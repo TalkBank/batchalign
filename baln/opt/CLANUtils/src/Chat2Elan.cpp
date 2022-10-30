@@ -5,16 +5,8 @@
 
 
 #include "cu.h"
-#ifdef _WIN32 
-	#include "stdafx.h"
-#endif
-
-#if !defined(UNX)
-#define _main chat2elan_main
-#define call chat2elan_call
-#define getflag chat2elan_getflag
-#define init chat2elan_init
-#define usage chat2elan_usage
+#ifdef _DOS 
+//	#include "stdafx.h"
 #endif
 
 #include "mul.h" 
@@ -656,10 +648,6 @@ void call() {
 				if (errFp == NULL) {
 					fprintf(stderr, "Can't create file \"%s\", perhaps it is opened by another application\n", errfile);
 				}
-#ifdef _MAC_CODE
-				else
-					settyp(errfile, 'TEXT', the_file_creator.out, FALSE);
-#endif
 			}
 			if (errFp != NULL) {
 				fprintf(errFp,"*** File \"%s\": line %ld.\n", oldfname, lineno);

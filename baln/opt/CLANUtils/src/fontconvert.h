@@ -7,14 +7,6 @@
 #ifndef FONTCONVERTDEF
 #define FONTCONVERTDEF
 
-#if defined(_WIN32)
-	#include "stdafx.h"
-	#include "Clan2.h"
-
-	#define JP_FONTS(st) (uS.partwcmp(st,"Jpn "))
-	#define CH_FONTS(st) (uS.partwcmp(st,"Chn ")||!strcmp(st, "DFPHKStdKai"))
-#endif
-
 #include "wstring.h"
 
 extern "C"
@@ -65,18 +57,8 @@ extern "C"
 #define WINCAFont	42
 
 typedef struct {
-#ifdef _MAC_CODE
-	short FName;
-	short FSize;
-#endif
-#ifdef _WIN32
-	char FName[LF_FACESIZE];
+	char FName[256];
 	long FSize;
-#endif
-#ifdef UNX
-	char FName[LF_FACESIZE];
-	long FSize;
-#endif
 	short FHeight;
 	int   CharSet;
 	short Encod;
@@ -111,9 +93,5 @@ extern short my_CharacterByteType(const char *org, short pos, NewFontInfo *finfo
 extern short getFontType(const char *fontName, char isPC);
 extern short GetEncode(const char *, const char *, short , int , char );
 
-#if defined(_WIN32)
-	extern short my_wCharacterByteType(short *org, short pos, short encod);
-	extern void SetLogfont(LOGFONT *lfFont, FONTINFO *fontInfo, NewFontInfo *finfo);
-#endif
 }
 #endif /* FONTCONVERTDEF */

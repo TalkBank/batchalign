@@ -7,13 +7,6 @@
 #ifndef COMMONDEF
 #define COMMONDEF
 
-#if defined(_MAC_CODE)
-#ifdef _COCOA_APP
-	#include <MacTypes.h>
-#endif
-	#include "0global.h"
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -22,28 +15,14 @@
 extern "C"
 {
 
-#ifdef UNX
 	#define TRUE 1
 	#define FALSE 0
-	#define LF_FACESIZE 256
 	#define DefChatMode 2
 	#define TabSize 8
 	#define FSSpec void
 	#define SetFontName(x, y) strcpy(x, y);
 	#define isFontEqual(x, y) (strcmp(x, y) == 0)
 	typedef unsigned char Str255[256];
-
-//	#define INSIDE_STRINGPARSER
-#endif
-
-#ifndef NEW
-#if defined(_MAC_CODE)
-	#define NEW(type) ((type *)malloc((size_t) sizeof(type)))
-#endif
-#if defined(_WIN32)
-	#define NEW new
-#endif
-#endif /* NEW */
 
 #ifndef EOS			/* End Of String marker			 */
 	#define EOS 0 // '\0'
@@ -68,9 +47,6 @@ struct redirects {
 
 #include "fontconvert.h"
 #include "stringparser.h"
-#if defined(_MAC_CODE) || defined(_WIN32)
-#include "my_unix.h"
-#endif
 
 #define UTF8	1
 #define UTF16	2
@@ -121,59 +97,13 @@ struct redirects {
 #define CSCRIPT		2
 #define KSCRIPT		3
 
-#if defined(_WIN32)
-	#define SetNewVol(name) my_chdir(name)
-	#define WD_Not_Eq_OD (pathcmp(wd_dir, od_dir))
-	#define isRefEQZero(ref) ((ref[0] != '\\') && ((ref[1] != ':') || (ref[2] != '\\')))
-	#define CR_CHR '\n'
-	#define PATHDELIMCHR '\\'		/* Path delimiter on IBM 		 */
-	#define PATHDELIMSTR "\\"		/* Path delimiter on IBM 		 */
-	#define chdir  my_chdir
-	#define access my_access
-	#define unlink my_unlink
-	#define rename my_rename
-	#define getcwd my_getcwd
-	#define fopen my_fopen
-
-	extern short winEncod;
-
-	extern short my_FontToScript(char *fName, int charSet);
-#elif defined(_MAC_CODE)
-	#define SetNewVol(name) my_chdir(name)
-	#define WD_Not_Eq_OD (pathcmp(wd_dir, od_dir))
-	#define isRefEQZero(ref) (ref[0] != '/')
-	#define CR_CHR '\r'
-	#define PATHDELIMCHR '/'		/* Path delimiter on Mac 		 */
-	#define PATHDELIMSTR "/"		/* Path delimiter on Mac 		 */
-	#define chdir  my_chdir
-	#define access my_access
-	#define unlink my_unlink
-	#define rename my_rename
-	#define getcwd my_getcwd
-	#define fopen my_fopen
-
-	extern creator_type the_file_creator;
-
-	extern int OpenAnyFile(const FNType *fn, int id, char winShift);
-	extern short my_FontToScript(short fName, int charSet);
-	extern void gettyp(const FNType *fn, long *type, long *creator);
-	extern void settyp(const FNType *fn, long type, long creator, char isForce);
-	extern void my_CFStringGetBytes(CFStringRef theString, char *buf, CFIndex maxBufLen);
-#ifdef _COCOA_APP
-	extern void do_warning_sheet(const char *str, NSWindow *window); // 2019-12-05
+#define SetNewVol(name) chdir(name)
+#define isRefEQZero(ref) (ref[0] != '/')
+#ifndef DEPDIR
+	#define DEPDIR  "../lib/"
 #endif
-	extern CFStringRef my_CFStringCreateWithBytes(const char *bytes);
-	extern OSStatus my_FSPathMakeRef(const char *path, FSRef *ref);
-	extern OSStatus my_FSRefMakePath(const FSRef *ref, char *path, UInt32 maxPathSize);
-#else
-	#define SetNewVol(name) chdir(name)
-	#define isRefEQZero(ref) (ref[0] != '/')
-	#ifndef DEPDIR
-		#define DEPDIR  "../lib/"
-	#endif
-	#define PATHDELIMCHR '/'		/* Path delimiter on Unix 		 */
-	#define PATHDELIMSTR "/"		/* Path delimiter on Unix 		 */
-#endif
+#define PATHDELIMCHR '/'		/* Path delimiter on Unix 		 */
+#define PATHDELIMSTR "/"		/* Path delimiter on Unix 		 */
 
 extern char spareTier1[];
 extern char spareTier2[];

@@ -19,19 +19,7 @@ extern "C"
 	#define to_unCH_lower towlower
 	#define to_unCH_upper towupper
 
-#ifdef UNX
-
 	#define unCH	wchar_t
-
-#elif defined(_MAC_CODE)
-
-	#define unCH	unichar
-
-#elif defined(_WIN32)
-
-	#define unCH	wchar_t
-
-#endif
 
 	extern unCH *cl_T(const char *);
 
@@ -46,23 +34,7 @@ extern "C"
 
 	#define FNSize _MAX_PATH+FILENAME_MAX
 
-#ifdef UNX
-
 	#define FNType char
-
-#elif defined(_MAC_CODE)
-
-	#define FNType char
-//	#define FNType UInt8
-//	#define isFNTYPEUNIQUE
-
-#elif defined(_WIN32)
-
-//	#define FNType wchar_t
-	#define FNType char
-
-#endif
-
 
 }
 

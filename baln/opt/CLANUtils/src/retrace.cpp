@@ -38,14 +38,6 @@
 /* This eventually needs to be changed to "$SOURCEDIR/cu.h" */
 #include "cu.h"
 
-#if !defined(UNX)
-#define _main retrace_main
-#define call retrace_call
-#define getflag retrace_getflag
-#define init retrace_init
-#define usage retrace_usage
-#endif
-
 #define IS_WIN_MODE FALSE
 #include "mul.h" 
 

@@ -6,21 +6,6 @@
 #define CHAT_MODE 0
 
 #include "cu.h"
-#ifndef UNX
-	#include "ced.h"
-#endif
-/* // NO QT
-#ifdef _WIN32
-	#include <TextUtils.h>
-#endif
-*/
-#if !defined(UNX)
-#define _main praat2chat_main
-#define call praat2chat_call
-#define getflag praat2chat_getflag
-#define init praat2chat_init
-#define usage praat2chat_usage
-#endif
 
 #define IS_WIN_MODE FALSE
 #include "mul.h" 
@@ -100,9 +85,6 @@ static P2C_CHATTIERS *RootTiers;
 static ALL_BGs *RootBGs;
 static ATTRIBS *attsRoot;
 static unsigned short lEncode;
-#ifdef _MAC_CODE
-static TextEncodingVariant lVariant;
-#endif
 
 void usage() {
 	printf("convert Praat TextGrid files to CHAT files\n");
@@ -131,9 +113,6 @@ void init(char s) {
 		isMultiBullets = FALSE;
 		strcpy(lang, "UNK");
 		lEncode = 0;
-#ifdef _MAC_CODE
-		lVariant = kTextEncodingDefaultVariant;
-#endif
 		if (defheadtier) {
 			if (defheadtier->nexttier != NULL)
 				free(defheadtier->nexttier);
@@ -390,149 +369,8 @@ void getflag(char *f, char *f1, int *i) {
 			}
 			break;
 		case 'o':
-#ifdef _MAC_CODE
-			if (!uS.mStricmp(f, "utf8"))
-				lEncode = 0xFFFF;
-			else if (!uS.mStricmp(f, "macl"))
-				lEncode = kTextEncodingMacRoman;
-			else if (!uS.mStricmp(f, "macce"))
-				lEncode = kTextEncodingMacCentralEurRoman;
-			else if (!uS.mStricmp(f, "pcl"))
-				lEncode = kTextEncodingWindowsLatin1;
-			else if (!uS.mStricmp(f, "pcce"))
-				lEncode = kTextEncodingWindowsLatin2;
-			
-			else if (!uS.mStricmp(f, "macar"))
-				lEncode = kTextEncodingMacArabic;
-			else if (!uS.mStricmp(f, "pcar"))
-				lEncode = kTextEncodingDOSArabic;
-			
-			else if (!uS.mStricmp(f, "maccs"))
-				lEncode = kTextEncodingMacChineseSimp;
-			else if (!uS.mStricmp(f, "macct"))
-				lEncode = kTextEncodingMacChineseTrad;
-			else if (!uS.mStricmp(f, "pccs"))
-				lEncode = kTextEncodingDOSChineseSimplif;
-			else if (!uS.mStricmp(f, "pcct"))
-				lEncode = kTextEncodingDOSChineseTrad;
-			
-			else if (!uS.mStricmp(f, "maccr"))
-				lEncode = kTextEncodingMacCroatian;
-			
-			else if (!uS.mStricmp(f, "maccy"))
-				lEncode = kTextEncodingMacCyrillic;
-			else if (!uS.mStricmp(f, "pccy"))
-				lEncode = kTextEncodingWindowsCyrillic;
-			
-			else if (!uS.mStricmp(f, "machb"))
-				lEncode = kTextEncodingMacHebrew;
-			else if (!uS.mStricmp(f, "pchb"))
-				lEncode = kTextEncodingDOSHebrew;
-			
-			else if (!uS.mStricmp(f, "macjp"))
-				lEncode = kTextEncodingMacJapanese;
-			else if (!uS.mStricmp(f, "pcjp"))
-				lEncode = kTextEncodingDOSJapanese;
-			else if (!uS.mStricmp(f, "macj1"))
-				lEncode = kTextEncodingJIS_X0201_76;
-			else if (!uS.mStricmp(f, "macj2"))
-				lEncode = kTextEncodingJIS_X0208_83;
-			else if (!uS.mStricmp(f, "macj3"))
-				lEncode = kTextEncodingJIS_X0208_90;
-			else if (!uS.mStricmp(f, "macj4"))
-				lEncode = kTextEncodingJIS_X0212_90;
-			else if (!uS.mStricmp(f, "macj5"))
-				lEncode = kTextEncodingJIS_C6226_78;
-			else if (!uS.mStricmp(f, "macj6"))
-				lEncode = kTextEncodingShiftJIS_X0213_00;
-			else if (!uS.mStricmp(f, "macj7"))
-				lEncode = kTextEncodingISO_2022_JP;
-			else if (!uS.mStricmp(f, "macj8"))
-				lEncode = kTextEncodingISO_2022_JP_1;
-			else if (!uS.mStricmp(f, "macj9"))
-				lEncode = kTextEncodingISO_2022_JP_2;
-			else if (!uS.mStricmp(f, "macj10"))
-				lEncode = kTextEncodingISO_2022_JP_3;
-			else if (!uS.mStricmp(f, "macj11"))
-				lEncode = kTextEncodingEUC_JP;
-			else if (!uS.mStricmp(f, "macj12"))
-				lEncode = kTextEncodingShiftJIS;
-			
-			else if (!uS.mStricmp(f, "krn"))
-				lEncode = kTextEncodingMacKorean;
-			else if (!uS.mStricmp(f, "pckr"))
-				lEncode = kTextEncodingDOSKorean;
-			else if (!uS.mStricmp(f, "pckrj"))
-				lEncode = kTextEncodingWindowsKoreanJohab;
-			
-			else if (!uS.mStricmp(f, "macth"))
-				lEncode = kTextEncodingMacThai;
-			else if (!uS.mStricmp(f, "pcth"))
-				lEncode = kTextEncodingDOSThai;
-			
-			else if (!uS.mStricmp(f, "pcturk"))
-				lEncode = kTextEncodingWindowsLatin5; // kTextEncodingDOSTurkish
-			
-			else if (!uS.mStricmp(f, "macvt"))
-				lEncode = kTextEncodingMacVietnamese;
-			else if (!uS.mStricmp(f, "pcvt"))
-				lEncode = kTextEncodingWindowsVietnamese;
-			else {
-				if (*f != '?')
-					fprintf(stderr,"Unrecognized font option \"%s\". Please use:\n", f);
-				puts("     utf8  - Unicode UTF-8");
-				displayOoption();
-				cutt_exit(0);
-			}
-#endif
-#ifdef _WIN32 
-			if (!uS.mStricmp(f, "utf8"))
-				lEncode = 0xFFFF;
-			else if (!uS.mStricmp(f, "pcl"))
-				lEncode = 1252;
-			else if (!uS.mStricmp(f, "pcce"))
-				lEncode = 1250;
-			
-			else if (!uS.mStricmp(f, "pcar"))
-				lEncode = 1256;
-			
-			else if (!uS.mStricmp(f, "pccs"))
-				lEncode = 936;
-			else if (!uS.mStricmp(f, "pcct"))
-				lEncode = 950;
-			
-			else if (!uS.mStricmp(f, "pccy"))
-				lEncode = 1251;
-			
-			else if (!uS.mStricmp(f, "pchb"))
-				lEncode = 1255;
-			
-			else if (!uS.mStricmp(f, "pcjp"))
-				lEncode = 932;
-			
-			else if (!uS.mStricmp(f, "krn"))
-				lEncode = 949;
-			else if (!uS.mStricmp(f, "pckr"))
-				lEncode = 949;
-			else if (!uS.mStricmp(f, "pckrj"))
-				lEncode = 1361;
-			
-			else if (!uS.mStricmp(f, "pcth"))
-				lEncode = 874;
-			
-			else if (!uS.mStricmp(f, "pcturk"))
-				lEncode = 1254; // 857
-			
-			else if (!uS.mStricmp(f, "pcvt"))
-				lEncode = 1258;
-			else {
-				if (*f != '?')
-					fprintf(stderr,"Unrecognized font option \"%s\". Please use:\n", f);
-				puts("     utf8  - Unicode UTF-8");
-				displayOoption();
-				cutt_exit(0);
-			}
-#endif
+			fprintf(stderr,"Illegal option: %s\n", f-2);
+			cutt_exit(0);
 			break;
 		default:
 			maingetflag(f-2,f1,i);
@@ -1642,68 +1480,6 @@ static void extractSpeakerName(char *text, char *sp) {
 	}
 }
 
-#ifdef _WIN32 
-#include <mbstring.h>
-static void AsciiToUnicodeToUTF8(char *src, char *line) {
-	long UTF8Len;
-	long total = strlen(src);
-	long wchars=MultiByteToWideChar(lEncode,0,(const char*)src,total,NULL,0);
-	
-	MultiByteToWideChar(lEncode,0,(const char*)src,total,templineW,wchars);
-	UnicodeToUTF8(templineW, wchars, (unsigned char *)line, (unsigned long *)&UTF8Len, UTTLINELEN);
-	if (UTF8Len == 0 && wchars > 0) {
-		putc('\n', stderr);
-		fprintf(stderr,"*** File \"%s\": line %ld.\n", oldfname, lineno);
-		fprintf(stderr, "Fatal error: Unable to convert the following line:\n");
-		fprintf(stderr, "%s\n", src);
-	}
-}
-#endif
-
-#ifdef _MAC_CODE
-static void AsciiToUnicodeToUTF8(char *src, char *line) {
-	OSStatus err;
-	long len;
-	TECObjectRef ec;
-	TextEncoding utf8Encoding;
-	TextEncoding MacRomanEncoding;
-	unsigned long ail, aol;
-	
-	MacRomanEncoding = CreateTextEncoding( (long)lEncode, lVariant, kTextEncodingDefaultFormat );
-	utf8Encoding = CreateTextEncoding( kTextEncodingUnicodeDefault, kTextEncodingDefaultVariant, kUnicodeUTF8Format );
-	if ((err=TECCreateConverter(&ec, MacRomanEncoding, utf8Encoding)) != noErr) {
-		fprintf(stderr,"*** File \"%s\": line %ld.\n", oldfname, lineno);
-		fprintf(stderr, "Fatal error1: Unable to create a converter.\n");
-		fprintf(stderr, "%s\n", src);
-		freeXML_Elements();
-		freePraat2ChatMem();
-		cutt_exit(0);
-	}
-	
-	len = strlen(src);
-	if ((err=TECConvertText(ec, (ConstTextPtr)src, len, &ail, (TextPtr)line, UTTLINELEN, &aol)) != noErr) {
-		putc('\n', fpout);
-		fprintf(stderr,"*** File \"%s\": line %ld.\n", oldfname, lineno);
-		fprintf(stderr, "Fatal error2: Unable to convert the following line:\n");
-		fprintf(stderr, "%s\n",src);
-		freeXML_Elements();
-		freePraat2ChatMem();
-		cutt_exit(0);
-	}
-	err = TECDisposeConverter(ec);
-	if (ail < len) {
-		putc('\n', fpout);
-		fprintf(stderr,"*** File \"%s\": line %ld.\n", oldfname, lineno);
-		fprintf(stderr, "Fatal error3: Converted only %ld out of %ld chars:\n", ail, len);
-		fprintf(stderr, "%s\n", src);
-		freeXML_Elements();
-		freePraat2ChatMem();
-		cutt_exit(0);
-	}
-	line[aol] = EOS;
-}
-#endif
-
 static void extractTierText(char *text, char *line, char isUnicode) {
 	int  i;
 
@@ -1714,79 +1490,14 @@ static void extractTierText(char *text, char *line, char isUnicode) {
 	i++;
 	text[i] = EOS;
 
-#ifdef UNX
 	strcpy(line, text);
-#else
-	if (isUnicode == UTF8_code || isUnicode == UTF16_code)
-		strcpy(line, text);
-	else
-		AsciiToUnicodeToUTF8(text, line);
-#endif
 }
 
 static char getNextLine(char *st, int size, FILE *fp, char isUnicode, char *isNLFound) {
 	long  i;
 
 	if (isUnicode == UTF16_code) {
-#ifdef UNX
 		return(fgets_cr(st, UTTLINELEN, fpin) != NULL);
-#else
-		i = 0;
-		while (!feof(fpin)) {
-  #ifdef _WIN32 
-			if (lEncode == UPC) {
-				templineC1[i] = getc(fpin);
-				if (feof(fpin))
-					break;
-				templineC1[i+1] = getc(fpin);
-			} else {
-				templineC1[i+1] = getc(fpin);
-				if (feof(fpin))
-					break;
-				templineC1[i] = getc(fpin);
-			}
-  #else
-			if (lEncode == UPC) {
-				templineC1[i+1] = getc(fpin);
-				if (feof(fpin))
-					break;
-				templineC1[i] = getc(fpin);
-			} else {
-				templineC1[i] = getc(fpin);
-				if (feof(fpin))
-					break;
-				templineC1[i+1] = getc(fpin);
-			}
-  #endif
-			if ((templineC1[i] == '\r' && templineC1[i+1] == EOS) ||
-				(templineC1[i] == '\n' && templineC1[i+1] == EOS) ||
-				(templineC1[i] == EOS  && templineC1[i+1] == '\r') ||
-				(templineC1[i] == EOS  && templineC1[i+1] == '\n')) {
-
-				if (templineC1[i] == '\r' && templineC1[i+1] == EOS)
-					templineC1[i] = '\n';
-				if (templineC1[i] == EOS  && templineC1[i+1] == '\r')
-					templineC1[i+1] = '\n';
-
-				if (*isNLFound) {
-					*isNLFound = FALSE;
-					i -= 2;
-				} else {
-					*isNLFound = TRUE;
-					i += 2;
-					break;
-				}
-			} else
-				*isNLFound = FALSE;
-			i += 2;
-			if (i > UTTLINELEN-10)
-				break;
-		}
-		templineC1[i] = EOS;
-		templineC1[i+1] = EOS;
-		UnicodeToUTF8((unCH *)templineC1, i/2, (unsigned char *)st, NULL, UTTLINELEN);
-		return(!feof(fpin));
-#endif
 	} else {
 		return(fgets_cr(st, UTTLINELEN, fpin) != NULL);
 	}
@@ -1837,10 +1548,8 @@ static char Praat_getNextTier(char *whichMode, UTTER *utterance, long *beg, long
 static char UTFTestPass(void) {
 	int  i;
 
-#if defined(UNX)
 	if (stin)
 		return(TRUE);
-#endif
 	while (fgets_cr(templineC, UTTLINELEN, fpin)) {
 		for (i=0; isSpace(templineC[i]); i++) ;
 		if (uS.partwcmp(templineC+i, "name = \"[MAIN-CHAT-HEADERS]\"")) {
@@ -2054,9 +1763,7 @@ void call() {		/* this function is self-explanatory */
 				lEncode = UMAC;
 			isUnicode = UTF16_code;
 		}
-#if defined(UNX)
 		if (!stin)
-#endif
 			rewind(fpin);
 	}
 	if (isUnicode == UTF16_code) {
@@ -2069,14 +1776,6 @@ void call() {		/* this function is self-explanatory */
 		if (!feof(fpin))
 			getc(fpin);
 
-#ifdef _MAC_CODE
-		if (byteOrder == CFByteOrderLittleEndian) {
-			if (lEncode == UPC)
-				lEncode = UMAC;
-			else 
-				lEncode = UPC;
-		}
-#endif
 	} else if (lEncode == 0xFFFF)
 		isUnicode = UTF8_code;
 	else if (UTFTestPass())

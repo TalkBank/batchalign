@@ -9,14 +9,6 @@
 #include "cu.h"
 #include "check.h"
 
-#if !defined(UNX)
-#define _main flo_main
-#define call flo_call
-#define getflag flo_getflag
-#define init flo_init
-#define usage flo_usage
-#endif
-
 #define IS_WIN_MODE FALSE
 #include "mul.h"
 
