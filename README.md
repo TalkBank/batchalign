@@ -6,7 +6,7 @@
 
 # Setup and Usage 
 
-`batchalign` is available through the `TalkBank` channel in Miniconda. To get started, begin by installing Miniconda following the instructions for your platform: [macOS](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html), [Linux](https://conda.io/projects/conda/en/latest/user-guide/install/linux.html). Windows users, please refer to [this guide](https://ubuntu.com/tutorials/install-ubuntu-on-wsl2-on-windows-10#1-overview) to install WSL, and proceed with the Linux instructions. For the rest of the guide, we will be assuming the usage of your default command prompt with a working Miniconda installation.
+`batchalign` is available through the `TalkBank` channel in Miniconda. To get started, begin by installing Miniconda following the instructions for your platform: [macOS](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html), [Linux](https://conda.io/projects/conda/en/latest/user-guide/install/linux.html), [Windows](https://conda.io/projects/conda/en/latest/user-guide/install/windows.html). Windows users only before `Windows 10 1809` (September, 2018) will also need to [install curl via these instructions](https://developer.zendesk.com/documentation/developer-tools/getting-started/installing-and-using-curl/#installing-curl). For the rest of the guide, we will be assuming the usage of your default command prompt with a working Miniconda installation.
 
 ## First Time Setup
 If you have never used `batchalign` before, execute the following
