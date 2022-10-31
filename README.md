@@ -12,7 +12,7 @@
 If you have never used `batchalign` before, execute the following
 
 ```bash
-conda env create -f https://raw.githubusercontent.com/TalkBank/batchalign/master/environment.yml
+curl -O "https://raw.githubusercontent.com/TalkBank/batchalign/master/environment.yml" & conda env create -f environment.yml
 ```
 
 This will create an environment named `batchalign` following our preselected settings, which we will enable in your terminal each time.
