@@ -125,8 +125,8 @@ static void readdict(void) {
 			word[index] = EOS;
 			if (first) {
 				nextone = makenewsym(word);
-				if (DispChanges)
-					fprintf(stderr,"From string \"%s\" to string ",nextone->word);
+				// if (DispChanges)
+				// 	fprintf(stderr,"From string \"%s\" to string ",nextone->word);
 				first = FALSE;
 			} else if (nextone != NULL) {
 				nextone->toword = (char *)malloc(strlen(word)+1);

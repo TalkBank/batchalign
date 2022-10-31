@@ -30,7 +30,7 @@ def cli():
         MODE = 0
 
     # manloop to take input
-    parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA/P2FA")
+    parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA")
     parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
     parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
     parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')

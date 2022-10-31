@@ -51,6 +51,8 @@ def fix_transcript(f):
     # run rep join replacement
     CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{REP_JOIN_FILE} {f} "
     os.system(CMD)
+    # delete old file
+    os.remove(f)
     # rename new file
     os.rename(f.replace("cha", "chstr.cex"), f)
 
@@ -62,6 +64,8 @@ def fix_transcript(f):
     # run 
     CMD = f"retrace +c {f} "
     os.system(CMD)
+    # delete old file
+    os.remove(f)
     # rename new file
     os.rename(f.replace("cha", "retrace.cex"), f)
 
@@ -80,6 +84,8 @@ def fix_transcript(f):
     os.system(CMD)
     # change it back to the output
     os.chdir(workdir)
+    # delete old file
+    os.remove(f)
     # rename new file
     os.rename(f.replace("cha", "lowcas.cex"), f)
 
@@ -102,6 +108,11 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     tgfiles = globase(in_directory, "*.textGrid")
     # Rename each one
     for f in tgfiles:
+        # we don't actually want to repath UPPERCASE TextGrid
+        # unfortunately windows is not smart enough to ignore
+        # it in the glob.
+        if "TextGrid" in f:
+            continue
         os.rename(f, repath_file(f, DATA_DIR)) 
 
     # move all the lab files 
