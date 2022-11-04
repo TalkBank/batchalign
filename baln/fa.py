@@ -554,6 +554,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         # we generate a cleaned and uncleaned match list
         for word in splits:
             cleaned_word = word.lower().replace("[/]","") # because of weird spacing inclusions
+            cleaned_word = re.sub(r"&\*\w+: ?\w+", '', cleaned_word)
             cleaned_word = cleaned_word.replace("(","").replace(")","")
             cleaned_word = cleaned_word.replace("[","").replace("]","")
             cleaned_word = cleaned_word.replace("<","").replace(">","")

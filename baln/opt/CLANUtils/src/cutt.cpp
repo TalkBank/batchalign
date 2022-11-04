@@ -6492,58 +6492,63 @@ FILE *OpenGenLib(const FNType *fname, const char *mode, char checkWD, char check
 	struct stat sb;
 	DIR *cDIR;
 
-	// if (!isRefEQZero(fname)) {
+    #ifdef _DOS
         fp = fopen(fname, mode);
         strcpy(mFileName, fname);
-	// } else if (checkWD) {
-	// 	strcpy(mFileName, wd_dir);
-	// 	addFilename2Path(mFileName, fname);
-	// 	fp = fopen(mFileName, mode);
-	// } else {
-	// 	mFileName[0] = EOS;
-	// 	fp = NULL;
-	// }	
-	// if (!checkWD) {
-	// 	strcpy(mFileName, wd_dir);
-	// 	addFilename2Path(mFileName, fname);
-	// 	fp = fopen(mFileName, mode);
-	// }
-	// if (fp == NULL) {
-	// 	getcwd(mDirPathName, FNSize);
-	// 	strcpy(mFileName,lib_dir);
-	// 	t = strlen(mFileName);
-	// 	addFilename2Path(mFileName, fname);
-	// 	fp = fopen(mFileName, mode);
-	// 	if (checkSubDir && fp == NULL) {
-	// 		SetNewVol(lib_dir);
-	// 		if ((cDIR=opendir(".")) != NULL) {
-	// 			while ((dp=readdir(cDIR)) != NULL) {
-	// 				if (stat(dp->d_name, &sb) == 0) {
-	// 					if (!S_ISDIR(sb.st_mode)) {
-	// 						continue;
-	// 					}
-	// 				} else
-	// 					continue;
-	// 				if (dp->d_name[0] == '.')
-	// 					continue;
-	// 				mFileName[t] = EOS;
-	// 				addFilename2Path(mFileName, dp->d_name);
-	// 				addFilename2Path(mFileName, fname);
-	// 				fp = fopen(mFileName, mode);
-	// 				if (fp != NULL) {
-	// 					break;
-	// 				}
-	// 			}
-	// 			closedir(cDIR);
-	// 		}
-	// 	}
-	// 	SetNewVol(mDirPathName);
-	// 	if (fp == NULL) {
-	// 		strcpy(mFileName,lib_dir);
-	// 		addFilename2Path(mFileName, fname);
-	// 	}
-	// }
-	return(fp);
+    #else
+        if (!isRefEQZero(fname)) {
+            fp = fopen(fname, mode);
+            strcpy(mFileName, fname);
+        } else if (checkWD) {
+            strcpy(mFileName, wd_dir);
+            addFilename2Path(mFileName, fname);
+            fp = fopen(mFileName, mode);
+        } else {
+            mFileName[0] = EOS;
+            fp = NULL;
+        }	
+        if (!checkWD) {
+            strcpy(mFileName, wd_dir);
+            addFilename2Path(mFileName, fname);
+            fp = fopen(mFileName, mode);
+        }
+        if (fp == NULL) {
+            getcwd(mDirPathName, FNSize);
+            strcpy(mFileName,lib_dir);
+            t = strlen(mFileName);
+            addFilename2Path(mFileName, fname);
+            fp = fopen(mFileName, mode);
+            if (checkSubDir && fp == NULL) {
+                SetNewVol(lib_dir);
+                if ((cDIR=opendir(".")) != NULL) {
+                    while ((dp=readdir(cDIR)) != NULL) {
+                        if (stat(dp->d_name, &sb) == 0) {
+                            if (!S_ISDIR(sb.st_mode)) {
+                                continue;
+                            }
+                        } else
+                            continue;
+                        if (dp->d_name[0] == '.')
+                            continue;
+                        mFileName[t] = EOS;
+                        addFilename2Path(mFileName, dp->d_name);
+                        addFilename2Path(mFileName, fname);
+                        fp = fopen(mFileName, mode);
+                        if (fp != NULL) {
+                            break;
+                        }
+                    }
+                    closedir(cDIR);
+                }
+            }
+            SetNewVol(mDirPathName);
+            if (fp == NULL) {
+                strcpy(mFileName,lib_dir);
+                addFilename2Path(mFileName, fname);
+            }
+        }
+    #endif
+    return(fp);
 }
 
 FILE *OpenMorLib(const FNType *fname, const char *mode, char checkWD, char checkSubDir, FNType *mFileName) {
