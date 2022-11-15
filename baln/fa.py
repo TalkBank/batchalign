@@ -607,7 +607,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
 
         # append boundaries
         sentence_ends.append(i)
-
+    
     # conform boundaries
     sentence_boundaries = list([list(range(i,j)) for i,j in zip(sentence_starts, sentence_ends)])
 
@@ -616,8 +616,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
     # match it to the easiest canidate in the unaligned words
     # to create the final transcript
 
-    aligned_indicies = []
     backplated_alignments = []
+    aligned_indicies = []
     
     # for each word
     for aligned_word, (start, end) in aligned_words:
@@ -626,20 +626,21 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         # available canidate
 
         # for each word
-        for word, cleaned_word, i in unaligned_words:
-            # if the i is seen, we skip
-            if i in aligned_indicies:
-                continue
-
+        for elem in unaligned_words:
+            # unpack element
+            word, cleaned_word, i = elem
             # if we can align, do align
             if cleaned_word == aligned_word: 
                 backplated_alignments.append((i, word, (start, end)))
+                # having used it, we remove it
+                unaligned_words.remove(elem)
+                # and push to tracker
                 aligned_indicies.append(i)
                 break
 
         # if cleaned_word != aligned_word: 
         #     print(f"'{cleaned_word}', '{aligned_word}'")
-    
+   
     # find missing elements
     to_reinsert = list(filter(lambda x:x[2] not in aligned_indicies, unaligned_words))
     to_reinsert = [(i[2], i[0], None) for i in to_reinsert]
