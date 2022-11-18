@@ -198,10 +198,13 @@ def process_json(data, name=None, interactive=False):
             # for each group, append
             for i in range(0, len(final_words), 300):
                 # concatenate with speaker tier and append to final collection
-                utterance_col.append((utterance["speaker"], final_words[i:i+300]))
+                # not unless the crop is empty
+                if len(final_words[i:i+300]) > 0:
+                    utterance_col.append((utterance["speaker"], final_words[i:i+300]))
         else:
             # concatenate with speaker tier and append to final collection
-            utterance_col.append((utterance["speaker"], final_words))
+            if len(final_words) > 0:
+                utterance_col.append((utterance["speaker"], final_words))
 
     # get a list of speaker IDs
     speaker_ids = {i[0] for i in utterance_col} # this is a set!
@@ -224,7 +227,10 @@ def process_json(data, name=None, interactive=False):
         # print out samples from speaker
         for indx, speaker in enumerate(speaker_ids):
             print(f"\033[1mSpeaker {speaker}\033[0m")
-            print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+            try: 
+                print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+            except:
+                breakpoint()
             print()
 
         # prompt for info
