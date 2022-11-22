@@ -16,19 +16,6 @@ import argparse
 
 # wrap everything in a mainloop for multiprocessing guard
 def cli():
-    # get mode from command line flag
-    mode = os.environ.get("BA_MODE")
-    MODE = -1
-
-    REV_API = os.environ.get("REV_API")
-
-    if mode == "+Analyze Raw Audio+":
-        MODE = 1
-    elif mode == "+Analyze Rev.AI Output+":
-        MODE = 1
-    elif mode == "+Realign CHAT+":
-        MODE = 0
-
     # manloop to take input
     parser = argparse.ArgumentParser(description="CHAT transcript batch-processing utilities")
 
@@ -48,7 +35,7 @@ def cli():
     alignment = subparsers.add_parser("align")
     alignment.add_argument("--beam", type=int, default=30, help='beam width for MFA, ignored for P2FA')
     alignment.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
-    alignment.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
+    alignment.add_argument("--fromscratch", default=False, action='store_true', help='input .cha has utterance-level alignments')
 
     # cleanup commands
     clean = subparsers.add_parser("clean")
@@ -61,7 +48,7 @@ def cli():
     parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
     parser.add_argument("--alignmentmodel", type=str, help='path to custom kaldi alignmetn model')
 
-    return MODE, REV_API, parser.parse_args()
+    return parser.parse_args()
 
 def mainloop():
     # import our utilities
@@ -76,7 +63,7 @@ def mainloop():
     freeze_support()
 
     # parse!
-    MODE, REV_API, args = cli()
+    args = cli()
 
     # if we are cleaning
     if args.command =="clean":
@@ -104,7 +91,7 @@ def mainloop():
         print("All done! Check the input folder.")
     elif args.command == "align": 
         print("Stage 1: Performing Forced Alignment")
-        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.alignmentmodel)
+        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(not args.fromscratch), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.alignmentmodel)
         print("All done! Check the input folder.")
     else:
         raise Exception("Unknown command passed to parser!")
