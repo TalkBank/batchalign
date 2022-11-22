@@ -156,7 +156,7 @@ def eafud(root, annotations, morphodata):
     Attributes:
         root (ET.ElementTree): element tree
         annotations (tuple(time, TIER, id)): tier information extracted from input
-        morphodata (dict): raw, processed Stanza output dictionary from ud
+        morphodata (list): raw, processed Stanza output dictionary from ud
 
     Returns:
         None
@@ -168,7 +168,96 @@ def eafud(root, annotations, morphodata):
     # get the tiers
     tiers = root[2:]
 
-    # breakpoint()
+    # create a lookup dict of xwor tier outputs
+    morpho_flattened = list(zip([i[-1] for i in annotations], morphodata))
+    morpho_dict = dict(morpho_flattened)
+
+    # Create the annotation ID index
+    id_indx = 0
+
+    ## TODO THIS PART OF THE FUCTION + THE PART ABOVE  ##
+    ## CAN BE REFACTORED TO BE COLLAPSED INTO A SINGLE ##
+    ## TIER GENERATING FUNCTION ##
+
+    # replace content with the bulleted version
+    # For each tier 
+    for tier in tiers:
+        # get the name of the tier
+        tier_id = tier.attrib.get("TIER_ID","")
+
+        # create new xword tier
+        mor_tier = ET.SubElement(root, "TIER")
+        mor_tier.set("TIER_ID", f"mor@{tier_id}")
+        mor_tier.set("PARTICIPANT", tier_id)
+        mor_tier.set("LINGUISTIC_TYPE_REF", "dependency")
+        mor_tier.set("DEFAULT_LOCALE", "us")
+        mor_tier.set("PARENT_REF", tier_id)
+
+        # create new xword tier
+        gra_tier = ET.SubElement(root, "TIER")
+        gra_tier.set("TIER_ID", f"gra@{tier_id}")
+        gra_tier.set("PARTICIPANT", tier_id)
+        gra_tier.set("LINGUISTIC_TYPE_REF", "dependency")
+        gra_tier.set("DEFAULT_LOCALE", "us")
+        gra_tier.set("PARENT_REF", tier_id)
+
+        # we delete all previous xwor/wor tiers
+        if "mor" in tier_id or "gra" in tier_id:
+            root.remove(tier)
+            continue
+
+        # we ignore anything that's a "@S*" tier
+        # because those are metadata
+        if "@" in tier_id:
+            continue
+
+        # For each annotation
+        for annotation in tier:
+            # get annotation
+            annotation = annotation[0]
+            # get ID
+            annot_id = annotation.attrib.get("ANNOTATION_ID", "0")
+
+            # ~~~MOR~~~
+            # create two element
+            mor_annot = ET.SubElement(mor_tier, 'ANNOTATION')
+            mor_annot_cont = ET.SubElement(mor_annot, 'REF_ANNOTATION')
+
+            # adding annotation metadata
+            mor_annot_cont.set("ANNOTATION_ID", f"mor{id_indx}")
+            mor_annot_cont.set("ANNOTATION_REF", annot_id)
+
+            # and add content
+            mor_word_cont = ET.SubElement(mor_annot_cont, "ANNOTATION_VALUE")
+
+            # with the bulleted content
+            try: 
+                mor_word_cont.text = morpho_dict.get(annot_id)[0]
+            # TODO sometimes lines don't exist??
+            except TypeError:
+                continue
+
+            # ~~~GRA~~~
+            # create two element
+            gra_annot = ET.SubElement(gra_tier, 'ANNOTATION')
+            gra_annot_cont = ET.SubElement(gra_annot, 'REF_ANNOTATION')
+
+            # adding annotation metadata
+            gra_annot_cont.set("ANNOTATION_ID", f"gra{id_indx}")
+            gra_annot_cont.set("ANNOTATION_REF", annot_id)
+
+            # and add content
+            gra_word_cont = ET.SubElement(gra_annot_cont, "ANNOTATION_VALUE")
+
+            # with the bulleted content
+            try: 
+                gra_word_cont.text = morpho_dict.get(annot_id)[1]
+            # TODO sometimes lines don't exist??
+            except TypeError:
+                continue
+
+            # update index
+            id_indx += 1
  
 
 def inject_eaf(file_path, output_path, alignments=None, morphodata=None):
@@ -224,8 +313,8 @@ def inject_eaf(file_path, output_path, alignments=None, morphodata=None):
     # if we are injecting the EAF with alignments
     if alignments:
         eafalign(root, annotations, alignments)
-    # if morphodata:
-    eafud(root, annotations, morphodata)
+    if morphodata:
+        eafud(root, annotations, morphodata)
 
     # Indent the tree
     indent(root)

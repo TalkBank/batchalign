@@ -715,9 +715,6 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         # MFA TextGrids are long form
         aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long")
 
-        # Perform disfluency calculation TODO
-        # disfluency_calculation(aligned_result["raw"], [random.choice(["A","B"]) for i in range (len(aligned_result["raw"]))])
-
         # Calculate the path to the old and new eaf
         old_eaf_path = os.path.join(in_directory,
                                     pathlib.Path(elan).name)

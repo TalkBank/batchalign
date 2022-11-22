@@ -37,6 +37,10 @@ def cli():
     alignment.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
     alignment.add_argument("--fromscratch", default=False, action='store_true', help='input .cha has utterance-level alignments')
 
+    # morphosynctatical analysis
+    morphotag = subparsers.add_parser("morphotag")
+    morphotag.add_argument("--lang", type=str, default='en', help='language being analyzed, defaulting en')
+
     # cleanup commands
     clean = subparsers.add_parser("clean")
 
@@ -56,6 +60,8 @@ def mainloop():
     from .retokenize import retokenize_directory
     # directory forced alignment tools 
     from .fa import do_align
+    # directory morphosyntactic analysis tools
+    from .ud import morphanalyze
     # utilities
     from .utils import cleanup, globase
 
@@ -88,10 +94,15 @@ def mainloop():
 
             # cleanup
             cleanup(args.in_dir, args.out_dir, args.data_dir)
-        print("All done! Check the input folder.")
+        print("All done! Check the output folder.")
+    elif args.command == "morphotag":
+        # morphotag
+        print("Stage 1: Performing Morphosyntactic Analysis")
+        morphanalyze(args.in_dir, args.out_dir, args.data_dir, language=args.lang, clean=(not args.skipclean))
+        print("All done! Check the output folder.")
     elif args.command == "align": 
         print("Stage 1: Performing Forced Alignment")
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(not args.fromscratch), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.alignmentmodel)
-        print("All done! Check the input folder.")
+        print("All done! Check the output folder.")
     else:
         raise Exception("Unknown command passed to parser!")
