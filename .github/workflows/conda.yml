@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - master
+    tags:
+      - dev/*
+      - alpha/*
+      - beta/*
+      - stable/*
 
 jobs:
   conda_build:

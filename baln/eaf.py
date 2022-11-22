@@ -231,11 +231,7 @@ def eafud(root, annotations, morphodata):
             mor_word_cont = ET.SubElement(mor_annot_cont, "ANNOTATION_VALUE")
 
             # with the bulleted content
-            try: 
-                mor_word_cont.text = morpho_dict.get(annot_id)[0]
-            # TODO sometimes lines don't exist??
-            except TypeError:
-                continue
+            mor_word_cont.text = morpho_dict.get(annot_id)[0]
 
             # ~~~GRA~~~
             # create two element
@@ -250,11 +246,7 @@ def eafud(root, annotations, morphodata):
             gra_word_cont = ET.SubElement(gra_annot_cont, "ANNOTATION_VALUE")
 
             # with the bulleted content
-            try: 
-                gra_word_cont.text = morpho_dict.get(annot_id)[1]
-            # TODO sometimes lines don't exist??
-            except TypeError:
-                continue
+            gra_word_cont.text = morpho_dict.get(annot_id)[1]
 
             # update index
             id_indx += 1
