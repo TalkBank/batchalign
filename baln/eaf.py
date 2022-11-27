@@ -10,6 +10,9 @@ import glob
 # import cleanup
 from .utils import resolve_clan
 
+# import pathlib
+import pathlib
+
 CLAN_PATH=resolve_clan()
 
 # Oneliner of directory-based glob and replace

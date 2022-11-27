@@ -4,6 +4,7 @@
 */
 
 
+#include <common.h>
 #define CHAT_MODE 2
 
 #include "cu.h"
@@ -27,7 +28,7 @@ extern struct tier *defheadtier;
 extern char GExt[];
 
 static char isFirstTime;
-static char isMorFlo, isRFlo, isMFAFlo, isSpeakerSpecified, isAntConc;
+static char isMorFlo, isRFlo, isMFAFlo, isSpeakerSpecified, isAntConc, isUDFlo;
 static char leave_AT;
 static char substitute_flag;	/* Flo line will be output in */
 								/* addition to original main line */
@@ -39,6 +40,7 @@ void usage() {
 	puts("+cm: filter main tier as \"mor\" does.");
 	puts("+cr: filter main tier and remove speaker codes and utterance delimiters.");
 	puts("+ca: create output for MFA aligner");
+	puts("+cu: create output for UD injection");
 	puts("+d:  replaces the main tier with the simplified %flo tier in the output");
 	puts("+d1: create FAVE formatted file");
 	puts("+d2: create AntConc formatted .txt file with BOM");
@@ -74,12 +76,14 @@ void init(char first) {
 				addword('\0','\0',"+</>");  // list R6 in mmaininit funtion in cutt.c
 				addword('\0','\0',"+&*");
 			}
-			addword('\0','\0',"+xxx");
-			addword('\0','\0',"+yyy");
-			addword('\0','\0',"+www");
-			addword('\0','\0',"+xxx@s*");
-			addword('\0','\0',"+yyy@s*");
-			addword('\0','\0',"+www@s*");
+            if (isUDFlo == FALSE) {
+                addword('\0','\0',"+xxx");
+                addword('\0','\0',"+yyy");
+                addword('\0','\0',"+www");
+                addword('\0','\0',"+xxx@s*");
+                addword('\0','\0',"+yyy@s*");
+                addword('\0','\0',"+www@s*");
+            }
 			addword('\0','\0',"+-*");
 			addword('\0','\0',"+#*");
 			addword('\0','\0',"+(*.*)");
@@ -583,12 +587,17 @@ CLAN_MAIN_RETURN main(int argc, char *argv[]) {
     UttlineEqUtterance = FALSE;
 	isAntConc = FALSE;
 	isMFAFlo = FALSE;
+    isUDFlo = FALSE;
 	for (i=0; i < argc; i++) {
 		if (argv[i][0] == '-' || argv[i][0] == '+') {
 			if (argv[i][1] == 'd' && argv[i][2] == '2')
 				isAntConc = TRUE;
 			else if (argv[i][1] == 'c' && argv[i][2] == 'a')
 				isMFAFlo = TRUE;
+			else if (argv[i][1] == 'c' && argv[i][2] == 'u') {
+				isUDFlo = TRUE;
+                isMFAFlo = TRUE;
+            }
 		}
 	}
     bmain(argc,argv,NULL);
