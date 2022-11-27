@@ -9,7 +9,7 @@
 
 #include <time.h>
 
-static char VERSION[] = "V BATCHALIGN_CLAN 00:00";
+static char VERSION[] = "BATCHALIGN_CLAN";
 
 
 #define WD_Not_Eq_OD (pathcmp(wd_dir, od_dir))
@@ -322,63 +322,10 @@ static void VersionNumber(char isshortfrmt, FILE *fp) {
 	char pbuf[20];
 	extern char VERSION[];
 
-	s = VERSION;
-	while (!isdigit(*s) && *s)
-		s++;
-	if (!*s)
-		return;
-
-	pnum = atoi(s);
-	if (s[1] == '-') {
-		pbuf[0] = ' ';
-		pbuf[1] = *s;
-	} else {
-		pbuf[0] = *s;
-		pbuf[1] = *(s+1);
-	}
-	while (isdigit(*s))
-		s++;
-	if (!*s)
-		return;
-	while (!isdigit(*s) && !isalpha(*s) && *s)
-		s++;
-	if (!*s)
-		return;
-	if (isdigit(*s)) {
-		t = atoi(s);
-		if (t-1 > 11)
-			return;
-		strcpy(pbuf+3, MonthNames[t-1]);
-		pnum = pnum + (t * 100L);
-		while (isdigit(*s))
-			s++;
-	} else {
-		pbuf[3] = *s;
-		pbuf[4] = *(s+1);
-		pbuf[5] = *(s+2);
-		while (isalpha(*s))
-			s++;
-		pnum = pnum + (12 * 100L);
-	}
-
-	if (!*s) return;
-	while (!isdigit(*s) && *s) s++;
-	if (!*s) return;
-	pnum = pnum + ((long)atoi(s) * 10000L);
-	pbuf[7] = *s; pbuf[8] = *(s+1);
-	pbuf[2] = '-'; pbuf[6] = '-';
-	if (isdigit(s[2])) {
-		pbuf[9] = *(s+2); pbuf[10] = *(s+3);
-		pbuf[11] = EOS;
-	} else
-		pbuf[9] = EOS;
-	if (pbuf[0] == ' ')
-		strcpy(pbuf, pbuf+1);
-
 	if (isshortfrmt) {
-		fprintf(fp, " (%s)", pbuf);
+		fprintf(fp, " (%s)", VERSION);
 	} else {
-		fprintf(fp, "CLAN (batchalign) version: %s; ", pbuf);
+		fprintf(fp, "CLAN (batchalign) version: %s; ", VERSION);
 #if defined(_DOS)
 		fprintf(fp, "Windows DOS MinGW-w64 gcc\n");
 #else
