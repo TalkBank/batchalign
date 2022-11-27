@@ -29,6 +29,7 @@ requirements:
     - tokenizers
     - nltk
     - libcxx
+    - stanza
 
 build:
   entry_points:

@@ -48,33 +48,25 @@ def indent(elem, level=0):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
-def eafalign(root, annotations, alignments):
-    """inject MFA alignments into EAF (%wor tier)
+def eafaddsubtier(root, content, tier_name, tier_shortname):
+    """Add a SubElement tier
 
     Attributes:
-        root (ET.ElementTree): element tree
-        annotations (tuple(time, TIER, id)): tier information extracted from input
-        alignments (dict): raw, processed MFA output dictionary from fa.transcript*()
-
-    Returns:
-        None
-
-    Side effects:
-        Modify root
+        root (ET.ElementTree): element tree to add to
+        content (dict): {"a1": "this is the content under annotation a1", ...}
+        tier_name (str): wor
+        tier_shortname (str): xw
     """
 
     # get the tiers
     tiers = root[2:]
 
-    # create a lookup dict of xwor tier outputs
-    terms_flattened = list(zip([i[-1] for i in annotations], alignments["terms"]))
-    terms_dict = dict(terms_flattened)
-
-    # set alignment back to what the rest of the function would expect
-    alignments = alignments["alignments"]
-
     # Create the xword annotation ID index
     id_indx = 0
+
+    # lower
+    tier_name = tier_name.lower()
+    tier_shortname = tier_shortname.lower()
 
     # replace content with the bulleted version
     # For each tier 
@@ -82,16 +74,16 @@ def eafalign(root, annotations, alignments):
         # get the name of the tier
         tier_id = tier.attrib.get("TIER_ID","")
 
-        # create new xword tier
-        xwor_tier = ET.SubElement(root, "TIER")
-        xwor_tier.set("TIER_ID", f"wor@{tier_id}")
-        xwor_tier.set("PARTICIPANT", tier_id)
-        xwor_tier.set("LINGUISTIC_TYPE_REF", "dependency")
-        xwor_tier.set("DEFAULT_LOCALE", "us")
-        xwor_tier.set("PARENT_REF", tier_id)
+        # create new contentd tier
+        content_tier = ET.SubElement(root, "TIER")
+        content_tier.set("TIER_ID", f"{tier_name}@{tier_id}")
+        content_tier.set("PARTICIPANT", tier_id)
+        content_tier.set("LINGUISTIC_TYPE_REF", "dependency")
+        content_tier.set("DEFAULT_LOCALE", "us")
+        content_tier.set("PARENT_REF", tier_id)
 
-        # we delete all previous xwor/wor tiers
-        if "wor" in tier_id or "xwor" in tier_id:
+        # we delete all previous content/wor tiers
+        if tier_name in tier_id:
             root.remove(tier)
             continue
 
@@ -109,21 +101,46 @@ def eafalign(root, annotations, alignments):
 
             # append annotation line
             # create two element
-            xwor_annot = ET.SubElement(xwor_tier, 'ANNOTATION')
-            xwor_annot_cont = ET.SubElement(xwor_annot, 'REF_ANNOTATION')
+            content_annot = ET.SubElement(content_tier, 'ANNOTATION')
+            content_annot_cont = ET.SubElement(content_annot, 'REF_ANNOTATION')
 
             # adding annotation metadata
-            xwor_annot_cont.set("ANNOTATION_ID", f"xw{id_indx}")
-            xwor_annot_cont.set("ANNOTATION_REF", annot_id)
+            content_annot_cont.set("ANNOTATION_ID", f"{tier_shortname}{id_indx}")
+            content_annot_cont.set("ANNOTATION_REF", annot_id)
 
             # and add content
-            xwor_word_cont = ET.SubElement(xwor_annot_cont, "ANNOTATION_VALUE")
+            content_word_cont = ET.SubElement(content_annot_cont, "ANNOTATION_VALUE")
 
             # with the bulleted content
-            xwor_word_cont.text = terms_dict.get(annot_id)
+            content_word_cont.text = content.get(annot_id)
 
             # update index
             id_indx += 1
+
+def eafalign(root, annotations, alignments):
+    """inject MFA alignments into EAF (%wor tier)
+
+    Attributes:
+        root (ET.ElementTree): element tree
+        annotations (tuple(time, TIER, id)): tier information extracted from input
+        alignments (dict): raw, processed MFA output dictionary from fa.transcript*()
+
+    Returns:
+        None
+
+    Side effects:
+        Modify root
+    """
+
+    # create a lookup dict of xwor tier outputs
+    terms_flattened = list(zip([i[-1] for i in annotations], alignments["terms"]))
+    terms_dict = dict(terms_flattened)
+
+    # inject the xwor result as a subtier to the root
+    eafaddsubtier(root, terms_dict, "wor", "xw")
+
+    # set alignment back to what the rest of the function would expect
+    alignments = alignments["alignments"]
 
     # Remove the old time slot IDs
     root[1].clear()
@@ -168,94 +185,21 @@ def eafud(root, annotations, morphodata):
         Modify root
     """
 
-    # get the tiers
-    tiers = root[2:]
+    # slice of gra and mor tiers
+    mor, gra = zip(*morphodata)
 
     # create a lookup dict of xwor tier outputs
-    morpho_flattened = list(zip([i[-1] for i in annotations], morphodata))
+    morpho_flattened = list(zip([i[-1] for i in annotations], mor))
     morpho_dict = dict(morpho_flattened)
 
-    # Create the annotation ID index
-    id_indx = 0
+    grapho_flattened = list(zip([i[-1] for i in annotations], gra))
+    grapho_dict = dict(grapho_flattened)
 
-    ## TODO THIS PART OF THE FUCTION + THE PART ABOVE  ##
-    ## CAN BE REFACTORED TO BE COLLAPSED INTO A SINGLE ##
-    ## TIER GENERATING FUNCTION ##
+    # add the result into the elementtree
+    eafaddsubtier(root, morpho_dict, "mor", "mr")
+    eafaddsubtier(root, grapho_dict, "gra", "gr")
 
-    # replace content with the bulleted version
-    # For each tier 
-    for tier in tiers:
-        # get the name of the tier
-        tier_id = tier.attrib.get("TIER_ID","")
-
-        # create new xword tier
-        mor_tier = ET.SubElement(root, "TIER")
-        mor_tier.set("TIER_ID", f"mor@{tier_id}")
-        mor_tier.set("PARTICIPANT", tier_id)
-        mor_tier.set("LINGUISTIC_TYPE_REF", "dependency")
-        mor_tier.set("DEFAULT_LOCALE", "us")
-        mor_tier.set("PARENT_REF", tier_id)
-
-        # create new xword tier
-        gra_tier = ET.SubElement(root, "TIER")
-        gra_tier.set("TIER_ID", f"gra@{tier_id}")
-        gra_tier.set("PARTICIPANT", tier_id)
-        gra_tier.set("LINGUISTIC_TYPE_REF", "dependency")
-        gra_tier.set("DEFAULT_LOCALE", "us")
-        gra_tier.set("PARENT_REF", tier_id)
-
-        # we delete all previous xwor/wor tiers
-        if "mor" in tier_id or "gra" in tier_id:
-            root.remove(tier)
-            continue
-
-        # we ignore anything that's a "@S*" tier
-        # because those are metadata
-        if "@" in tier_id:
-            continue
-
-        # For each annotation
-        for annotation in tier:
-            # get annotation
-            annotation = annotation[0]
-            # get ID
-            annot_id = annotation.attrib.get("ANNOTATION_ID", "0")
-
-            # ~~~MOR~~~
-            # create two element
-            mor_annot = ET.SubElement(mor_tier, 'ANNOTATION')
-            mor_annot_cont = ET.SubElement(mor_annot, 'REF_ANNOTATION')
-
-            # adding annotation metadata
-            mor_annot_cont.set("ANNOTATION_ID", f"mor{id_indx}")
-            mor_annot_cont.set("ANNOTATION_REF", annot_id)
-
-            # and add content
-            mor_word_cont = ET.SubElement(mor_annot_cont, "ANNOTATION_VALUE")
-
-            # with the bulleted content
-            mor_word_cont.text = morpho_dict.get(annot_id)[0]
-
-            # ~~~GRA~~~
-            # create two element
-            gra_annot = ET.SubElement(gra_tier, 'ANNOTATION')
-            gra_annot_cont = ET.SubElement(gra_annot, 'REF_ANNOTATION')
-
-            # adding annotation metadata
-            gra_annot_cont.set("ANNOTATION_ID", f"gra{id_indx}")
-            gra_annot_cont.set("ANNOTATION_REF", annot_id)
-
-            # and add content
-            gra_word_cont = ET.SubElement(gra_annot_cont, "ANNOTATION_VALUE")
-
-            # with the bulleted content
-            gra_word_cont.text = morpho_dict.get(annot_id)[1]
-
-            # update index
-            id_indx += 1
- 
-
-def inject_eaf(file_path, output_path, alignments=None, morphodata=None):
+def eafinject(file_path, output_path, alignments=None, morphodata=None):
     """get an unaligned eaf file to be aligned
 
     Attributes:

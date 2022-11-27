@@ -9,7 +9,7 @@
 
 #include <time.h>
 
-static char VERSION[] = "V 04-Oct-2022 11:00";
+static char VERSION[] = "V BATCHALIGN_CLAN 00:00";
 
 
 #define WD_Not_Eq_OD (pathcmp(wd_dir, od_dir))
@@ -378,7 +378,7 @@ static void VersionNumber(char isshortfrmt, FILE *fp) {
 	if (isshortfrmt) {
 		fprintf(fp, " (%s)", pbuf);
 	} else {
-		fprintf(fp, "CLAN version: %s; ", pbuf);
+		fprintf(fp, "CLAN (batchalign) version: %s; ", pbuf);
 #if defined(_DOS)
 		fprintf(fp, "Windows DOS MinGW-w64 gcc\n");
 #else

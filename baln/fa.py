@@ -28,7 +28,7 @@ import argparse
 # defaultdict
 from collections import defaultdict
 
-from baln.eaf import inject_eaf
+from baln.eaf import eafinject
 
 # silence OMP
 os.environ["KMP_WARNINGS"] = "FALSE" 
@@ -721,7 +721,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         new_eaf_path = os.path.join(out_directory,
                                     pathlib.Path(elan).name)
         # Dump the aligned result into the new eaf
-        inject_eaf(old_eaf_path, new_eaf_path, aligned_result)
+        eafinject(old_eaf_path, new_eaf_path, aligned_result)
     # convert the aligned eafs back into chat
     elan2chat(out_directory)
 

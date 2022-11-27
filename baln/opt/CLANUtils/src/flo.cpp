@@ -34,7 +34,7 @@ static char substitute_flag;	/* Flo line will be output in */
 								/* addition to original main line */
 
 void usage() {
-	puts("FLO produces a %flo line");
+	puts("FLO produces a %flo line for BA");
 	printf("Usage: flo [a cm cr d %s] filename(s)\n", mainflgs());
 	puts("+a : do not remove @.. suffixes from words (default: change \"word@s\" to \"word\").");
 	puts("+cm: filter main tier as \"mor\" does.");
