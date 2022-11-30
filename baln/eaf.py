@@ -99,6 +99,12 @@ def eafaddsubtier(root, content, tier_name, tier_shortname):
             # get ID
             annot_id = annotation.attrib.get("ANNOTATION_ID", "0")
 
+            # get desired content
+            body = content.get(annot_id)
+            # if we don't have any content for the line, then ignore the line
+            if not body:
+                continue
+
             # append annotation line
             # create two element
             content_annot = ET.SubElement(content_tier, 'ANNOTATION')
@@ -112,7 +118,7 @@ def eafaddsubtier(root, content, tier_name, tier_shortname):
             content_word_cont = ET.SubElement(content_annot_cont, "ANNOTATION_VALUE")
 
             # with the bulleted content
-            content_word_cont.text = content.get(annot_id)
+            content_word_cont.text = body
 
             # update index
             id_indx += 1
@@ -188,11 +194,27 @@ def eafud(root, annotations, morphodata):
     # slice of gra and mor tiers
     mor, gra = zip(*morphodata)
 
+    # get indicies of morphology data that is just xxx or yyy
+    # mor should not output them
+    lines_to_filter = []
+    for indx, i in enumerate(mor):
+        # this is becasue our morphology tagger outptus
+        # just the end punctuation if nothing parsed is
+        # there
+        if i == ".":
+            lines_to_filter.append(indx)
+    # we do this here instead of below because we want to make
+    # sure that the zipped annotations are correct (i.e. we have
+    # bijective matching of mor lines to annotations in EAF)
+
     # create a lookup dict of xwor tier outputs
     morpho_flattened = list(zip([i[-1] for i in annotations], mor))
+    # remove the lines to filter
+    [morpho_flattened.pop(i) for i in lines_to_filter]
     morpho_dict = dict(morpho_flattened)
 
     grapho_flattened = list(zip([i[-1] for i in annotations], gra))
+    [grapho_flattened.pop(i) for i in lines_to_filter]
     grapho_dict = dict(grapho_flattened)
 
     # add the result into the elementtree

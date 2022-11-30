@@ -132,7 +132,7 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
                           download_method=DownloadMethod.REUSE_RESOURCES)
 
     # create label and elan files
-    chat2transcript(in_directory)
+    chat2transcript(in_directory, True)
     chat2elan(in_directory)
 
     # process each file
@@ -152,6 +152,9 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
             # replace out the \n\t with just a space
             data = df.read()
             labels = data.replace('\n\t',' ').strip().split('\n')
+            # we now want to remove the tier name tag, because we don't
+            # care about it
+            labels = [label.split("\t")[1] for label in labels]
 
         # perform analysis
         sentences = []

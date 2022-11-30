@@ -325,7 +325,7 @@ static void VersionNumber(char isshortfrmt, FILE *fp) {
 	if (isshortfrmt) {
 		fprintf(fp, " (%s)", VERSION);
 	} else {
-		fprintf(fp, "CLAN (batchalign) version: %s; ", VERSION);
+		fprintf(fp, "CLAN version: %s; ", VERSION);
 #if defined(_DOS)
 		fprintf(fp, "Windows DOS MinGW-w64 gcc\n");
 #else

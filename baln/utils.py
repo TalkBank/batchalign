@@ -217,11 +217,12 @@ def fixbullets(directory):
         os.rename(f, f.replace(".fxblts.cex", ".cha"))
 
 # chat2transcript a whole path
-def chat2transcript(directory):
+def chat2transcript(directory, mor=False):
     """Generate transcripts for a whole directory
 
     Arguments:
         directory (string): string directory filled with chat files
+        mor (bool): generate mor-like output
 
     Returns:
         none
@@ -231,13 +232,18 @@ def chat2transcript(directory):
     files = globase(directory, "*.cha")
 
     # use flo to convert chat files to text
-    CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} "
+    if mor:
+        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cm +t*')} {' '.join(files)} "
+    else:
+        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} "
+
     # run!
     os.system(CMD)
 
     # and rename the files to lab files, which are essentially the same thing
     for f in globase(directory, "*.flo.cex"):
         os.rename(f, f.replace(".flo.cex", ".lab"))
+
 
 # chat2praat, then clean up tiers, for a whole path
 def chat2praat(directory):
