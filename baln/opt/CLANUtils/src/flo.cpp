@@ -152,15 +152,20 @@ void getflag(char *f, char *f1, int *i) {
 				isMorFlo = TRUE;
 			else if (*f == 'r' || *f == 'R')
 				isRFlo = TRUE;
-			else if (*f == 'a' || *f == 'A') {
-				isMFAFlo = TRUE;
-				addword('s','i',"+&+*");
-				addword('s','i',"+&-*");
-			} else {
-				fprintf(stderr,"Invalid argument for option (choose: 'm' or 'r'): %s\n", f-2);
-				cutt_exit(0);
-			}
-    		break;
+            else if (*f == 'a' || *f == 'A') {
+                isMFAFlo = TRUE;
+                addword('s','i',"+&+*");
+                addword('s','i',"+&-*");
+            } else if (*f == 'a' || *f == 'U') {
+                isMFAFlo = TRUE;
+                isUDFlo = TRUE;
+                addword('s','i',"+&+*");
+                addword('s','i',"+&-*");
+            } else {
+                fprintf(stderr,"Invalid argument for option (choose: 'm', 'r', or 'u'): %s\n", f-2);
+                cutt_exit(0);
+            }
+            break;
 		case 'd':
 			if (*f == '2') {
 			} else if (*f == '1')
