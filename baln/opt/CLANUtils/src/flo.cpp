@@ -156,7 +156,7 @@ void getflag(char *f, char *f1, int *i) {
                 isMFAFlo = TRUE;
                 addword('s','i',"+&+*");
                 addword('s','i',"+&-*");
-            } else if (*f == 'a' || *f == 'U') {
+            } else if (*f == 'u' || *f == 'U') {
                 isMFAFlo = TRUE;
                 isUDFlo = TRUE;
                 addword('s','i',"+&+*");
