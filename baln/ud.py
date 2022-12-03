@@ -29,7 +29,13 @@ parse_feats = lambda word: {i.split("=")[0]: i.split("=")[1] for i in word.feats
 def handler(word):
     """The generic handler"""
 
-    return f"{word.upos.lower()}|{word.lemma}"
+    # if the lemma is ", return the word
+    # not sure what errors are coming along?
+    target = word.lemma
+    if target == '"':
+        target = word.text
+
+    return f"{word.upos.lower()}|{target}"
 
 # POS specific handler
 def handler__AUX(word):
@@ -99,7 +105,7 @@ def parse_sentence(sentence, delimiter="."):
     gra_str = (" ".join(gra)).strip()
 
     # add the endning delimiter
-    mor_str = mor_str[:-1]+delimiter
+    mor_str = mor_str[:-1]+' '+delimiter
 
     return (mor_str, gra_str)
 
@@ -152,6 +158,8 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
             # replace out the \n\t with just a space
             data = df.read()
             labels = data.replace('\n\t',' ').strip().split('\n')
+            # we remove all the subtiers; like %par: etc.
+            labels = filter(lambda x:x[0] != '%', labels)
             # we now want to remove the tier name tag, because we don't
             # care about it
             labels = [label.split("\t")[1] for label in labels]
@@ -159,7 +167,18 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
         # perform analysis
         sentences = []
         for line in tqdm(labels):
-            sentences.append(parse_sentence(nlp(line).sentences[0], line[-1]))
+            # every legal utterance will have an ending delimiter
+            # so we split it out
+            ending = line.split(" ")[-1]
+            line_cut = line[:-len(ending)].strip()
+
+            # if we don't have anything in line cut, just take the original
+            # this is compensating for things that are missing ending decimeters
+            if line_cut == '':
+                line_cut = line
+                ending = '.'
+
+            sentences.append(parse_sentence(nlp(line_cut).sentences[0], ending))
 
         # inject into EAF
         # we have no MFA alignments, instead, we are injecting
@@ -170,6 +189,10 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
 
     # convert the prepared eafs back into chat
     elan2chat(out_directory)
+
+    # and then find all the chat files, removing bullets from them
+    for f in globase(out_directory, "*.cha"):
+        strip_bullets(f)
 
     # cleanup!
     if clean:

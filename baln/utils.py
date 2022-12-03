@@ -4,6 +4,8 @@ import os
 import glob
 # pathlib
 import pathlib
+# regular expressions
+import re
 
 
 # resolve CLAN
@@ -19,6 +21,28 @@ CLAN_PATH=resolve_clan()
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
+
+def strip_bullets(f):
+    """Remove bullets from a file
+
+    Attributes:
+        f (string): file path
+
+    Returns:
+        none, used for side effects
+    """
+
+    # get abspath of file
+    f = os.path.abspath(f)
+    # open the file and strip bullets
+    with open(f, 'r') as df:
+        file_content = df.read()
+        # remove all bullet symbols
+        new_string = re.sub(r'\d+_\d+', '', file_content)
+    # open the file and write content
+    with open(f, 'w') as df:
+        # write
+        df.write(new_string)
 
 def fix_transcript(f):
     """Fix transcript by adding any needed annotations, retracings, etc.
@@ -333,3 +357,5 @@ def wavconformation(directory):
         # and move the new back
         os.rename("temp.wav", f)
 
+
+    
