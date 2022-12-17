@@ -105,7 +105,7 @@ def parse_sentence(sentence, delimiter="."):
     gra_str = (" ".join(gra)).strip()
 
     # add the endning delimiter
-    mor_str = mor_str[:-1]+' '+delimiter
+    mor_str = mor_str
 
     return (mor_str, gra_str)
 

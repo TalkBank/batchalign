@@ -210,11 +210,12 @@ def eafud(root, annotations, morphodata):
     # create a lookup dict of xwor tier outputs
     morpho_flattened = list(zip([i[-1] for i in annotations], mor))
     # remove the lines to filter
-    [morpho_flattened.pop(i) for i in lines_to_filter]
+    morpho_flattened = [i for j, i in enumerate(morpho_flattened) if j not in lines_to_filter]
     morpho_dict = dict(morpho_flattened)
 
     grapho_flattened = list(zip([i[-1] for i in annotations], gra))
-    [grapho_flattened.pop(i) for i in lines_to_filter]
+    # remove the lines to filter
+    grapho_flattened = [i for j, i in enumerate(grapho_flattened) if j not in lines_to_filter]
     grapho_dict = dict(grapho_flattened)
 
     # add the result into the elementtree
