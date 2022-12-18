@@ -201,7 +201,7 @@ def eafud(root, annotations, morphodata):
         # this is becasue our morphology tagger outptus
         # just the end punctuation if nothing parsed is
         # there
-        if i == ".":
+        if i in ['.', '!', '?']:
             lines_to_filter.append(indx)
     # we do this here instead of below because we want to make
     # sure that the zipped annotations are correct (i.e. we have

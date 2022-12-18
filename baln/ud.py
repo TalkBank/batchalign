@@ -89,6 +89,9 @@ def parse_sentence(sentence, delimiter="."):
     mor = []
     gra = []
 
+    # root indx to point the ending delimiter to
+    root = 0
+
     for indx, word in enumerate(sentence.words):
         # append the appropriate mor line
         # by trying all handlers, and defaulting
@@ -100,12 +103,21 @@ def parse_sentence(sentence, delimiter="."):
         # +1 because we are 1-indexed
         # and .head is also 1-indexed already
         gra.append(f"{indx+1}|{word.head}|{word.deprel.upper()}")
+        # if depedence relation is root, mark the current
+        # ID as root
+        if word.deprel.upper() == "ROOT":
+            root = word.id
+
+    # append ending delimiter to GRA
+    gra.append(f"{len(sentence.words)+1}|{root}|PUNCT")
 
     mor_str = (" ".join(mor)).strip()
     gra_str = (" ".join(gra)).strip()
 
     # add the endning delimiter
-    mor_str = mor_str
+    if len(mor_str) != 1: # if we actually have content (not just . or ?)
+                          # add a deliminator
+        mor_str = mor_str + " " + delimiter
 
     return (mor_str, gra_str)
 
