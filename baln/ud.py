@@ -32,8 +32,13 @@ def handler(word):
     # if the lemma is ", return the word
     # not sure what errors are coming along?
     target = word.lemma
+
     if target == '"':
         target = word.text
+
+    # if there is a 0 in front, remove it
+    if target[0] == '0':
+        target = target[1:]
 
     return f"{word.upos.lower()}|{target}"
 
@@ -48,12 +53,20 @@ def handler__AUX(word):
         flag += "&"+feats.get("Tense", "Pres").upper()
     return handler(word)+"&"+flag
 
-# POS specific handler
 def handler__VERB(word):
     # get the features
     feats = parse_feats(word)
     if feats.get("Tense") == "Past" and feats.get("VerbForm") == "Part":
         return handler(word)+"&PASTP"
+    else:
+        return handler(word)
+
+def handler__NOUN(word):
+    # get the features
+    feats = parse_feats(word)
+    # if plural
+    if feats.get("Number") == "Plur":
+        return handler(word)+"-PL"
     else:
         return handler(word)
 
@@ -69,7 +82,8 @@ def handler__PUNCT(word):
 HANDLERS = {
     "AUX": handler__AUX,
     "PUNCT": handler__PUNCT,
-    "VERB": handler__VERB
+    "VERB": handler__VERB,
+    "NOUN": handler__NOUN
 }
 
 # the follow
@@ -102,7 +116,9 @@ def parse_sentence(sentence, delimiter="."):
             mor.append(mor_word)
         # +1 because we are 1-indexed
         # and .head is also 1-indexed already
-        gra.append(f"{indx+1}|{word.head}|{word.deprel.upper()}")
+        deprel = word.deprel.upper()
+        deprel = deprel.replace(":", "-")
+        gra.append(f"{indx+1}|{word.head}|{deprel}")
         # if depedence relation is root, mark the current
         # ID as root
         if word.deprel.upper() == "ROOT":
@@ -120,6 +136,24 @@ def parse_sentence(sentence, delimiter="."):
         mor_str = mor_str + " " + delimiter
 
     return (mor_str, gra_str)
+
+def clean_sentence(sent):
+    """clean a sentence 
+
+    Arguments:
+        sent (string): 
+    """
+
+    remove = ["+,", "++"]
+
+    sent = sent
+
+    # remove each element
+    for i in remove:
+        sent = sent.replace(i, "")
+
+    return sent
+
 
 def morphanalyze(in_directory, out_directory, data_directory="data", language="en", clean=True):
     """Batch morphosyntactic analysis tools using Stanza
@@ -189,6 +223,9 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
             if line_cut == '':
                 line_cut = line
                 ending = '.'
+
+            # clean the sentence
+            line_cut = clean_sentence(line_cut)
 
             sentences.append(parse_sentence(nlp(line_cut).sentences[0], ending))
 
