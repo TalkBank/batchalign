@@ -8,6 +8,7 @@ from pathlib import Path
 import stanza
 from stanza.pipeline.core import CONSTITUENCY
 from stanza import DownloadMethod
+from torch import heaviside
 
 # tqdm
 from tqdm import tqdm
@@ -43,32 +44,65 @@ def handler(word):
     return f"{word.upos.lower()}|{target}"
 
 # POS specific handler
-def handler__AUX(word):
+def handler__PRON(word):
     # get the features
     feats = parse_feats(word)
-    # featflag
-    flag = str(feats.get("Person", 1))+str(feats.get("Number", "S")[0])
-    # if the tense is not present, talk about it as past
-    if feats.get("Tense", "Pres") != "Pres":
-        flag += "&"+feats.get("Tense", "Pres").upper()
-    return handler(word)+"&"+flag
+    # parse
+    return (handler(word)+"-"+
+            feats.get("PronType", "Int")+"-"+
+            feats.get("Case", "Acc")+"-"+
+            feats.get("Number", "S")[0]+str(feats.get("Person", 1)))
 
-def handler__VERB(word):
+def handler__DET(word):
+    # get the features
+    try:
+        feats = parse_feats(word)
+    except AttributeError:
+        return handler(word)
+    # parse
+    return (handler(word)+"-"+
+            feats.get("Definite", "Def"))
+
+def handler__ADJ(word):
     # get the features
     feats = parse_feats(word)
-    if feats.get("Tense") == "Past" and feats.get("VerbForm") == "Part":
-        return handler(word)+"&PASTP"
-    else:
-        return handler(word)
+    # if there is a non-degree
+    deg = feats.get("Degree", "Pos")
+    return handler(word)+(("-"+deg) if deg != "Pos" else "") 
 
 def handler__NOUN(word):
     # get the features
     feats = parse_feats(word)
-    # if plural
-    if feats.get("Number") == "Plur":
-        return handler(word)+"-PL"
-    else:
-        return handler(word)
+
+    # get gender and numer
+    gender_str = "-"+feats.get("Gender", "Com,Neut")
+    number_str = "-"+feats.get("Number", "Sing")
+
+    # clear defaults
+    if gender_str == "-Com,Neut": gender_str=""
+    if number_str == "-Sing": number_str=""
+
+    return handler(word)+gender_str+number_str
+
+def handler__PROPN(word):
+    # code as noun
+    parsed = handler__NOUN(word)
+    return parsed.replace("propn", "noun")
+
+def handler__VERB(word):
+    # get the features
+    feats = parse_feats(word)
+    # seed flag
+    flag = ""
+    # append number and form if needed
+    flag += "-"+feats.get("VerbForm", "Inf")
+    number = feats.get("Number", "Sing")
+    if number != "Sing":
+        flag += f"-{number}"
+    # append tense
+    if feats.get("Tense", "Pres") == "Past":
+        flag += "-PASTP"
+    return handler(word)+flag
 
 def handler__PUNCT(word):
     if word.lemma==",":
@@ -78,12 +112,16 @@ def handler__PUNCT(word):
     # all other cases return None
     # to skip
 
-# UPOS: Handler
+# Register handlers
 HANDLERS = {
-    "AUX": handler__AUX,
-    "PUNCT": handler__PUNCT,
+    "PRON": handler__PRON,
+    "DET": handler__DET,
+    "ADJ": handler__ADJ,
+    "NOUN": handler__NOUN,
+    "PROPN": handler__PROPN,
+    "AUX": handler__VERB, # reuse aux handler for verb
     "VERB": handler__VERB,
-    "NOUN": handler__NOUN
+    "PUNCT": handler__PUNCT,
 }
 
 # the follow
