@@ -69,10 +69,28 @@ conda activate batchalign
 
 Then, run the following command to check and perform updates
 
-
 ```bash
 conda update batchalign -c talkbank
 ```
+
+## Uninstall batchalign
+To uninstall `batchalign`, first ensure that you are not inside the `batchalign` environment. To check this, ensure that the command line says `(base)` instead of `(batchalign)`. If not, run:
+
+```bash
+conda deactivate
+```
+
+Then, we will remove the environment:
+
+```bash
+conda env remove -n batchalign
+```
+
+## Rebuild batchalign
+If your environment is irreparably broken (i.e. complex dependency mismatches, weird linker errors, etc.), it is probably an easy troubleshoot step to rebuild batchalign. To do this, follow the instructions to
+
+1. Uninstall batchalign
+2. Install batchalign
 
 # Other Commands
 
