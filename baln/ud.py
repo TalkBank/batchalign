@@ -21,7 +21,11 @@ from .eaf import *
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
 # one liner to parse features
-parse_feats = lambda word: {i.split("=")[0]: i.split("=")[1] for i in word.feats.split("|")}
+def parse_feats(word):
+    try:
+        return {i.split("=")[0]: i.split("=")[1] for i in word.feats.split("|")}
+    except AttributeError:
+        return {}
 
 # the following is a list of feature-extracting handlers
 # it is used to extract features from specific parts of
@@ -75,11 +79,11 @@ def handler__NOUN(word):
     feats = parse_feats(word)
 
     # get gender and numer
-    gender_str = "-"+feats.get("Gender", "Com,Neut")
+    gender_str = "&"+feats.get("Gender", "Com,Neut")
     number_str = "-"+feats.get("Number", "Sing")
 
     # clear defaults
-    if gender_str == "-Com,Neut": gender_str=""
+    if gender_str == "&Com,Neut" or gender_str == "&Com": gender_str=""
     if number_str == "-Sing": number_str=""
 
     return handler(word)+gender_str+number_str
@@ -101,7 +105,7 @@ def handler__VERB(word):
         flag += f"-{number}"
     # append tense
     if feats.get("Tense", "Pres") == "Past":
-        flag += "-PASTP"
+        flag += "-Past"
     return handler(word)+flag
 
 def handler__PUNCT(word):
