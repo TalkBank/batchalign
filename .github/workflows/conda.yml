@@ -57,9 +57,3 @@ jobs:
         with:
           name: Windows batchalign
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
-
-
-
-        
-
-
