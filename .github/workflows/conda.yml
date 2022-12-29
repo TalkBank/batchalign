@@ -3,7 +3,7 @@ name: Build and Release for Anaconda
 on:
   push:
     branches:
-      - master
+      - "*"
 
 jobs:
   conda_build:
