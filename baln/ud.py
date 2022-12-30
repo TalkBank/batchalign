@@ -269,7 +269,17 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
             # clean the sentence
             line_cut = clean_sentence(line_cut)
 
-            sentences.append(parse_sentence(nlp(line_cut).sentences[0], ending))
+            # if at this point we still have nothing, just
+            # assume its an end punctuation (i.e. the whole
+            # utterance was probably just ++ or something
+            # that clean_sentence cut out
+
+            if line_cut == "":
+                line_cut = ending
+
+            sentences.append(
+                parse_sentence(nlp(line_cut).sentences[0], ending)
+            )
 
         # inject into EAF
         # we have no MFA alignments, instead, we are injecting
