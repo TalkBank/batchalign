@@ -45,6 +45,12 @@ def handler(word):
     if target[0] == '0':
         target = target[1:]
 
+    # if there is..... dear god, a sequence start <SOS>
+    # token in the model output, return the text instead
+    # of teh predicted lemma as something has gone very wrong
+    if "<SOS>" in target:
+        target = word.text
+
     return f"{word.upos.lower()}|{target}"
 
 # POS specific handler
@@ -108,13 +114,25 @@ def handler__VERB(word):
         flag += "-Past"
     return handler(word)+flag
 
-def handler__PUNCT(word):
+def handler__actual_PUNCT(word):
+    # actual punctuation handler
     if word.lemma==",":
         return "cm|cm"
     elif word.lemma in ['.', '!', '?']:
         return word.lemma
     # all other cases return None
     # to skip
+
+def handler__PUNCT(word):
+    # no idea why SYM and PUNCT returns punctuation
+    # or sometimes straight up words, but  so it goes
+    # either punctuation or inflection words
+    if word.lemma in ['.', '!', '?', ',']:
+        return handler__actual_PUNCT(word)
+    # otherwise, if its a word, return the word
+    elif re.match(r"^\w+$", word.text): # we match text here because .text is the ultumate content
+                                        # instead of the lemma, which maybe entirely weird
+        return handler(word)
 
 # Register handlers
 HANDLERS = {
@@ -126,6 +144,7 @@ HANDLERS = {
     "AUX": handler__VERB, # reuse aux handler for verb
     "VERB": handler__VERB,
     "PUNCT": handler__PUNCT,
+    "SYM": handler__PUNCT # symbols are handled like punctuation
 }
 
 # the follow
@@ -186,7 +205,7 @@ def clean_sentence(sent):
         sent (string): 
     """
 
-    remove = ["+,", "++"]
+    remove = ["+,", "++", "+\""]
 
     sent = sent
 
@@ -223,7 +242,8 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
 
     nlp = stanza.Pipeline(language,
                           processors='tokenize,pos,lemma,depparse',
-                          download_method=DownloadMethod.REUSE_RESOURCES)
+                          download_method=DownloadMethod.REUSE_RESOURCES,
+                          tokenize_no_ssplit=True)
 
     # create label and elan files
     chat2transcript(in_directory, True)
@@ -277,8 +297,11 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
             if line_cut == "":
                 line_cut = ending
 
+            sents = nlp(line_cut).sentences
+
             sentences.append(
-                parse_sentence(nlp(line_cut).sentences[0], ending)
+                # we want to treat the entire thing as one large sentence
+                parse_sentence(sents[0], ending)
             )
 
         # inject into EAF
@@ -299,4 +322,5 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
     if clean:
         cleanup(in_directory, out_directory, data_directory)
         
-       
+
+      
