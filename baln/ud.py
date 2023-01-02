@@ -41,9 +41,14 @@ def handler(word):
     if target == '"':
         target = word.text
 
-    # if there is a 0 in front, remove it
+    # unknown flag
+    unknown = False
+    
+    # if there is a 0 in front, the word is unkown
+    # so we mark it as such
     if target[0] == '0':
-        target = target[1:]
+        target = word.text[1:]
+        unknown = True
 
     # if there is..... dear god, a sequence start <SOS>
     # token in the model output, return the text instead
@@ -51,7 +56,7 @@ def handler(word):
     if "<SOS>" in target:
         target = word.text
 
-    return f"{word.upos.lower()}|{target}"
+    return f"{'' if not unknown else '0'}{word.upos.lower()}|{target}"
 
 # POS specific handler
 def handler__PRON(word):

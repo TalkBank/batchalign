@@ -39,6 +39,16 @@ def strip_bullets(f):
         file_content = df.read()
         # remove all bullet symbols
         new_string = re.sub(r'\d+_\d+', '', file_content)
+    # now, we also nee to add unlinked to the @Media line
+    # as we just got rid of the bullets;
+    # first we look for the media line
+    media_line_match = re.search(r"@Media.*", new_string)
+    if media_line_match and media_line_match[0].split(" ")[-1] != 'unlinked':
+        media_line_new = media_line_match[0].strip() # clone the string
+        # replace and add `unlinked` if needed
+        media_line_new += ", unlinked"
+        # replace!
+        new_string = new_string.replace(media_line_match[0], media_line_new)
     # open the file and write content
     with open(f, 'w') as df:
         # write
