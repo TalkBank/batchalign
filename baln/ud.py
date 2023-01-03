@@ -210,7 +210,7 @@ def clean_sentence(sent):
         sent (string): 
     """
 
-    remove = ["+,", "++", "+\""]
+    remove = ["+,", "++", "+\"", "_"]
 
     sent = sent
 
