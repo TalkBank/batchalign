@@ -88,9 +88,9 @@ def mainloop():
 
             # cleanup
             cleanup(args.in_dir, args.out_dir, args.data_dir)
-            print("All done! Check the input folder.")
+            print("All done! Check the output folder.")
             # otherwise prealign
     else: 
         print("Stage 1: Performing Forced Alignment")
         do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
-        print("All done! Check the input folder.")
+        print("All done! Check the output folder.")
