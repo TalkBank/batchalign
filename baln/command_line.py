@@ -41,7 +41,7 @@ def cli():
     parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
     parser.add_argument("--model", type=str, help='path to custom model')
     parser.add_argument("--retokenize", type=str, help='retokenize input with model')
-    parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
+    parser.add_argument('-i', "--noninteractive", default=False, action='store_true', help='skip interactive retokenization (with user correction), useless without retokenize')
     parser.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
     parser.add_argument('-a', "--asronly", default=False, action='store_true', help='ASR only, don\'t run mfa')
     parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
@@ -74,7 +74,7 @@ def mainloop():
         # assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
         # assert retokenize
         print("Stage 1: Performing ASR")
-        retokenize_directory(args.in_dir, args.retokenize if args.retokenize else "~/mfa_data/model", 'h' if args.headless else args.interactive, args.rev)
+        retokenize_directory(args.in_dir, args.retokenize if args.retokenize else "~/mfa_data/model", 'h' if args.headless else (not args.noninteractive), args.rev)
         if not args.asronly:
             print("Stage 2: Performing Forced Alignment")
             do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
