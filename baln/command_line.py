@@ -25,7 +25,7 @@ def cli():
     #### subparsers ####
     # .wav => .cha full generation commands
     generate = subparsers.add_parser("generate")
-    generate.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
+    generate.add_argument('-i', "--noninteractive", default=False, action='store_true', help='skip interactive retokenization (with user correction), useless without retokenize')
     generate.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
     generate.add_argument('-a', "--asronly", default=False, action='store_true', help='ASR only, don\'t run mfa')
     generate.add_argument("--utterancemodel", type=str, help='path to utterance tokenization model')
@@ -50,7 +50,7 @@ def cli():
     parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
     parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
     parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
-    parser.add_argument("--alignmentmodel", type=str, help='path to custom kaldi alignmetn model')
+    parser.add_argument("--alignmentmodel", type=str, help='path to custom kaldi alignment model')
 
     return parser.parse_args()
 
@@ -80,7 +80,7 @@ def mainloop():
     elif args.command =="generate":
         # assert retokenize
         print("Stage 1: Performing ASR")
-        retokenize_directory(args.in_dir, args.utterancemodel if args.utterancemodel else "~/mfa_data/model", 'h' if args.headless else args.interactive, args.rev)
+        retokenize_directory(args.in_dir, args.utterancemodel if args.utterancemodel else "~/mfa_data/model", 'h' if args.headless else (not args.noninteractive), args.rev)
         if not args.asronly:
             print("Stage 2: Performing Forced Alignment")
             do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.alignmentmodel)
@@ -106,3 +106,4 @@ def mainloop():
         print("All done! Check the output folder.")
     else:
         raise Exception("Unknown command passed to parser!")
+

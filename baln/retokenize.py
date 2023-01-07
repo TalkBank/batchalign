@@ -62,6 +62,7 @@ SPEAKER_TRANSLATIONS = {
     "p": ("Participant", "PAR"),
     "i": ("Investigator", "INV"),
     "c": ("Child", "CHI"),
+    "s": ("Student", "STU"),
     # "n": ("Partner", "PTN")
 }
 

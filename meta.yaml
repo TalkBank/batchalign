@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.1.5" %}
+{% set version = "0.1.6" %}
 
 package:
   name: {{ name }}
@@ -25,7 +25,7 @@ requirements:
     - montreal-forced-aligner
     - pytorch
     - pytest-runner 4.2
-    - transformers 4.23.*
+    - transformers 4.24.*
     - tokenizers
     - nltk
     - libcxx
