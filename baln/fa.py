@@ -529,6 +529,10 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
     unaligned_tiers = []
     sentence_starts = []
     sentence_ends = []
+
+    # a lookup hashmap of cleaned_word: index in unaligned_words
+    # used to quicken solving each subproblem in the DP below
+    lookup_dict = defaultdict(list)
     
     # we perform cleaning and tokenization of the transcript
     # to create an unaligned word plate. This is used fro
@@ -590,7 +594,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
             cleaned_word = cleaned_word.replace("š","").replace("ˈ","")
             cleaned_word = cleaned_word.replace("ˌ","").replace("‹","")
             cleaned_word = cleaned_word.replace("›","").replace("〔","")
-            cleaned_word = cleaned_word.replace("〕","")
+            cleaned_word = cleaned_word.replace("〕","").replace("//","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"&.", '', cleaned_word)
             cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
@@ -602,45 +606,107 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
 
             # append the cleaned and uncleaned versions of words 
             unaligned_words.append((word, cleaned_word, i))
+            lookup_dict[cleaned_word].append(i)
             unaligned_tiers.append(tier)
             i += 1
 
         # append boundaries
         sentence_ends.append(i)
+
+    # freeze the lookup dictionary
+    lookup_dict = dict(lookup_dict)
     
     # conform boundaries
     sentence_boundaries = list([list(range(i,j)) for i,j in zip(sentence_starts, sentence_ends)])
 
     # we now perform n-round alignment
-    # essentially, for each word in the aligned section, we
-    # match it to the easiest canidate in the unaligned words
-    # to create the final transcript
+    #
+    # recall that we want to preserve the order of the utterances#
+    # so once we match, the entire rest of the unaligned words
+    # until that point is cropped
+    #
+    # we will introduce also a tad bit of dynamic programming
+    # into this. if not matching is a net better strategy
+    # than matching, we will do so. this is to prevent
+    # matching too far into the future
 
-    backplated_alignments = []
-    aligned_indicies = []
+    # we seed the dynamic programming cache with a single dummy solution
+    # recall that we only have to keep the cache from one step ago, because
+    # we don't need to recompute all info like before
+    solutions = [{
+        "backplate": [],
+        "unaligned": unaligned_words.copy(),
+        "aligned": [],
+        "score": 0 # how many indicies are aligned
+    }]
     
     # for each word
-    for aligned_word, (start, end) in aligned_words:
+    for jj, (aligned_word, (start, end)) in enumerate(tqdm(aligned_words)):
 
-        # we will go through the unaligned results to find the earlist
-        # available canidate
+        # sort the existing solutions
+        solutions = sorted(solutions, key=lambda x:x["score"], reverse=True)
 
-        # for each word
-        for elem in unaligned_words:
+        # store new solutions
+
+        # we first yield the unaligned "do nothing" solution
+        # which ignores the current aligned word for each of
+        # the solutions
+
+        partial_solutions = solutions.copy()
+
+        # we then search forward and try to yield the best
+        # next solution
+
+        # essentially, for each word in the aligned section, we
+        # match it to the easiest canidate in the unaligned words
+        # to create the final transcript
+
+        # print(len(lookup_dict.get(aligned_word, [])))
+        # for each possible match
+        for elem in lookup_dict.get(aligned_word, []):
             # unpack element
-            word, cleaned_word, i = elem
-            # if we can align, do align
-            if cleaned_word == aligned_word: 
-                backplated_alignments.append((i, word, (start, end)))
-                # having used it, we remove it
-                unaligned_words.remove(elem)
-                # and push to tracker
-                aligned_indicies.append(i)
-                break
+            word, cleaned_word, i = unaligned_words[elem]
 
+            # we will search in our solution cache for the soltuions
+            # for which solution to base our current one on
+
+            # we will filter solutions whose unaligned_words list
+            # is shorter or equal to that of our current one.
+            # this is to filter for valid previous solutions that
+            # we can base our solution on
+
+            # as we are always moving FORWARD in terms of what we are searching (the list from lookup_dict) is sorted
+            # we can just crop the solutions list
+            remaining_solutions = filter(lambda x:len(x["unaligned"])>=((len(unaligned_words)-i)), solutions)
+
+            # sort and yield the desired solution
+            solution = next(remaining_solutions)
+
+            partial_solutions.append({
+                "backplate": solution["backplate"]+[(i, word, (start, end))],
+                # to preserve the order, recall that we want to crop the unaligned list
+                # to everything AFTER the already-aligned index
+                "unaligned": solution["unaligned"][solution["unaligned"].index(unaligned_words[elem])+1:],
+                # note that we aligned
+                "aligned": solution["aligned"]+[i],
+                # bump the score
+                "score": solution["score"]+1,
+            })
+            # find the better solution by advancing ahead
+            # break
+
+        # now we can replace the solutions with our new ones
+        solutions = partial_solutions
+            
         # if cleaned_word != aligned_word: 
         #     print(f"'{cleaned_word}', '{aligned_word}'")
-   
+
+    # finding and saving values from the best solution
+    best_solution = sorted(solutions, key=lambda x:x["score"], reverse=True)[0]
+    backplated_alignments = best_solution["backplate"]
+    aligned_indicies = best_solution["aligned"]
+    score = best_solution["score"]
+
     # find missing elements
     to_reinsert = list(filter(lambda x:x[2] not in aligned_indicies, unaligned_words))
     to_reinsert = [(i[2], i[0], None) for i in to_reinsert]
@@ -1147,6 +1213,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         elan = repath_file(alignment, in_directory).replace("TextGrid", "eaf").replace("textGrid", "eaf")
         # Align the alignment results
         # MFA TextGrids are long form
+        print(f"Processing {alignment.replace('.TextGrid', '')}...")
         aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long")
 
         # Perform disfluency calculation TODO
