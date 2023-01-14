@@ -30,15 +30,25 @@ from collections import defaultdict
 
 # silence OMP
 os.environ["KMP_WARNINGS"] = "FALSE" 
+os.environ["PYTHONWARNINGS"] = "ignore"
 
 # import cleanup
 from .utils import cleanup, resolve_clan
 
-# mfa
-from montreal_forced_aligner.command_line.align import run_align_corpus
-from montreal_forced_aligner.command_line.g2p import run_g2p
-from montreal_forced_aligner.command_line.validate import run_validate_corpus
-from montreal_forced_aligner.models import ModelManager
+# import biopython error type
+from Bio import BiopythonDeprecationWarning
+
+# ignore the pairwisealigner warning
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", BiopythonDeprecationWarning)
+    # mfa
+    from montreal_forced_aligner.command_line.align import run_align_corpus
+    from montreal_forced_aligner.command_line.g2p import run_g2p
+    from montreal_forced_aligner.command_line.validate import run_validate_corpus
+    from montreal_forced_aligner.models import ModelManager
+    
+warnings.filterwarnings("ignore")
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
@@ -615,7 +625,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
 
     # freeze the lookup dictionary
     lookup_dict = dict(lookup_dict)
-    
+
     # conform boundaries
     sentence_boundaries = list([list(range(i,j)) for i,j in zip(sentence_starts, sentence_ends)])
 
@@ -679,10 +689,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
             # we can just crop the solutions list
             remaining_solutions = filter(lambda x:len(x["unaligned"])>=((len(unaligned_words)-i)), solutions)
 
-            # sort and yield the desired solution
+            # get the best current solution and yield the desired next solution
             solution = next(remaining_solutions)
-
-            partial_solutions.append({
+            new_solution = {
                 "backplate": solution["backplate"]+[(i, word, (start, end))],
                 # to preserve the order, recall that we want to crop the unaligned list
                 # to everything AFTER the already-aligned index
@@ -691,7 +700,9 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
                 "aligned": solution["aligned"]+[i],
                 # bump the score
                 "score": solution["score"]+1,
-            })
+            }
+
+            partial_solutions.append(new_solution)
             # find the better solution by advancing ahead
             # break
 
@@ -702,7 +713,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         #     print(f"'{cleaned_word}', '{aligned_word}'")
 
     # finding and saving values from the best solution
-    best_solution = sorted(solutions, key=lambda x:x["score"], reverse=True)[0]
+    best_solutions = sorted(solutions, key=lambda x:x["score"], reverse=True)
+    best_solution = best_solutions[0]
     backplated_alignments = best_solution["backplate"]
     aligned_indicies = best_solution["aligned"]
     score = best_solution["score"]
@@ -862,7 +874,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
                     # append result
                     result = result + " " + sentence[indx][0].strip()
                     # check if closed
-                    if result[-1] == "]":
+                    if "]" in result:
                         # if there's a next, and the next is not another open
                         if (indx+1 < len(sentence) and sentence[indx+1][0] != "" and sentence[indx+1][0][0] != "[") or indx+1 >= len(sentence):
 
@@ -919,6 +931,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", debug=Fal
         sentence = sentence.replace("[<]"," [<] ")
 
         # sentence = re.sub(r" +", " ", sentence)
+
 
         # concat and append to bulleted results
         bulleted_results.append(sentence.strip())
