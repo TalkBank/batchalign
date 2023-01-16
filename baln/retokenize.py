@@ -237,17 +237,17 @@ def process_json(data, name=None, interactive=False):
     for speaker in speaker_ids:
         # get info and handle error correction
         # get speaker info
-        speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant): ").strip()
+        speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
         # if we don't have first capital and spelt correctly
         while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
             print("Invalid response. Please follow the formatting example provided.")
-            speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant): ").strip()
+            speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
         # get tier info
-        speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ")
+        speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ")
         # if we don't have first capital and spelt correctly
         while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
             print("Invalid response. Please follow the formatting example provided.")
-            speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ").strip()
+            speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ").strip()
         # add to list
         speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
         print()
