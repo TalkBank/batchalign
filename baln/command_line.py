@@ -34,6 +34,7 @@ def cli():
     parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
     parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
     parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
+    parser.add_argument("--aggressive", default=False, action='store_true', help='use dynamic programming to aggressively align the audio')
     parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
     parser.add_argument("--beam", type=int, default=30, help='beam width for MFA, ignored for P2FA')
     parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
@@ -77,7 +78,7 @@ def mainloop():
         retokenize_directory(args.in_dir, args.retokenize if args.retokenize else "~/mfa_data/model", 'h' if args.headless else args.interactive, args.rev)
         if not args.asronly:
             print("Stage 2: Performing Forced Alignment")
-            do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+            do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model, aggressive=args.aggressive)
         else:
             # Define the data_dir
             DATA_DIR = os.path.join(args.out_dir, args.data_dir)
@@ -92,5 +93,5 @@ def mainloop():
             # otherwise prealign
     else: 
         print("Stage 1: Performing Forced Alignment")
-        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model)
+        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model, aggressive=args.aggressive)
         print("All done! Check the output folder.")
