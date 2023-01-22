@@ -367,5 +367,86 @@ def wavconformation(directory):
         # and move the new back
         os.rename("temp.wav", f)
 
+# read all chat files
+def read_flo(f):
+    """Utility to read a single flo file
+
+    Arguments:
+        f (str): the file to read
+
+    Returns:
+        list[str] a string of results
+    """
+
+    # open and read file
+    with open(f, 'r') as df:
+        # read!
+        lines = df.readlines()
+
+    # coallate results
+    results = []
+
+    # process lines for tab-deliminated run-on lines
+    for line in lines:
+        # if we have a tab
+        if line[0] == '\t':
+            # take away the tab, append, and put back in results
+            results.append(results.pop()+" "+line.strip())
+        # otherwise, just append
+        else:
+            results.append(line.strip())
+
+    # return results
+    return results
+
+def read_chat(f):
+    # get lines in the file
+    lines = read_flo(f)
+
+    # split by tier and crop info
+    lines = [i.split("\t") for i in lines]
+
+    # chop off end delimiters in main tier
+    lines = [[i[0], i[1][:-2]] if i[0][0]=='*' else i for i in lines]
+
+    # get tiers seperated
+
+    # array for header tiers
+    header_tiers = []
+    # pop out header tiers
+    while lines[0][0][0] == '@':
+        header_tiers.append(lines.pop(0))
+
+    # array for main tiers
+    main_tiers = []
+    # pop out main tiers
+    while lines[0][0][0] == '*':
+        main_tiers.append(lines.pop(0))
+
+    # and set the rest to closing
+    closing_tiers = lines
+
+    # process main tiers
+    main_tiers_processed = []
+
+    # for every line, process
+    for line in main_tiers:
+        # split the line
+        line_split = line[1].split(" ")
+        # pair them up
+        line_paired = [(line_split[i],
+                        line_split[i+1])
+                    for i in range(0,len(line_split), 2)]
+        # and fix the right end
+        bullet_extract = lambda x: [int(i)
+                                    for i in
+                                    re.sub(r".(\d+)_(\d+).", r"\1|\2", x).split('|')]
+        line_extracted = [[i[0], bullet_extract(i[1])] for i in line_paired]
+
+        # append results
+        main_tiers_processed.append((line[0], line_extracted))
+
+    return header_tiers, main_tiers_processed, closing_tiers
+
 
     

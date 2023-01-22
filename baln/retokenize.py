@@ -49,6 +49,13 @@ from tkinter.scrolledtext import ScrolledText
 from .utokengine import UtteranceEngine
 from .utils import fix_transcript
 
+# enums for provider
+from enum import Enum
+
+class ASRProvider(Enum):
+    REV = 1
+    WHISPER = 2
+
 MODEL_PATH="https://dl.dropboxusercontent.com/s/4qhixi742955p35/model.tar.gz?dl=0"
 MODEL="flowing-salad-6"
 
@@ -58,106 +65,91 @@ os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 
-SPEAKER_TRANSLATIONS = {
-    "p": ("Participant", "PAR"),
-    "i": ("Investigator", "INV"),
-    "c": ("Child", "CHI"),
-    "s": ("Student", "STU"),
-    # "n": ("Partner", "PTN")
-}
+# default model and directory paths
+defaultmodel = lambda x:os.path.join("~","mfa_data",x)
+defaultfolder = os.path.join("~","mfa_data")
 
-# read all chat files
-def read_file(f):
-    """Utility to read a single flo file
+# get text GUI
+def interactive_edit(name, string):
+    # create a new UI
+    root = Tk(screenName=f"Interactive Fix")
+    root.title(f"Interactively Fixing {name}")
+    # create the top frame
+    top = ttk.Frame(root, padding=5)
+    top.grid()
+    # label
+    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 14 bold').grid(column=0, row=0)
+    ttk.Label(top, text="Use *** to seperate speakers, newlines to seperate utterances.").grid(column=1, row=0)
+    # insert a textbox and place it
+    text_box = ScrolledText(root, font='TkFixedFont 16', height=40, width=100, borderwidth=20, highlightthickness=0)
+    text_box.grid(column=0, row=1)
+    # and insert our fixit string
+    def settext():
+        text_box.delete(1.0, "end")
+        text_box.insert("end", string)
+    # create a finishing function
+    settext()
+    # create the bottom frame
+    bottom = ttk.Frame(root, padding=5)
+    bottom.grid()
+    # don't stop until we do
+    # this is a CHEAP MAINLOOP, but its used
+    # to control when the text element can
+    # be destroyed (i.e. not before reading)
+    def stopit():
+        # hide
+        root.withdraw()
+        # leave!
+        root.quit()
+    # save the current contents to a file
+    def savepoint(auto=False):
+        # draft text
+        text = text_box.get("1.0","end-1c")
+        # basepath
+        basepath = os.path.join("~", ".ba-checkpoints")
+        # make the checkpoints directory
+        pathlib.Path(os.path.expanduser(basepath)).mkdir(parents=True, exist_ok=True)
+        # save
+        with open(os.path.expanduser(os.path.join(basepath, f"{f'{name}_{uuid.uuid4()}.auto' if auto else 'm'}.cut")), 'w') as df:
+            df.write(text.strip())
+    # read the current contents from a file
+    def readpoint():
+        # make the checkpoints directory
+        pathlib.Path(os.path.expanduser(basepath)).mkdir(parents=True, exist_ok=True)
+        # save
+        with open(os.path.expanduser(os.path.join(basepath, "m.cut")), 'w+') as df:
+            text = df.read().strip()
+        text_box.delete(1.0, "end")
+        text_box.insert("end", text)
+    # create the buttons
+    ttk.Button(bottom, text="Reset", command=settext).grid(column=0, row=0,
+                                                           padx=20, pady=5)
+    ttk.Button(bottom, text="Restore Checkpoint", command=readpoint).grid(column=1, row=0,
+                                                                       padx=20, pady=5)
+    ttk.Button(bottom, text="Save Checkpoint", command=savepoint).grid(column=2, row=0,
+                                                                    padx=20, pady=5)
+    ttk.Button(bottom, text="Submit", command=stopit).grid(column=3, row=0,
+                                                           padx=20, pady=5)
+    # mainloop
+    root.mainloop()
+    savepoint(True)
+    final_text = text_box.get("1.0","end-1c")
+    root.destroy()
 
-    Arguments:
-        f (str): the file to read
-
-    Returns:
-        list[str] a string of results
-    """
-
-    # open and read file
-    with open(f, 'r') as df:
-        # read!
-        lines = df.readlines()
-
-    # coallate results
-    results = []
-
-    # process lines for tab-deliminated run-on lines
-    for line in lines:
-        # if we have a tab
-        if line[0] == '\t':
-            # take away the tab, append, and put back in results
-            results.append(results.pop()+" "+line.strip())
-        # otherwise, just append
-        else:
-            results.append(line.strip())
-
-    # return results
-    return results
+    # return the new contents of the textbox
+    return final_text.strip()
 
 # process a file
-def process_chat_file(f):
-    # get lines in the file
-    lines = read_file(f)
-
-    # split by tier and crop info
-    lines = [i.split("\t") for i in lines]
-
-    # chop off end delimiters in main tier
-    lines = [[i[0], i[1][:-2]] if i[0][0]=='*' else i for i in lines]
-
-    # get tiers seperated
-
-    # array for header tiers
-    header_tiers = []
-    # pop out header tiers
-    while lines[0][0][0] == '@':
-        header_tiers.append(lines.pop(0))
-
-    # array for main tiers
-    main_tiers = []
-    # pop out main tiers
-    while lines[0][0][0] == '*':
-        main_tiers.append(lines.pop(0))
-
-    # and set the rest to closing
-    closing_tiers = lines
-
-    # process main tiers
-    main_tiers_processed = []
-
-    # for every line, process
-    for line in main_tiers:
-        # split the line
-        line_split = line[1].split(" ")
-        # pair them up
-        line_paired = [(line_split[i],
-                        line_split[i+1])
-                    for i in range(0,len(line_split), 2)]
-        # and fix the right end
-        bullet_extract = lambda x: [int(i)
-                                    for i in
-                                    re.sub(r".(\d+)_(\d+).", r"\1|\2", x).split('|')]
-        line_extracted = [[i[0], bullet_extract(i[1])] for i in line_paired]
-
-        # append results
-        main_tiers_processed.append((line[0], line_extracted))
-
-    return header_tiers, main_tiers_processed, closing_tiers
-
 corpus = None
 
-# process jsons (for both rev API and json files)
-def process_json(data, name=None, interactive=False):
+# process asr output jsons 
+def process_asr_output(data, name=None, interactive=False):
     global corpus
     
-    """Process JSON Data from Rev.ai
+    """Process JSON Data
 
     Attributes:
-        data (dict): JSON data from Rev.ai
+        data (dict): JSON data in the Rev.AI spec
         [name] (str): name of the audio, to add to @Media tier
         [interactive] (bool): whether to support interactive fixes
     """
@@ -283,12 +275,11 @@ def process_json(data, name=None, interactive=False):
     return header, utterance_col, footer
 
 # global realignment function (for rev.ai)
-def process_json_file(f, interactive=False):
+def asr__rev_json(f):
     """Process a RevAI text file as input
 
     Attributes:
         f (str): file to process
-        interactive (bool): whether or not to prompt for speaker info
     """
 
     # open the file and read its lines
@@ -296,10 +287,16 @@ def process_json_file(f, interactive=False):
         data = json.load(df)
 
     # process and return
-    return process_json(data, pathlib.Path(f).stem, interactive)
+    return data
 
 # sent an audio file to ASR, and then process the resulting JSON
-def process_audio_file(f, key, interactive=False):
+def asr__rev_wav(f, key=None):
+    """Perform ASR on an .wav file and return Rev.AI JSON
+
+    Arguments:
+    f (str): the .wav file path to process
+    key (str): the Rev.AI key
+    """
     # late import for backwards capatibility
     from rev_ai import apiclient, JobStatus
 
@@ -336,102 +333,53 @@ def process_audio_file(f, key, interactive=False):
     transcript_json = client.get_transcript_json(job.id)
 
     # finally, we run processing and return the resutls
-    return process_json(transcript_json, pathlib.Path(f).stem, interactive)
-
-# get text GUI
-def interactive_edit(name, string):
-    # create a new UI
-    root = Tk(screenName=f"Interactive Fix")
-    root.title(f"Interactively Fixing {name}")
-    # create the top frame
-    top = ttk.Frame(root, padding=5)
-    top.grid()
-    # label
-    ttk.Label(top, text=f"Fixing {name}  ", font='Helvetica 14 bold').grid(column=0, row=0)
-    ttk.Label(top, text="Use *** to seperate speakers, newlines to seperate utterances.").grid(column=1, row=0)
-    # insert a textbox and place it
-    text_box = ScrolledText(root, font='TkFixedFont 16', height=40, width=100, borderwidth=20, highlightthickness=0)
-    text_box.grid(column=0, row=1)
-    # and insert our fixit string
-    def settext():
-        text_box.delete(1.0, "end")
-        text_box.insert("end", string)
-    # create a finishing function
-    settext()
-    # create the bottom frame
-    bottom = ttk.Frame(root, padding=5)
-    bottom.grid()
-    # don't stop until we do
-    # this is a CHEAP MAINLOOP, but its used
-    # to control when the text element can
-    # be destroyed (i.e. not before reading)
-    def stopit():
-        # hide
-        root.withdraw()
-        # leave!
-        root.quit()
-    # save the current contents to a file
-    def savepoint(auto=False):
-        # draft text
-        text = text_box.get("1.0","end-1c")
-        # basepath
-        basepath = os.path.join("~", ".ba-checkpoints")
-        # make the checkpoints directory
-        pathlib.Path(os.path.expanduser(basepath)).mkdir(parents=True, exist_ok=True)
-        # save
-        with open(os.path.expanduser(os.path.join(basepath, f"{f'{name}_{uuid.uuid4()}.auto' if auto else 'm'}.cut")), 'w') as df:
-            df.write(text.strip())
-    # read the current contents from a file
-    def readpoint():
-        # make the checkpoints directory
-        pathlib.Path(os.path.expanduser(basepath)).mkdir(parents=True, exist_ok=True)
-        # save
-        with open(os.path.expanduser(os.path.join(basepath, "m.cut")), 'w+') as df:
-            text = df.read().strip()
-        text_box.delete(1.0, "end")
-        text_box.insert("end", text)
-    # create the buttons
-    ttk.Button(bottom, text="Reset", command=settext).grid(column=0, row=0,
-                                                           padx=20, pady=5)
-    ttk.Button(bottom, text="Restore Checkpoint", command=readpoint).grid(column=1, row=0,
-                                                                       padx=20, pady=5)
-    ttk.Button(bottom, text="Save Checkpoint", command=savepoint).grid(column=2, row=0,
-                                                                    padx=20, pady=5)
-    ttk.Button(bottom, text="Submit", command=stopit).grid(column=3, row=0,
-                                                           padx=20, pady=5)
-    # mainloop
-    root.mainloop()
-    savepoint(True)
-    final_text = text_box.get("1.0","end-1c")
-    root.destroy()
-
-    # return the new contents of the textbox
-    return final_text.strip()
+    return transcript_json
 
 # global realignment function
-def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
+def retokenize(infile, outfile, utterance_engine, interactive=False, provider=ASRProvider.REV, **kwargs):
     """Function to retokenize an entire chat file
 
     Attributes:
         infile (str): in .cha or json file
         outfile (str): out, retokenized out file
         utterance_engine (UtteranceEngine): trained utterance engine instance
+        provider (ASRProvider): which asr provider to use
         [interactive] (bool): whether to enable midway user fixes to label data/train
-        [key] (str): Rev.AI API key, used for transcription when needed
+        **kwargs: keyword parameters 
 
     Used for output side effects
     """
 
-    # if its json, use json the processor
-    if pathlib.Path(infile).suffix == ".json":
-        header, main, closing = process_json_file(infile, interactive)
-    # if its an audio file, we use the audio preprocessor
-    elif pathlib.Path(infile).suffix == ".wav":
-        header, main, closing = process_audio_file(infile, key, interactive)
-    # if its an AWS .cha (from Andrew), we will use the chat processor
-    else:
-        header, main, closing = process_chat_file(infile)
+    # store ASR output by performing ASR using the indicated method
+    asr = None
 
+    if provider == ASRProvider.REV:
+        key = kwargs.get("key")
+        # find key; if non-existant, ask for it.
+        if not key:
+            # find keyfile
+            with open(os.path.expanduser(defaultmodel("rev_key")), "a+") as df:
+                # seek beginning
+                df.seek(0,0)
+                # get contents
+                cont = df.read()
+                # if no content, prompt
+                if cont == "":
+                    cont = input("Enter your Rev.AI API key: ")
+                    df.write(cont.strip())
+                # anyways, its just the keyfile
+                key = cont.strip()
+
+        # if its json, use the Rev json processor
+        if pathlib.Path(infile).suffix == ".json":
+            asr = asr__rev_json(infile)
+        # if its a .wav file, use the .wav processor
+        elif pathlib.Path(infile).suffix == ".wav":
+            asr = asr__rev_wav(infile, key=key)
+
+    # then, process the ASR
+    header, main, closing = process_asr_output(asr)
+        
     # chunk the data with our model
     chunked_passages = []
 
@@ -526,7 +474,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
     fix_transcript(outfile)
 
 
-def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, key=None):
+def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -534,14 +482,10 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         model_path (str): path to a BertTokenizer and BertModelForTokenClassification
                           trained on the segmentation task.
         [interactive] (bool): whether to run the interactive routine
-        [key] (str): the key to the Rev.AI API, if we need to run ASR
 
     Returns:
         None, used for .cha file generation side effects.
     """
-
-    defaultmodel = lambda x:os.path.join("~","mfa_data",x)
-    defaultfolder = os.path.join("~","mfa_data")
 
     # check if model exists. If not, download it
     if not os.path.exists(os.path.expanduser(defaultmodel("model"))):
@@ -564,33 +508,9 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
 
     # find all the JSON files
     files = globase(in_directory, "*.json")
-    # if we have no JSON files, we assume that the input
-    # chat files are .cha (Andrew edition)
+    # if we can't find any JSON files, we have to go run
+    # ASR
     if len(files) == 0:
-        # we will scan for .cha files
-        files = globase(in_directory, "*.cha")
-        # move them to the .orig directory
-        for f in files:
-            # move to .old
-            os.rename(f,f.replace("cha","orig.cha"))
-        # we will scan for .cha files again, with new dir
-        files = globase(in_directory, "*.cha")
-    # if we STILL have no files, we need to run ASR
-    if len(files) == 0:
-        # find key; if non-existant, ask for it.
-        if not key:
-            # find keyfile
-            with open(os.path.expanduser(defaultmodel("rev_key")), "a+") as df:
-                # seek beginning
-                df.seek(0,0)
-                # get contents
-                cont = df.read()
-                # if no content, prompt
-                if cont == "":
-                    cont = input("Enter your Rev.AI API key: ")
-                    df.write(cont.strip())
-                # anyways, its just the keyfile
-                key = cont.strip()
         # scan for wav files
         files = globase(in_directory, "*.wav")
         # if we don't have wav files, find mp3/4 and convert
@@ -615,5 +535,5 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
-        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, key)
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive)
 
