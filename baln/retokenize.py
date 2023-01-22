@@ -213,80 +213,47 @@ def process_json(data, name=None, interactive=False):
 
     # generate the speaker information, or
     # otherwise fill it out
-    if interactive:
 
-        speakers_filtered = []
-        # filter 2 statements for each speaker needed
-        # and then push
-        for speaker in speaker_ids:
-            speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
+    speakers_filtered = []
+    # filter 2 statements for each speaker needed
+    # and then push
+    for speaker in speaker_ids:
+        speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
 
-        # prompt hello
-        print("Welcome to interactive speaker identification!")
-        print(f"You are working with sample {name}.\n")
+    # prompt hello
+    print("Welcome to interactive speaker identification!")
+    print(f"You are working with sample {name}.\n")
 
-        # print out samples from speaker
-        for indx, speaker in enumerate(speaker_ids):
-            print(f"\033[1mSpeaker {speaker}\033[0m")
-            try: 
-                print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
-            except:
-                breakpoint()
-            print()
+    # print out samples from speaker
+    for indx, speaker in enumerate(speaker_ids):
+        print(f"\033[1mSpeaker {speaker}\033[0m")
+        try: 
+            print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+        except:
+            breakpoint()
+        print()
 
-        # prompt for info
-        for speaker in speaker_ids:
-            # get info and handle error correction
-            # get speaker info
-            speaker_tier = None
-            speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant or P): ").strip()
-            if len(speaker_name) == 1:
-                translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
-                while translation == "*":
-                    speaker_name = input(f"Invalid selection. Please enter identifying letter of speaker {speaker} (i.e. Participant or P): ").strip()
-                    if len(speaker_name) > 1:
-                        break
-                    translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
-                try: 
-                    speaker_name = translation[0]
-                    speaker_tier = translation[1]
-                except IndexError:
-                    # this means that the user chose to type the rest in
-                    pass
-            # if we don't have first capital and spelt correctly
-            while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
-                print("Invalid response. Please follow the formatting example provided.")
-                speaker_name = input(f"Invalid selection. Please enter identifying letter of speaker {speaker} (i.e. Participant): ").strip()
-                if len(speaker_name) == 1:
-                    translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
-                    while translation == "*":
-                        speaker_name = input(f"Please enter all/first letter of name of speaker {speaker} (i.e. Participant or P): ").strip()
-                        translation = SPEAKER_TRANSLATIONS.get(speaker_name.lower(), '*')
-                    speaker_name = translation[0]
-                    speaker_tier = translation[1]
-            # if we are not using on letter shortcut, prompt for tier
-            if not speaker_tier:
-                # get tier info
-                speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ")
-                # if we don't have first capital and spelt correctly
-                while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
-                    print("Invalid response. Please follow the formatting example provided.")
-                    speaker_tier = input(f"Please enter tier of speaker {speaker} (i.e. PAR): ").strip()
-            # add to list
-            speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
-            print()
-        # Name of the corpus
-        if not corpus:
-            corpus = input("Corpus name not found; please enter corpus name: ")
-
-    else:
-
-        # generate info
-        for speaker in speaker_ids:
-            # add to list
-            speakers[speaker] = {"name": f"Speaker", "tier": f"SPK{speaker}"}
-        # corpus name
-        corpus = "corpus_name"
+    # prompt for info
+    for speaker in speaker_ids:
+        # get info and handle error correction
+        # get speaker info
+        speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
+        # if we don't have first capital and spelt correctly
+        while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
+            print("Invalid response. Please follow the formatting example provided.")
+            speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
+        # get tier info
+        speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ")
+        # if we don't have first capital and spelt correctly
+        while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
+            print("Invalid response. Please follow the formatting example provided.")
+            speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ").strip()
+        # add to list
+        speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
+        print()
+    # Name of the corpus
+    if not corpus:
+        corpus = input("Corpus name not found; please enter corpus name: ")
 
     # go through the list and reshape the main tier
     utterance_col = [['*'+speakers[i[0]]["tier"]+":",

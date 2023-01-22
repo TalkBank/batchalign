@@ -41,13 +41,15 @@ If this is the first time you are running this command, we will prompt for you `
 batchalign ~/mfa_data/input ~/mfa_data/output 
 ```
 
-To skip the interactive prompt facility available for the user to identify speakers and easily fix segmentation results, add the `-i` flag to the end of the command.
+To use the interactive prompt facility available for the user to easily fix segmentation results, add the `-i` flag to the end of the command. 
 
 ```bash
 batchalign ~/mfa_data/input ~/mfa_data/output -i
 ```
 
-and follow on screen instructions.
+and follow on screen instructions to correct the automated segmentation.
+
+Note that, regardless of whether or not the `-i` flag was selected, we will always prompt with interactive on-terminal instructions for speaker assignment to allow the user to quickly identify and label each distinct speaker identified in the text. 
 
 ### Align with Existing Utterance-Level Alignments
 This form assumes that there is already utterance-level alignments ("bullets") inside the `.cha` files placed in `~/mfa_data/input`. If not, please use the "Audio/Transcript Alignment" (triggered with key "F5") functionality in CLAN to preliminary annotate utterance alignments to use the raw audio files functionality above to get started fresh.
