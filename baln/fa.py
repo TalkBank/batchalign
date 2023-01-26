@@ -893,6 +893,13 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
 
                 # while we are open, keep reading
                 while (indx+1) < len(sentence):
+                    # check if closed
+                    if "]" in sentence[indx][0].strip():
+                        # if there's a next, and the next is not another open
+                        if (indx+1 < len(sentence) and sentence[indx+1][0] != "" and sentence[indx+1][0][0] != "[") or indx+1 >= len(sentence):
+
+                            break
+
                     # increment reading
                     indx += 1
                     # if no start, but have start now, set start
@@ -904,12 +911,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
 
                     # append result
                     result = result + " " + sentence[indx][0].strip()
-                    # check if closed
-                    if "]" in result:
-                        # if there's a next, and the next is not another open
-                        if (indx+1 < len(sentence) and sentence[indx+1][0] != "" and sentence[indx+1][0][0] != "[") or indx+1 >= len(sentence):
-
-                            break
 
                 if start:
                     # append result
