@@ -44,6 +44,28 @@ def strip_bullets(f):
         # write
         df.write(new_string)
 
+def change_media(f, format="video"):
+    """Change the media header to say a different format
+
+    Attributes:
+        f (string): file path
+
+    Returns:
+        none, used for side effects
+    """
+
+    # get abspath of file
+    f = os.path.abspath(f)
+    # open the file and strip bullets
+    with open(f, 'r') as df:
+        file_content = df.read()
+        # remove all bullet symbols
+        new_string = re.sub(r'@Media:(.*), .*', r"@Media:\1, "+format, file_content)
+    # open the file and write content
+    with open(f, 'w') as df:
+        # write
+        df.write(new_string)
+
 def fix_transcript(f):
     """Fix transcript by adding any needed annotations, retracings, etc.
 

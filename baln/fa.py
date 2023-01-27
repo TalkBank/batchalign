@@ -1,4 +1,3 @@
-
 # Pathing facilities
 import pathlib
 
@@ -33,7 +32,7 @@ os.environ["KMP_WARNINGS"] = "FALSE"
 os.environ["PYTHONWARNINGS"] = "ignore"
 
 # import cleanup
-from .utils import cleanup, resolve_clan
+from .utils import cleanup, resolve_clan, change_media
 
 # import biopython error type
 from Bio import BiopythonDeprecationWarning
@@ -108,11 +107,12 @@ def indent(elem, level=0):
             elem.tail = i
 
 # chat2elan a whole path
-def elan2chat(directory):
+def elan2chat(directory, video=False):
     """Convert a folder of CLAN .eaf files to corresponding CHATs
 
     files:
         directory (string): the string directory in which .elans are in
+        [video] (bool): replace @Media tier annotation from audio => video
 
     Returns:
         None
@@ -132,6 +132,10 @@ def elan2chat(directory):
     # and rename the files
     for f in globase(directory, "*.elan.cha"):
         os.rename(f, f.replace(".elan.cha", ".cha"))
+
+        # change media type if needed
+        if video:
+            change_media(f.replace(".elan.cha", ".cha"), "video")
 
 
 # fixbullets a whole path
@@ -1219,13 +1223,19 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
 
+    # is_video flag for CHAT generation
+    is_video = False
+
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
     wavs = globase(in_directory, "*.wav")
     # if there are no wavs, convert
-    if len(wavs) == 0:
-        mp32wav(in_directory)
+    if len(wavs) == 0 and len(globase(in_directory, "*.mp4")) > 0:
         mp42wav(in_directory)
+        # indeed, is video!
+        is_video = True
+    elif len(wavs) == 0: 
+        mp32wav(in_directory)
 
     # Generate elan elan elan elan
     chat2elan(in_directory)
@@ -1273,7 +1283,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         # Dump the aligned result into the new eaf
         eafalign(old_eaf_path, aligned_result, new_eaf_path)
     # convert the aligned eafs back into chat
-    elan2chat(out_directory)
+    elan2chat(out_directory, is_video)
 
     ### CLEANUP OPS ###
 
