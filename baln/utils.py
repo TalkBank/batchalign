@@ -4,6 +4,8 @@ import os
 import glob
 # pathlib
 import pathlib
+# regular expressions
+import re
 
 
 # resolve CLAN
@@ -19,6 +21,28 @@ CLAN_PATH=resolve_clan()
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
+
+def strip_bullets(f):
+    """Remove bullets from a file
+
+    Attributes:
+        f (string): file path
+
+    Returns:
+        none, used for side effects
+    """
+
+    # get abspath of file
+    f = os.path.abspath(f)
+    # open the file and strip bullets
+    with open(f, 'r') as df:
+        file_content = df.read()
+        # remove all bullet symbols
+        new_string = re.sub(r'\d+_\d+', '', file_content)
+    # open the file and write content
+    with open(f, 'w') as df:
+        # write
+        df.write(new_string)
 
 def fix_transcript(f):
     """Fix transcript by adding any needed annotations, retracings, etc.
@@ -186,3 +210,148 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     for eaf_file in globase(in_directory, "*.txt"):
         os.remove(eaf_file)
 
+# fixbullets a whole path
+def fixbullets(directory):
+    """Fix a whole folder's bullets
+
+    files:
+        directory (string): the string directory in which .chas are in
+
+    Returns:
+        None
+    """
+   
+    # get all files in that directory
+    files = globase(directory, "*.cha")
+    # process each file
+    for fl in files:
+        # elan2chatit!
+        CMD = f"{os.path.join(CLAN_PATH, 'fixbullets ')} {fl} "
+        # run!
+        os.system(CMD)
+    # delete any error logs
+    for f in globase(directory, "*.err.cex"):
+        os.remove(f)
+    # delete any preexisting chat files to old
+    for f in globase(directory, "*.cha"):
+        os.rename(f, f.replace("cha", "old.cha"))
+    # and rename the files
+    for f in globase(directory, "*.fxblts.cex"):
+        os.rename(f, f.replace(".fxblts.cex", ".cha"))
+
+# chat2transcript a whole path
+def chat2transcript(directory, mor=False):
+    """Generate transcripts for a whole directory
+
+    Arguments:
+        directory (string): string directory filled with chat files
+        mor (bool): generate mor-like output
+
+    Returns:
+        none
+    """
+
+    # then, finding all the cha files
+    files = globase(directory, "*.cha")
+
+    # use flo to convert chat files to text
+    if mor:
+        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cm +t*')} {' '.join(files)} "
+    else:
+        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} "
+
+    # run!
+    os.system(CMD)
+
+    # and rename the files to lab files, which are essentially the same thing
+    for f in globase(directory, "*.flo.cex"):
+        os.rename(f, f.replace(".flo.cex", ".lab"))
+
+
+# chat2praat, then clean up tiers, for a whole path
+def chat2praat(directory):
+    """Convert a whole directory to praat files
+
+    Arguments:
+        directory (string) : string directory filled with chat
+
+    Returns:
+        none
+    """
+    # then, finding all the cha files
+    files = globase(directory, "*.cha")
+
+    # use flo to convert chat files to text
+    CMD = f"{os.path.join(CLAN_PATH, 'chat2praat +e.wav +c -t% -t@')} {' '.join(files)} "
+    # run!
+    os.system(CMD)
+
+    # then, finding all the praat files
+    praats = globase(directory, "*.c2praat.textGrid")
+
+    for praat in praats:
+        # load the textgrid
+       os.rename(praat, praat.replace("c2praat.textGrid", "TextGrid"))
+
+    # delete any error logs
+    for f in globase(directory, "*.err.cex"):
+        os.remove(f)
+
+
+# optionally convert mp3 to wav files
+def mp32wav(directory):
+    """Generate wav files from mp3
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    mp3s = globase(directory, "*.mp3")
+
+    # convert each file
+    for f in mp3s:
+        os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
+
+# optionally convert mp4 to wav files
+def mp42wav(directory):
+    """Generate wav files from mp4
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    mp4s = globase(directory, "*.mp4")
+
+    # convert each file
+    for f in mp4s:
+        os.system(f"ffmpeg -i {f} {f.replace('mp4','wav')} -c copy")
+
+def wavconformation(directory):
+    """Reconform wav files
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    wavs = globase(directory, "*.wav")
+
+    # convert each file
+    for f in wavs:
+        # Conforming the wav
+        os.system(f"ffmpeg -i {f} temp.wav")
+        # move the original
+        os.remove(f)
+        # and move the new back
+        os.rename("temp.wav", f)
