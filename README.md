@@ -8,7 +8,14 @@
 
 `batchalign` is available through the `TalkBank` channel in Miniconda. To get started, begin by [installing anaconda](https://www.anaconda.com/products/distribution). Windows users only before `Windows 10 1809` (September, 2018) will also need to [install curl via these instructions](https://developer.zendesk.com/documentation/developer-tools/getting-started/installing-and-using-curl/#installing-curl). For the rest of the guide, we will be assuming the usage of your default command prompt with a working Miniconda installation.
 
-The final screen of the Conda installer will usually describe the next steps for Conda configuration; this final step may often be automatic. For macOS and Linux users needing to perform this step manually (i.e. the final screen of the installer didn't offer to do it automatically or provide next step instructions), the process will involve executing some variant of the commands `source [PATH TO WHERE CONDA IS INSTALLED]/bin/activate` and `conda init`. 
+The final screen of the Conda installer will usually describe the next steps for Conda configuration; this final step may often involve, *in the same shell*, running
+
+```bash
+conda init
+```
+to initialize Anaconda for your workspace.
+
+For macOS and Linux users needing to perform this step manually (i.e. the final screen of the installer didn't offer to do it automatically or provide next step instructions), the process will involve executing some variant of the commands `source [PATH TO WHERE CONDA IS INSTALLED]/bin/activate` and `conda init`. 
 
 ## First Time Setup
 If you have never used `batchalign` before, execute the following
