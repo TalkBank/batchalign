@@ -22,6 +22,7 @@ requirements:
     - six
     - websocket-client
     - numpy 1.22.*
+    - sqalchemy 1.4.46
     - montreal-forced-aligner
     - pytorch
     - pytest-runner 4.2
