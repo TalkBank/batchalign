@@ -4,6 +4,8 @@
 
 `batchalign` is a Python script that uses the Montreal Forced Aligner and the Unix version of CLAN to batch-align data in TalkBank.
 
+The following guide provides a very rough overview of the primary functionality of `batchalign`, and assumes basic familarity with POSIX-like systems and their operatinos. If needed, [visit this guide](https://talkbank.org/info/batchalilgn.docx) for more detailed instructions.
+
 # Setup and Usage 
 
 `batchalign` is available through the `TalkBank` channel in Miniconda. To get started, begin by [installing anaconda](https://www.anaconda.com/products/distribution). Windows users only before `Windows 10 1809` (September, 2018) will also need to [install curl via these instructions](https://developer.zendesk.com/documentation/developer-tools/getting-started/installing-and-using-curl/#installing-curl). For the rest of the guide, we will be assuming the usage of your default command prompt with a working Miniconda installation.
