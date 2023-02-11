@@ -38,14 +38,14 @@ from .utils import cleanup, resolve_clan, change_media
 from Bio import BiopythonDeprecationWarning
 
 # ignore the pairwisealigner warning
-# import warnings
+import warnings
 # with warnings.catch_warnings():
 #     warnings.simplefilter("ignore", BiopythonDeprecationWarning)
 #     # mfa
 #     from montreal_forced_aligner.command_line.align import run_align_corpus
 #     from montreal_forced_aligner.command_line.g2p import run_g2p
 #     from montreal_forced_aligner.command_line.validate import run_validate_corpus
-#     from montreal_forced_aligner.models import ModelManager
+from montreal_forced_aligner.models import ModelManager
     
 warnings.filterwarnings("ignore")
 
@@ -423,7 +423,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         os.system(f"mfa g2p {directory} english_us_arpa {dictionary}")
 
     # run alignment
-    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8")
+    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8 --single_speaker")
    
 # Parse a TextGrid file for word tier
 def parse_textgrid_long(file_path):
