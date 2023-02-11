@@ -22,8 +22,9 @@ requirements:
     - six
     - websocket-client
     - numpy 1.22.*
-    - sqlalchemy
-    - montreal-forced-aligner 2.1.3
+    - sqlalchemy 1.4.46
+    - praatio 5.1.1
+    - montreal-forced-aligner 2.0.6
     - pytorch
     - transformers 4.24.*
     - tokenizers
