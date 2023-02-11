@@ -38,14 +38,14 @@ from .utils import cleanup, resolve_clan, change_media
 from Bio import BiopythonDeprecationWarning
 
 # ignore the pairwisealigner warning
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", BiopythonDeprecationWarning)
-    # mfa
-    from montreal_forced_aligner.command_line.align import run_align_corpus
-    from montreal_forced_aligner.command_line.g2p import run_g2p
-    from montreal_forced_aligner.command_line.validate import run_validate_corpus
-    from montreal_forced_aligner.models import ModelManager
+# import warnings
+# with warnings.catch_warnings():
+#     warnings.simplefilter("ignore", BiopythonDeprecationWarning)
+#     # mfa
+#     from montreal_forced_aligner.command_line.align import run_align_corpus
+#     from montreal_forced_aligner.command_line.g2p import run_g2p
+#     from montreal_forced_aligner.command_line.validate import run_validate_corpus
+#     from montreal_forced_aligner.models import ModelManager
     
 warnings.filterwarnings("ignore")
 
@@ -419,31 +419,11 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
-        commands = make_config_base()
-
-        # here are the input and output paths
-        commands.g2p_model_path = "english_us_arpa"
-        commands.input_path = directory
-        commands.output_path = dictionary
-
         # run mfa
-        run_g2p(commands, [])
+        os.system(f"mfa g2p {directory} english_us_arpa {dictionary}")
 
-    # and finally, align!
-    commands = make_config_base()
-    # we want to run clean each time
-    commands.NUM_JOBS = 8
-    # i/o
-    commands.temporary_directory = ""
-    commands.corpus_directory = directory
-    commands.dictionary_path = dictionary
-    commands.acoustic_model_path = acoustic_model
-    commands.output_directory = data_dir
-    # settings
-    commands.beam = beam
-    commands.retry_beam = 100
-
-    run_align_corpus(commands, [])
+    # run alignment
+    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8")
    
 # Parse a TextGrid file for word tier
 def parse_textgrid_long(file_path):
