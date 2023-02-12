@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.1.7" %}
+{% set version = "0.1.8" %}
 
 package:
   name: {{ name }}
@@ -17,14 +17,17 @@ requirements:
     - python
     - pip
   run:
-    - python
+    - python 3.10.*
     - requests
     - six
     - websocket-client
     - numpy 1.22.*
-    - montreal-forced-aligner
+    - sqlalchemy 2.0.3
+    - praatio 6.0.0
+    - pgvector 0.4.0
+    - pgvector-python 0.1.6
+    - montreal-forced-aligner 2.1.5
     - pytorch
-    - pytest-runner 4.2
     - transformers 4.24.*
     - tokenizers
     - nltk

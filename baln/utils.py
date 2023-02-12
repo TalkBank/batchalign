@@ -54,6 +54,28 @@ def strip_bullets(f):
         # write
         df.write(new_string)
 
+def change_media(f, format="video"):
+    """Change the media header to say a different format
+
+    Attributes:
+        f (string): file path
+
+    Returns:
+        none, used for side effects
+    """
+
+    # get abspath of file
+    f = os.path.abspath(f)
+    # open the file and strip bullets
+    with open(f, 'r') as df:
+        file_content = df.read()
+        # remove all bullet symbols
+        new_string = re.sub(r'@Media:(.*), .*', r"@Media:\1, "+format, file_content)
+    # open the file and write content
+    with open(f, 'w') as df:
+        # write
+        df.write(new_string)
+
 def fix_transcript(f):
     """Fix transcript by adding any needed annotations, retracings, etc.
 
@@ -220,7 +242,10 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     for eaf_file in globase(in_directory, "*.txt"):
         os.remove(eaf_file)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 # fixbullets a whole path
 def fixbullets(directory):
     """Fix a whole folder's bullets
@@ -366,6 +391,7 @@ def wavconformation(directory):
         os.remove(f)
         # and move the new back
         os.rename("temp.wav", f)
+<<<<<<< HEAD
 
 # read all chat files
 def read_flo(f):
@@ -450,3 +476,5 @@ def read_chat(f):
 
 
     
+=======
+>>>>>>> master

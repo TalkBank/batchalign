@@ -1,4 +1,3 @@
-
 # Pathing facilities
 import pathlib
 
@@ -43,13 +42,13 @@ from Bio import BiopythonDeprecationWarning
 
 # ignore the pairwisealigner warning
 import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", BiopythonDeprecationWarning)
-    # mfa
-    from montreal_forced_aligner.command_line.align import run_align_corpus
-    from montreal_forced_aligner.command_line.g2p import run_g2p
-    from montreal_forced_aligner.command_line.validate import run_validate_corpus
-    from montreal_forced_aligner.models import ModelManager
+# with warnings.catch_warnings():
+#     warnings.simplefilter("ignore", BiopythonDeprecationWarning)
+#     # mfa
+#     from montreal_forced_aligner.command_line.align import run_align_corpus
+#     from montreal_forced_aligner.command_line.g2p import run_g2p
+#     from montreal_forced_aligner.command_line.validate import run_validate_corpus
+from montreal_forced_aligner.models import ModelManager
     
 warnings.filterwarnings("ignore")
 
@@ -82,6 +81,7 @@ def make_config_base():
 # import textgrid
 from .opt.textgrid.textgrid import Interval, TextGrid, IntervalTier
 
+
 def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=10):
     """Given a directory of .wav and .lab, align them
 
@@ -102,7 +102,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
 
     # if models are not downloaded (signified by the note)
-    if not os.path.isfile(os.path.expanduser(defaultmodel(".mfamodels"))):
+    if not os.path.isfile(os.path.expanduser(defaultmodel(".mfamodels21"))):
         # create model manager
         manager = ModelManager()
         # download english models
@@ -110,7 +110,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         manager.download_model("acoustic", "english_us_arpa", True)
         manager.download_model("dictionary", "english_us_arpa", True)
         # create note file
-        with open(os.path.expanduser(defaultmodel(".mfamodels")), "w") as df:
+        with open(os.path.expanduser(defaultmodel(".mfamodels21")), "w") as df:
             df.write("")
 
     # define model
@@ -125,31 +125,11 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
 
     # generate dictionary if needed
     if not os.path.exists(dictionary):
-        commands = make_config_base()
-
-        # here are the input and output paths
-        commands.g2p_model_path = "english_us_arpa"
-        commands.input_path = directory
-        commands.output_path = dictionary
-
         # run mfa
-        run_g2p(commands, [])
+        os.system(f"mfa g2p {directory} english_us_arpa {dictionary} --clean")
 
-    # and finally, align!
-    commands = make_config_base()
-    # we want to run clean each time
-    commands.NUM_JOBS = 8
-    # i/o
-    commands.temporary_directory = ""
-    commands.corpus_directory = directory
-    commands.dictionary_path = dictionary
-    commands.acoustic_model_path = acoustic_model
-    commands.output_directory = data_dir
-    # settings
-    commands.beam = beam
-    commands.retry_beam = 100
-
-    run_align_corpus(commands, [])
+    # run alignment
+    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8 --single_speaker --clean")
    
 # Parse a TextGrid file for word tier
 def parse_textgrid_long(file_path):
@@ -785,13 +765,19 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
 
+    # is_video flag for CHAT generation
+    is_video = False
+
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
     wavs = globase(in_directory, "*.wav")
     # if there are no wavs, convert
-    if len(wavs) == 0:
-        mp32wav(in_directory)
+    if len(wavs) == 0 and len(globase(in_directory, "*.mp4")) > 0:
         mp42wav(in_directory)
+        # indeed, is video!
+        is_video = True
+    elif len(wavs) == 0: 
+        mp32wav(in_directory)
 
     # Generate elan elan elan elan
     chat2elan(in_directory)
@@ -836,7 +822,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         # Dump the aligned result into the new eaf
         eafinject(old_eaf_path, new_eaf_path, aligned_result)
     # convert the aligned eafs back into chat
-    elan2chat(out_directory)
+    elan2chat(out_directory, is_video)
 
     ### CLEANUP OPS ###
 

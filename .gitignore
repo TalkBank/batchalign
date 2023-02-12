@@ -7,3 +7,4 @@ dist/*
 .env
 *.sh#
 /.log/
+*~undo-tree~
