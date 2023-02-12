@@ -17,13 +17,15 @@ requirements:
     - python
     - pip
   run:
-    - python
+    - python 3.10.*
     - requests
     - six
     - websocket-client
     - numpy 1.22.*
-    - sqlalchemy
-    - praatio
+    - sqlalchemy 2.0.3
+    - praatio 6.0.0
+    - pgvector 0.4.0
+    - pgvector-python 0.1.6
     - montreal-forced-aligner 2.1.5
     - pytorch
     - transformers 4.24.*

@@ -396,7 +396,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
 
     # if models are not downloaded (signified by the note)
-    if not os.path.isfile(os.path.expanduser(defaultmodel(".mfamodels"))):
+    if not os.path.isfile(os.path.expanduser(defaultmodel(".mfamodels21"))):
         # create model manager
         manager = ModelManager()
         # download english models
@@ -404,7 +404,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         manager.download_model("acoustic", "english_us_arpa", True)
         manager.download_model("dictionary", "english_us_arpa", True)
         # create note file
-        with open(os.path.expanduser(defaultmodel(".mfamodels")), "w") as df:
+        with open(os.path.expanduser(defaultmodel(".mfamodels21")), "w") as df:
             df.write("")
 
     # define model
@@ -420,10 +420,10 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     # generate dictionary if needed
     if not os.path.exists(dictionary):
         # run mfa
-        os.system(f"mfa g2p {directory} english_us_arpa {dictionary}")
+        os.system(f"mfa g2p {directory} english_us_arpa {dictionary} --clean")
 
     # run alignment
-    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8 --single_speaker")
+    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8 --single_speaker --clean")
    
 # Parse a TextGrid file for word tier
 def parse_textgrid_long(file_path):
