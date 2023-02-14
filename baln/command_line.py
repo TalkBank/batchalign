@@ -38,7 +38,6 @@ def cli():
 
     # morphosynctatical analysis
     morphotag = subparsers.add_parser("morphotag")
-    morphotag.add_argument("--lang", type=str, default='en', help='language being analyzed, defaulting en')
 
     # cleanup commands
     clean = subparsers.add_parser("clean")
@@ -46,6 +45,7 @@ def cli():
     #### master commands ####
     parser.add_argument("in_dir", type=str, help='input directory containing .cha and/or .mp3/.wav files')
     parser.add_argument("out_dir", type=str, help='output directory to store output .cha files')
+    parser.add_argument("--lang", type=str, default='en', help='language being analyzed, defaulting en')
     parser.add_argument("--aggressive", default=False, action='store_true', help='use dynamic programming to aggressively align the audio')
     parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as the data cache')
     parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t run `batchalign clean` automatically')

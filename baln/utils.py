@@ -242,10 +242,6 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     for eaf_file in globase(in_directory, "*.txt"):
         os.remove(eaf_file)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 # fixbullets a whole path
 def fixbullets(directory):
     """Fix a whole folder's bullets
@@ -391,7 +387,6 @@ def wavconformation(directory):
         os.remove(f)
         # and move the new back
         os.rename("temp.wav", f)
-<<<<<<< HEAD
 
 # read all chat files
 def read_flo(f):
@@ -474,7 +469,3 @@ def read_chat(f):
 
     return header_tiers, main_tiers_processed, closing_tiers
 
-
-    
-=======
->>>>>>> master
