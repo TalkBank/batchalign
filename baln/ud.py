@@ -221,7 +221,7 @@ def clean_sentence(sent):
     return sent
 
 
-def morphanalyze(in_directory, out_directory, data_directory="data", language="en", clean=True):
+def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggressive=None):
     """Batch morphosyntactic analysis tools using Stanza
 
     Arguments:
@@ -231,13 +231,14 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
         [data_directory (string)]: the subdirectory (rel. to out_directory) which the misc.
                                    outputs go
         [clean (bool)]: whether to clean up, used for debugging
+        [aggressive (bool)]: useless option to satisfy interface
 
     Returns:
         none
     """
 
     # Define the data_dir
-    DATA_DIR = os.path.join(out_directory, data_directory)
+    DATA_DIR = os.path.join(out_dir, data_dir)
 
     # Make the data directory if needed
     if not os.path.exists(DATA_DIR):
@@ -245,24 +246,24 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
 
     print("Starting Stanza...")
 
-    nlp = stanza.Pipeline(language,
+    nlp = stanza.Pipeline(lang,
                           processors='tokenize,pos,lemma,depparse',
                           download_method=DownloadMethod.REUSE_RESOURCES,
                           tokenize_no_ssplit=True)
 
     # create label and elan files
-    chat2transcript(in_directory, True)
-    chat2elan(in_directory)
+    chat2transcript(in_dir, True)
+    chat2elan(in_dir)
 
     # process each file
     print("Performing analysis...")
-    for f in globase(in_directory, "*.cha"):
+    for f in globase(in_dir, "*.cha"):
         print(f"Tagging {Path(f).stem}.cha...")
 
         # get file names
         label_file = f.replace("cha", "lab")
         elan_file = f.replace("cha", "eaf")
-        elan_target = repath_file(elan_file, out_directory)
+        elan_target = repath_file(elan_file, out_dir)
 
         # open label file
         with open(label_file, 'r') as df:
@@ -317,15 +318,15 @@ def morphanalyze(in_directory, out_directory, data_directory="data", language="e
                    morphodata=sentences)
 
     # convert the prepared eafs back into chat
-    elan2chat(out_directory)
+    elan2chat(out_dir)
 
     # and then find all the chat files, removing bullets from them
-    for f in globase(out_directory, "*.cha"):
+    for f in globase(out_dir, "*.cha"):
         strip_bullets(f)
 
     # cleanup!
     if clean:
-        cleanup(in_directory, out_directory, data_directory)
+        cleanup(in_dir, out_dir, data_dir)
         
 
       

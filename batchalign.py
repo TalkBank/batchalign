@@ -7,7 +7,7 @@
 #
 # Copyright © 2023 Brian MacWhinney
 
-from baln.command_line import mainloop
+from baln.cli import batchalign
 
 if __name__=="__main__":
-    mainloop()
+    batchalign()

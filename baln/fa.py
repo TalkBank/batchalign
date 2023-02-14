@@ -321,7 +321,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
     sentence_boundaries = list([list(range(i,j)) for i,j in zip(sentence_starts, sentence_ends)])
 
     if aggressive:
-
         # we now perform n-round alignment
         #
         # recall that we want to preserve the order of the utterances#
@@ -738,7 +737,7 @@ def disfluency_calculation(raw_results, tiers):
     # Union the logs together
     # print(dict(tracker), log)
 
-def do_align(in_directory, out_directory, data_directory="data", model=None, dictionary=None, beam=10, prealigned=False, clean=True, align=True, aggressive=False):
+def do_align(in_dir, out_dir, data_directory="data", model=None, dictionary=None, beam=10, prealigned=False, clean=True, align=True, aggressive=False, lang="en"):
     """Align a whole directory of .cha files
 
     Attributes:
@@ -753,13 +752,14 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
         [clean (bool)]: whether to clean up, used for debugging
         [align (bool)]: whether to actually align, used for debugging
         [aggressive (bool)]: whether to use DP
+        [lang (str)]: language of the sample
 
     Returns:
         none
     """
 
     # Define the data_dir
-    DATA_DIR = os.path.join(out_directory, data_directory)
+    DATA_DIR = os.path.join(out_dir, data_directory)
 
     # Make the data directory if needed
     if not os.path.exists(DATA_DIR):
@@ -770,27 +770,27 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
 
     ### PREPATORY OPS ###
     # convert all mp3s to wavs
-    wavs = globase(in_directory, "*.wav")
+    wavs = globase(in_dir, "*.wav")
     # if there are no wavs, convert
-    if len(wavs) == 0 and len(globase(in_directory, "*.mp4")) > 0:
-        mp42wav(in_directory)
+    if len(wavs) == 0 and len(globase(in_dir, "*.mp4")) > 0:
+        mp42wav(in_dir)
         # indeed, is video!
         is_video = True
     elif len(wavs) == 0: 
-        mp32wav(in_directory)
+        mp32wav(in_dir)
 
     # Generate elan elan elan elan
-    chat2elan(in_directory)
+    chat2elan(in_dir)
 
     # generate utterance and word-level alignments
-    elans = globase(in_directory, "*.eaf")
+    elans = globase(in_dir, "*.eaf")
 
     if prealigned:
         # convert all chats to TextGrids
-        chat2praat(in_directory)
+        chat2praat(in_dir)
     else:
         # convert all chats to transcripts
-        chat2transcript(in_directory)
+        chat2transcript(in_dir)
 
     # NOTE FOR FUTURE EDITORS
     # TextGrid != textGrid. P2FA and MFA generate different results
@@ -799,7 +799,7 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     # if we are to align
     if align:
         # Align the files
-        align_directory_mfa(in_directory, DATA_DIR, beam=beam, model=model, dictionary=dictionary)
+        align_directory_mfa(in_dir, DATA_DIR, beam=beam, model=model, dictionary=dictionary)
 
     # find textgrid files
     alignments = globase(DATA_DIR, "*.TextGrid")
@@ -808,24 +808,24 @@ def do_align(in_directory, out_directory, data_directory="data", model=None, dic
     print("Done with MFA! Generating final word-level alignments and bullets...")
     for alignment in tqdm(sorted(alignments)):
         # Find the relative elan file
-        elan = repath_file(alignment, in_directory).replace("TextGrid", "eaf").replace("textGrid", "eaf")
+        elan = repath_file(alignment, in_dir).replace("TextGrid", "eaf").replace("textGrid", "eaf")
         # Align the alignment results
         # MFA TextGrids are long form
         print(f"Processing {alignment.replace('.TextGrid', '')}...")
         aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long", aggressive=aggressive)
 
         # Calculate the path to the old and new eaf
-        old_eaf_path = os.path.join(in_directory,
+        old_eaf_path = os.path.join(in_dir,
                                     pathlib.Path(elan).name)
-        new_eaf_path = os.path.join(out_directory,
+        new_eaf_path = os.path.join(out_dir,
                                     pathlib.Path(elan).name)
         # Dump the aligned result into the new eaf
         eafinject(old_eaf_path, new_eaf_path, aligned_result)
     # convert the aligned eafs back into chat
-    elan2chat(out_directory, is_video)
+    elan2chat(out_dir, is_video)
 
     ### CLEANUP OPS ###
 
     if clean:
-        cleanup(in_directory, out_directory, data_directory)
+        cleanup(in_dir, out_dir, data_directory)
 

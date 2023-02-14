@@ -7,7 +7,7 @@ package:
 
 source:
   git_url: https://github.com/TalkBank/batchalign.git
-  git_rev: feat/ud
+  git_rev: feat/next
 
 requirements:
   build:
@@ -40,7 +40,7 @@ build:
 
 about:
   home: https://github.com/TalkBank/batchalign
-  summary: 'an utility to generate and align CHAT files with ASR + Forced Alignment'
+  summary: 'CHAT file batch-processing utilities'
   dev_url: https://github.com/TalkBank/batchalign.git
   doc_url: https://github.com/TalkBank/batchalign
 

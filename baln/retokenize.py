@@ -474,7 +474,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
     fix_transcript(outfile)
 
 
-def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False):
+def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en"):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -482,13 +482,14 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         model_path (str): path to a BertTokenizer and BertModelForTokenClassification
                           trained on the segmentation task.
         [interactive] (bool): whether to run the interactive routine
+        [lang] (str): language
 
     Returns:
         None, used for .cha file generation side effects.
     """
 
-    # check if model exists. If not, download it
-    if not os.path.exists(os.path.expanduser(defaultmodel("model"))):
+    # check if model exists. If not, download it if needed.
+    if not model_path and not os.path.exists(os.path.expanduser(defaultmodel("model"))):
         print("Getting segmentation model...")
         # make the path
         os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
@@ -505,6 +506,10 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         # and then rename it
         basepath = os.path.expanduser(defaultfolder)
         os.rename(os.path.join(basepath, MODEL), os.path.join(basepath, "model"))
+
+    # if a None was explicitly passed in
+    if not model_path:
+        model_path = os.path.join("~","mfa_data","model")
 
     # find all the JSON files
     files = globase(in_directory, "*.json")

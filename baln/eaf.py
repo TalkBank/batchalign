@@ -384,12 +384,11 @@ def chat2elan(directory):
 
 
 # chat2elan a whole path
-def elan2chat(directory):
+def elan2chat(directory, video=False):
     """Convert a folder of CLAN .eaf files to corresponding CHATs
-
     files:
         directory (string): the string directory in which .elans are in
-
+        [video] (bool): replace @Media tier annotation from audio => video
     Returns:
         None
     """
@@ -409,4 +408,6 @@ def elan2chat(directory):
     for f in globase(directory, "*.elan.cha"):
         os.rename(f, f.replace(".elan.cha", ".cha"))
 
-
+        # change media type if needed
+        if video:
+            change_media(f.replace(".elan.cha", ".cha"), "video")

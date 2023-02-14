@@ -11,14 +11,14 @@ def read(fname):
 
 setup(
     name = "batchalign",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "TalkBank",
     author_email = "macw@cmu.edu",
-    description = ("an utility to generate and align CHAT files with ASR + Forced Alignment"),
+    description = ("CHAT file batch-processing utilities"),
     packages=find_packages(),
     long_description=read('README.md'),
     entry_points = {
-        'console_scripts': ['batchalign=baln.command_line:mainloop'],
+        'console_scripts': ['batchalign=baln.cli:batchalign'],
     },
     install_requires=[
         'rev_ai'
