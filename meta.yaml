@@ -36,7 +36,7 @@ requirements:
 
 build:
   entry_points:
-    - batchalign = baln.command_line:mainloop
+    - batchalign = baln.cli:batchalign
 
 about:
   home: https://github.com/TalkBank/batchalign
