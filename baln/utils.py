@@ -142,6 +142,7 @@ def fix_transcript(f):
     os.chdir(workdir)
     # delete old file
     os.remove(f)
+    os.remove(f.replace("cha", "old.cha"))
     # rename new file
     os.rename(f.replace("cha", "lowcas.cex"), f)
 

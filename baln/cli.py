@@ -18,7 +18,7 @@ def common_options(f):
                      default=False,
                      type=str),
         click.option("--lang",
-                     help="sample language in two-letter code",
+                     help="sample language in two-letter ISO 639-1 code",
                      show_default=True,
                      default="en",
                      type=str),
@@ -92,7 +92,7 @@ def transcribe(ctx, **kwargs):
     # ASR
     print("Performing ASR...")
     retokenize_directory(kwargs["in_dir"], model_path=kwargs["model"],
-                         interactive=kwargs["interactive"], lang=["lang"])
+                         interactive=kwargs["interactive"], lang=kwargs["lang"])
 
     # now, if we need asr, then run ASR
     if kwargs["align"]:

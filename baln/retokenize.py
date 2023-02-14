@@ -290,12 +290,13 @@ def asr__rev_json(f):
     return data
 
 # sent an audio file to ASR, and then process the resulting JSON
-def asr__rev_wav(f, key=None):
+def asr__rev_wav(f, key=None, lang="en"):
     """Perform ASR on an .wav file and return Rev.AI JSON
 
     Arguments:
     f (str): the .wav file path to process
     key (str): the Rev.AI key
+    lang (str): language
     """
     # late import for backwards capatibility
     from rev_ai import apiclient, JobStatus
@@ -307,6 +308,7 @@ def asr__rev_wav(f, key=None):
     # we will send the file for processing
     job = client.submit_job_local_file(f,
                                        metadata=f"batchalign_{pathlib.Path(f).stem}",
+                                       language=lang,
                                        skip_postprocessing=True)
 
     # we will wait
@@ -336,7 +338,7 @@ def asr__rev_wav(f, key=None):
     return transcript_json
 
 # global realignment function
-def retokenize(infile, outfile, utterance_engine, interactive=False, provider=ASRProvider.REV, **kwargs):
+def retokenize(infile, outfile, utterance_engine, interactive=False, provider=ASRProvider.REV, lang="en", **kwargs):
     """Function to retokenize an entire chat file
 
     Attributes:
@@ -344,6 +346,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         outfile (str): out, retokenized out file
         utterance_engine (UtteranceEngine): trained utterance engine instance
         provider (ASRProvider): which asr provider to use
+        [lang] (str): language
         [interactive] (bool): whether to enable midway user fixes to label data/train
         **kwargs: keyword parameters 
 
@@ -375,10 +378,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
             asr = asr__rev_json(infile)
         # if its a .wav file, use the .wav processor
         elif pathlib.Path(infile).suffix == ".wav":
-            asr = asr__rev_wav(infile, key=key)
+            asr = asr__rev_wav(infile, key=key, lang=lang)
 
     # then, process the ASR
-    header, main, closing = process_asr_output(asr)
+    header, main, closing = process_asr_output(asr, pathlib.Path(infile).stem)
         
     # chunk the data with our model
     chunked_passages = []
@@ -540,5 +543,5 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
-        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive)
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang)
 

@@ -29,6 +29,9 @@ from collections import defaultdict
 
 from baln.eaf import eafinject
 
+# language code enum
+import enum
+
 # silence OMP
 os.environ["KMP_WARNINGS"] = "FALSE" 
 os.environ["PYTHONWARNINGS"] = "ignore"
@@ -65,6 +68,14 @@ ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 
 DISFLULENCY_CODE = re.compile("\[.*?\]")
 
+class G2P_MODEL(enum.Enum):
+    en = "english_us_arpa"
+    es = "spanish_spain_mfa"
+
+class ACOUSTIC_MODEL(enum.Enum):
+    en = "english_us_arpa"
+    es = "spanish_mfa"
+
 # default MFA settings
 def make_config_base():
     commands = argparse.Namespace()
@@ -82,7 +93,7 @@ def make_config_base():
 from .opt.textgrid.textgrid import Interval, TextGrid, IntervalTier
 
 
-def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=10):
+def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=10, lang="en"):
     """Given a directory of .wav and .lab, align them
 
     Arguments:
@@ -91,10 +102,15 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         [model (str)]: model to use
         [dictionary (str)]: dictionary to use
         [beam (int)]: beam width for initial MFA alignment
+        [lang (str)]: 2-letter language code
 
     Returns:
         none
     """
+
+    # get language model name
+    acoustic_model = ACOUSTIC_MODEL[lang.lower()].value
+    g2p_model = G2P_MODEL[lang.lower()].value
 
     defaultmodel = lambda x:os.path.join("~","mfa_data",x)
     defaultfolder = os.path.join("~","mfa_data")
@@ -102,20 +118,21 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
 
     # if models are not downloaded (signified by the note)
-    if not os.path.isfile(os.path.expanduser(defaultmodel(".mfamodels21"))):
+    if not os.path.isfile(os.path.expanduser(defaultmodel(f".mfamodels21__{acoustic_model}"))):
         # create model manager
         manager = ModelManager()
+        print("Downloading missing models...")
         # download english models
-        manager.download_model("g2p", "english_us_arpa", True)
-        manager.download_model("acoustic", "english_us_arpa", True)
-        manager.download_model("dictionary", "english_us_arpa", True)
+        manager.download_model("g2p", g2p_model, True)
+        manager.download_model("acoustic", acoustic_model, True)
+        manager.download_model("dictionary", g2p_model, True)
         # create note file
-        with open(os.path.expanduser(defaultmodel(".mfamodels21")), "w") as df:
+        with open(os.path.expanduser(defaultmodel(f".mfamodels21__{acoustic_model}")), "w") as df:
             df.write("")
 
     # define model
     if not model:
-        acoustic_model = "english_us_arpa"
+        acoustic_model = acoustic_model
     else:
         acoustic_model = model # TODO
 
@@ -126,7 +143,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     # generate dictionary if needed
     if not os.path.exists(dictionary):
         # run mfa
-        os.system(f"mfa g2p {directory} english_us_arpa {dictionary} --clean")
+        os.system(f"mfa g2p {directory} {g2p_model} {dictionary} --clean")
 
     # run alignment
     os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8 --single_speaker --clean")
@@ -799,7 +816,7 @@ def do_align(in_dir, out_dir, data_directory="data", model=None, dictionary=None
     # if we are to align
     if align:
         # Align the files
-        align_directory_mfa(in_dir, DATA_DIR, beam=beam, model=model, dictionary=dictionary)
+        align_directory_mfa(in_dir, DATA_DIR, beam=beam, model=model, dictionary=dictionary, lang=lang)
 
     # find textgrid files
     alignments = globase(DATA_DIR, "*.TextGrid")
