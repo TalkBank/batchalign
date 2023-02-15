@@ -474,7 +474,12 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         df.writelines([i+'\n' for i in new_chat])
 
     # and fix any errors
-    fix_transcript(outfile)
+    # for most cases, don't use locase
+    # TODO until more lowcase files are avilable
+    if lang != "en":
+        fix_transcript(outfile, None)
+    else:
+        fix_transcript(outfile)
 
 
 def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en"):

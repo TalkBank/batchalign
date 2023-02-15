@@ -76,11 +76,12 @@ def change_media(f, format="video"):
         # write
         df.write(new_string)
 
-def fix_transcript(f):
+def fix_transcript(f, lowcase="caps.cut"):
     """Fix transcript by adding any needed annotations, retracings, etc.
 
     Attributes:
         f (string): file path
+        lowcase (string): lowcase file, if None is used then it will not be ran
 
     Returns:
         none, used for side effects
@@ -130,21 +131,22 @@ def fix_transcript(f):
     ## Lowercasing ##
     #################
 
-    CAPS_FILE = os.path.abspath(os.path.join(dir_path, "caps.cut"))
-    # save/change workdir for lowcase
-    workdir = os.getcwd()
-    # change it to the output
-    os.chdir(pathlib.Path(f).parent.absolute())
-    # run 
-    CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} "
-    os.system(CMD)
-    # change it back to the output
-    os.chdir(workdir)
-    # delete old file
-    os.remove(f)
-    os.remove(f.replace("cha", "old.cha"))
-    # rename new file
-    os.rename(f.replace("cha", "lowcas.cex"), f)
+    if lowcase:
+        CAPS_FILE = os.path.abspath(os.path.join(dir_path, lowcase))
+        # save/change workdir for lowcase
+        workdir = os.getcwd()
+        # change it to the output
+        os.chdir(pathlib.Path(f).parent.absolute())
+        # run 
+        CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} "
+        os.system(CMD)
+        # change it back to the output
+        os.chdir(workdir)
+        # delete old file
+        os.remove(f)
+        os.remove(f.replace("cha", "old.cha"))
+        # rename new file
+        os.rename(f.replace("cha", "lowcas.cex"), f)
 
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear

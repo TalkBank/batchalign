@@ -3,6 +3,9 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
+VERSION="0.1.9"
+NOTES="removed call to LOWCASE for Spanish"
+
 #################### OPTIONS ################################
 
 # common options for batchalign
@@ -41,10 +44,6 @@ def batchalign(ctx):
     freeze_support()
     # ensure that the contex object is a dictionary
     ctx.ensure_object(dict)
-
-@batchalign.result_callback()
-def process_result(result, **kwargs):
-    click.echo("Done! Check the output folder.")
 
 #################### ALIGN ################################
 
@@ -127,3 +126,19 @@ def clean(ctx, **kwargs):
     click.echo("Performing cleanup operations...")
     cleanup(kwargs["in_dir"], kwargs["out_dir"], "data")
 
+#################### CLEAN ################################
+
+@batchalign.command()
+@click.pass_context
+def version(ctx, **kwargs):
+    """program version info"""
+
+    click.echo()
+    click.echo("TalkBank Batchalign")
+    click.echo(f"-------------------")
+    click.echo("Developed by Brian MacWhinney and Houjun Liu")
+    click.echo(f"Version v{VERSION}")
+    click.echo(f"--------------------------------------------")
+    click.echo(f"{NOTES}")
+    click.echo()
+   

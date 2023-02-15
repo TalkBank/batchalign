@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.1.8" %}
+{% set version = "0.1.9" %}
 
 package:
   name: {{ name }}
@@ -26,7 +26,7 @@ requirements:
     - praatio 6.0.0
     - pgvector 0.4.0
     - pgvector-python 0.1.6
-    - montreal-forced-aligner 2.1.5
+    - montreal-forced-aligner 2.1.7
     - pytorch
     - transformers 4.24.*
     - tokenizers
