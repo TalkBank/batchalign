@@ -3,89 +3,164 @@ featurize.py
 Takes audio samples and featurize them into standard features
 """
 
+# h5py data
+import h5py
+
+# pathing tools
+import os
+from pathlib import Path
+
+# data types
+from abc import ABC, abstractstaticmethod
+from enum import Enum
 from collections import defaultdict
 
-def disfluency_calculation(raw_results, tiers):
-    """tool to help calculate disfluncy per utterance
+import numpy as np
 
-    Attributes:
-        raw_results: a list of [(word/pause: (start, end)/None)] representing
-                     alignment
-        tiers: tier information to seperate terms out
-    """
+# import utilities
+from .utils import *
 
-    # sentence logs
-    logs = []
+class FProcessorAction(Enum):
+    EXPERIMENT = 0
+    TIER = 1
+    UTTERANCE = 2
 
-    # for each utterance
-    for tier, utterance in zip(tiers, raw_results):
-        # create a default dict to track
-        tracker = defaultdict(int)
-        # the item logs
-        # contents should be [(item, start, end)...xnum_marks]
-        log = []
+class FProcessor(ABC):
+    produces_scalar = False
 
-        # seed a for loop (so we can skip things) and iterate
-        i = 0
-        while i < len(utterance):
-            # get the mark
-            mark = utterance[i]
+    @abstractstaticmethod
+    def process(payload, active_region=None):
+        pass
 
-            # get timemark
-            # if timemark exists, the beginning is counted
-            # as the timeark. Otherwise, the end of the
-            # previous one is the timemark
+class FAudioProcessor(FProcessor):
+    @abstractstaticmethod
+    def process(audio_file:str, timestamps:list):
+        pass
 
-            if mark[1]:
-                # start of the current one
-                timemark = mark[1][0]
-            elif i!=0 and utterance[i-1][1]:
-                # end of the previous one
-                timemark = utterance[i-1][1][1]
+class FBulletProcessor(FProcessor):
+    @abstractstaticmethod
+    def process(bullet_array:list):
+        pass
+
+class Featurizer(object):
+
+    def __init__(self):
+
+        self.__experiment_processors = []
+        self.__tier_processors = []
+        self.__utterance_processors = []
+
+    def register_processor(self, name, processor:FProcessor, 
+                           processor_action:FProcessorAction):
+
+        if processor_action == FProcessorAction.EXPERIMENT:
+            self.__experiment_processors.append((name, processor))
+        elif processor_action == FProcessorAction.TIER:
+            self.__tier_processors.append((name, processor))
+        elif processor_action == FProcessorAction.UTTERANCE:
+            self.__utterance_processors.append((name, processor))
+        else:
+            raise ValueError(f"Batchalign: processor action {processor_action} unknown!")
+
+    @staticmethod
+    def __process_with(processors, bullets, alignments, audio):
+        """Process a set of data with a set of processors
+
+        Attributes:
+            processors ([FProcessor]): list of processors to use
+            bullets ([[("word", (beg, end)) ...] ...]): list of utterances contining list of words
+            audio (str): audio file path
+        """
+
+        processed = {"scalars": {},
+                     "vectors": {}}
+        
+        for name, i in processors:
+            scalarp = "scalars" if i.produces_scalar else "vectors"
+            if issubclass(i, FAudioProcessor):
+                processed[scalarp][name] = i.process(audio, alignments)
+            elif issubclass(i, FBulletProcessor):
+                processed[scalarp][name] = i.process(bullets)
             else:
-                timemark = None
+                raise ValueError(f"Batchalign: processor type {type(i)} unknown!")
 
-            # if we have an empty line, we ignore
-            if mark[0] == "": pass
-            # if we have a retraction or repetition, we add it
-            elif mark[0] == "[/]" or  mark[0] == "[//]" :
-                # append the previous result to the log
-                # for the timing
-                log.append((mark[0], timemark))
-                # and add one to the tracker
-                tracker[mark[0]] += 1
-            # if we have an ending utterance mark (at the end of uterances), we add it
-            elif mark[0][-1]  == "]" and (i == len(utterance)-1):
-                # append the result to the log
-                log.append((mark[0][:-1], timemark))
-                # and add one to the tracker
-                tracker[mark[0][:-1]] += 1
-            # if we have a filled pause or verbal disfluency
-            elif mark[0] == "&+" or mark[0] == "&-":
-                # append the result to log
-                # by gettincg the start of the next item
-                log.append((mark[0], utterance[i+1][1][0]))
-                tracker[mark[0]] += 1
-            # if we have a pause, also add it
-            elif mark[0] == "(.)" or mark[0] == "(..)" or mark[0] == "(...)":
-                # append the result
-                log.append(("(.)", timemark))
-                # and add one to the tracker
-                tracker["(.)"] += 1
+        return processed
 
-            # increment  
-            i += 1
+    def process(self, data, audio):
+        # process experiment level
+        experiment_processed = self.__process_with(self.__experiment_processors,
+                                                data["raw"], data["alignments"],
+                                                audio)
 
-        # append log to logs
-        logs = logs + log
+        # process tier level (sorry for the code quality)
+        # get tier ids
+        id_list = defaultdict(lambda : len(id_list))
+        id_indx = defaultdict(list)
+        for i, tier in enumerate(data["tiers"]):
+            id_indx[id_list[tier]].append(i)
+        id_list = {v:k for k,v in id_list.items()} # list of {id: tier} (i.e. {0: PAR, 1: INV})
+        id_indx = dict(id_indx) # get the indicies for the tier {id: [ids ...]} (i.e. {0: [0,1,2,3, ...]})
+        # slice out tiers and process
+        tier_processed = {}
+        for key, value in id_indx.items():
+            tier = id_list[key]
 
-    # Union the logs together
-    print(dict(tracker), log)
+            alignments = [data["alignments"][i] for i in value]
+            raw = [data["raw"][i] for i in value]
+
+            tier_processed[tier] = self.__process_with(self.__tier_processors,
+                                                    raw, alignments,
+                                                    audio)
+        # process utterance level
+        utterance_processed = {"scalars": [],
+                               "vectors": []}
+
+        for raw, alignments in zip(data["raw"], data["alignments"]):
+            result = self.__process_with(self.__utterance_processors,
+                                        [raw], [alignments],
+                                        audio)
+
+            utterance_processed["scalars"].append(result["scalars"])
+            utterance_processed["vectors"].append(result["vectors"])
+
+        return { "experiment": experiment_processed,
+                 "tier": tier_processed,
+                 "utterance": utterance_processed }
+
+###### Actual Processors ######
+
+class MLU(FBulletProcessor):
+
+    produces_scalar = True
+
+    @staticmethod
+    def process(bullet_array:list):
+        # get number of utterances
+        num_utterances = len(bullet_array)
+        # TODO TODO BAD get the numer of morphemes 
+        num_morphemes = [len(i) for i in bullet_array]
+
+        return sum(num_morphemes)/num_utterances
+
+###### Normal Commands ######
 
 def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True):
-    print(disfluency_calculation(alignment[0][1]["raw"], alignment[0][1]["tiers"]))
-    breakpoint()
+
+    for filename, data in alignment:
+        # generate the paths to things
+        audio = os.path.join(in_dir, f"{Path(filename).stem}.wav")
+        data = os.path.join(out_dir, f"{Path(filename).stem}.hdf5")
+        chat = os.path.join(out_dir, f"{Path(filename).stem}.cha")
+        
+        breakpoint()
     pass
+
+
+# f = h5py.File("../../talkbank-alignment/tmp.hdf5", "w")
+# f.attrs["temp"] = 1
+# f.attrs.keys()
+# f.close()
+
 
 
 
