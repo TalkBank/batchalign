@@ -3,8 +3,9 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.1.9"
-NOTES="removed call to LOWCASE for Spanish"
+# REMINDER: did you change meta.yaml as well?
+VERSION="0.2.0"
+NOTES="initial explorations of featurization"
 
 #################### OPTIONS ################################
 
@@ -111,6 +112,34 @@ def morphotag(ctx, **kwargs):
     from .ud import morphanalyze
 
     morphanalyze(**kwargs)
+
+
+#################### FEATURIZE ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+@click.option("--beam", type=int,
+              default=30, help="beam width for MFA")
+@click.option("--align/--skipalign",
+              help="actually invoke MFA or just run Batchalign operations", default=True)
+@click.option("--prealigned/--scratch",
+              help="process CHAT file that is already utterance aligned", default=True)
+def featurize(ctx, **kwargs):
+    """generate .hdf5 feature file usable for analysis"""
+
+    # forced alignment tools
+    from .fa import do_align
+
+    # featurization tools
+    from .featurize import featurize
+
+    # fa!
+    alignments = do_align(**kwargs)
+
+    # featurize
+    featurize(alignments, kwargs["in_dir"], kwargs["out_dir"],
+              lang=kwargs["lang"], clean=kwargs["clean"])
 
 #################### CLEAN ################################
 
