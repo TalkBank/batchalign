@@ -130,35 +130,21 @@ If there is stray files in the input folder (`.eaf`, `.lab`, etc.) after alignme
 batchalign ~/mfa_data/input ~/mfa_data/output --clean
 ```
 
-# Full Usage Documentation 
+# Full Command Documentation 
 
 ```
-usage: batchalign [-h] [--prealigned] [--data_dir DATA_DIR] [--beam BEAM] [--skipalign] [--skipclean]
-                  [--dictionary DICTIONARY] [--model MODEL] [--retokenize RETOKENIZE] [-i] [-n] [-a]
-                  [--rev REV] [--clean]
-                  in_dir out_dir
+Usage: batchalign.py [OPTIONS] COMMAND [ARGS]...
 
-batch align .cha to audio in a directory with MFA/P2FA
+  batch process CHAT files in IN_DIR and dumps them to OUT_DIR
 
-positional arguments:
-  in_dir                input directory containing .cha and .mp3/.wav files
-  out_dir               output directory to store aligned .cha files
+Options:
+  --help  Show this message and exit.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --prealigned          input .cha has utterance-level alignments
-  --data_dir DATA_DIR   subdirectory of out_dir to use as data dir
-  --beam BEAM           beam width for MFA, ignored for P2FA
-  --skipalign           don't align, just call CHAT ops
-  --skipclean           don't clean
-  --dictionary DICTIONARY
-                        path to custom dictionary
-  --model MODEL         path to custom model
-  --retokenize RETOKENIZE
-                        retokenize input with model
-  -i, --interactive     interactive retokenization (with user correction), useless without retokenize
-  -n, --headless        interactive without GUI prompt, useless without -i
-  -a, --asronly         ASR only, don't run mfa
-  --rev REV             rev.ai API key, to submit audio
-  --clean               don't align, just call cleanup
+Commands:
+  align       align a CHAT transcript against a media file
+  clean       clean input and output folders
+  featurize   generate .hdf5 feature file usable for analysis
+  morphotag   perform morphosyntactic analysis on a CHAT file
+  transcribe  generate and align a CHAT transcript from a media file
+  version     program version info
 ```
