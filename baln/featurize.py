@@ -8,6 +8,7 @@ import h5py
 
 # pathing tools
 import os
+import pickle
 from pathlib import Path
 
 # data types
@@ -17,8 +18,22 @@ from collections import defaultdict
 
 import numpy as np
 
+# mfcc
+from python_speech_features import mfcc
+import scipy.io.wavfile as wav
+
 # import utilities
 from .utils import *
+
+# demo = [[('beans', (24.38, 24.67)),
+#          ('are', (24.67, 24.78)),
+#          ('fun', (24.78, 25.22)),
+#          ('.', None)],
+#         [('thank', (25.29, 25.45)),
+#          ('you', (25.45, 25.51)),
+#          ('very', (25.51, 25.66)),
+#          ('much', (25.66, 25.83)),
+#          ('.', None)]]
 
 class FProcessorAction(Enum):
     EXPERIMENT = 0
@@ -138,9 +153,7 @@ class Featurizer(object):
 ###### Actual Processors ######
 
 class MLU(FBulletProcessor):
-
     produces_scalar = True
-
     @staticmethod
     def process(bullet_array:list):
         # get number of utterances
@@ -150,9 +163,72 @@ class MLU(FBulletProcessor):
 
         return sum(num_morphemes)/num_utterances
 
+class VoicedDuration(FBulletProcessor):
+    produces_scalar = True
+    @staticmethod
+    def process(bullet_array:list):
+        # sum the time when something's voiced
+        return sum([sum(word[1][1]-word[1][0] for word in utt if word[1]) for utt in bullet_array])
+
+class SilenceDuration(FBulletProcessor):
+    # TODO how to compute this. Does this include inter-utterance?
+    produces_scalar = True
+    @staticmethod
+    def process(bullet_array:list):
+        # tally
+        silence = 0
+        # loop through each utterance to compute silences
+        for utterance in bullet_array:
+            # filter for no times
+            bulleted_words_with_time = list(filter(lambda x:x[1], utterance))
+            for i in range(len(bulleted_words_with_time)-2): # -2 to not read the last one
+                cur_word = bulleted_words_with_time[i]
+                next_word = bulleted_words_with_time[i+1]
+
+                # compute silence: i.e. space between two words
+                silence += next_word[1][0] - cur_word[1][1]
+
+        return silence
+
+class VoiceSilenceRatio(FBulletProcessor):
+    produces_scalar = True
+    @staticmethod
+    def process(bullet_array:list):
+        return VoicedDuration.process(bullet_array)/SilenceDuration.process(bullet_array)
+
+class MFCC(FAudioProcessor):
+    produces_scalar = False
+    @staticmethod
+    def process(audio_file:str, timestamps:list):
+        (rate,sig) = wav.read(audio_file)
+
+        # slice the timestamps to the desired ranges
+        timestamps_sliced = [(int(i[0]*rate),
+                            int(i[1]*rate)) for i in timestamps]
+        timestamps_range = sum([list(range(start, end)) for start, end in timestamps_sliced], [])
+        # slice the signal based on the ranges
+        sig_sliced = sig[timestamps_range]
+
+        mfcc_feat = mfcc(sig_sliced,rate)
+        
+        return mfcc_feat
+
 ###### Create Default Featurizer ######
 featurizer = Featurizer()
+
+# Register...
+# experiment processors
+featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.EXPERIMENT)
+featurizer.register_processor("mfcc", MFCC, FProcessorAction.EXPERIMENT)
+# tier processors
 featurizer.register_processor("mlu", MLU, FProcessorAction.TIER)
+featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.TIER)
+featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TIER)
+featurizer.register_processor("voice_silence_ratio", VoiceSilenceRatio, FProcessorAction.TIER)
+featurizer.register_processor("mfcc", MFCC, FProcessorAction.TIER)
+# utterance processors
+featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.UTTERANCE)
+featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TIER)
 
 ###### Normal Commands ######
 def store_to_group(group, feature_dict):
@@ -180,6 +256,7 @@ def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True
         # generate the paths to things
         audio = os.path.join(in_dir, f"{name}.wav")
         hdf5 = os.path.join(out_dir, f"{name}.hdf5")
+        pkl = os.path.join(out_dir, f"{name}.pkl")
         chat = os.path.join(out_dir, f"{name}.cha")
         
         # featurize!
@@ -195,7 +272,7 @@ def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True
         utterance = f.create_group("utterance")
 
         # store experiment-wide results
-        store_to_group(f, features["experiment"])
+        store_to_group(exp, features["experiment"])
 
         # store per-tier results
         for tier_name, value in features["tier"].items():
@@ -209,13 +286,8 @@ def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True
 
         f.close()
 
+        # pickle the fetarues too
+        with open(pkl, "wb") as f:
+            pickle.dump(features, f)
 
-
-# f = h5py.File("../../talkbank-alignment/tmp.hdf5", "w")
-# f.attrs["temp"] = 1
-# f.attrs.keys()
-# f.close()
-
-
-
-
+        
