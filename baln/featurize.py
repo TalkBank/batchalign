@@ -87,6 +87,16 @@ class Featurizer(object):
         return processed
 
     def process(self, data, audio):
+        """Process a bullet dataset
+
+        Attributes:
+            data ({"alignments": ..., "raw": ..., "tiers": ...}): the raw alignment data
+            audio (str): audio file path
+
+        Returns:
+            {"experiment": {"scalars":, ...}, "tier": {...}, "utterance": {..}}
+        """
+
         # process experiment level
         experiment_processed = self.__process_with(self.__experiment_processors,
                                                 data["raw"], data["alignments"],
@@ -112,16 +122,14 @@ class Featurizer(object):
                                                     raw, alignments,
                                                     audio)
         # process utterance level
-        utterance_processed = {"scalars": [],
-                               "vectors": []}
+        utterance_processed = []
 
         for raw, alignments in zip(data["raw"], data["alignments"]):
             result = self.__process_with(self.__utterance_processors,
                                         [raw], [alignments],
                                         audio)
 
-            utterance_processed["scalars"].append(result["scalars"])
-            utterance_processed["vectors"].append(result["vectors"])
+            utterance_processed.append(result)
 
         return { "experiment": experiment_processed,
                  "tier": tier_processed,
@@ -142,18 +150,65 @@ class MLU(FBulletProcessor):
 
         return sum(num_morphemes)/num_utterances
 
+###### Create Default Featurizer ######
+featurizer = Featurizer()
+featurizer.register_processor("mlu", MLU, FProcessorAction.TIER)
+
 ###### Normal Commands ######
+def store_to_group(group, feature_dict):
+    """Store a part of a feature dictioray to HDF5 group
+
+    Attributes:
+        group (hdf5.Group): the hdf5 group to store data
+        feature_dict ({"vectors": ..., "scalars": ...}): the data to encode
+
+    Used for side effects.
+    """
+    # store experiment scalars
+    for k,v in feature_dict["scalars"].items():
+        group.attrs[k] = v
+
+    # and the datasets, which should be numpy arrays
+    for k,v in feature_dict["vectors"].items():
+        group.create_dataset(k, data=v)
 
 def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True):
 
     for filename, data in alignment:
+        # experiment name
+        name = Path(filename).stem
         # generate the paths to things
-        audio = os.path.join(in_dir, f"{Path(filename).stem}.wav")
-        data = os.path.join(out_dir, f"{Path(filename).stem}.hdf5")
-        chat = os.path.join(out_dir, f"{Path(filename).stem}.cha")
+        audio = os.path.join(in_dir, f"{name}.wav")
+        hdf5 = os.path.join(out_dir, f"{name}.hdf5")
+        chat = os.path.join(out_dir, f"{name}.cha")
         
-        breakpoint()
-    pass
+        # featurize!
+        features = featurizer.process(data, audio)
+
+        # store the features
+        f = h5py.File(hdf5, "w")
+        f.attrs["num_utterances"] = len(data["raw"])
+
+        # create the initial groups
+        exp = f.create_group("experiment")
+        tier = f.create_group("tier")
+        utterance = f.create_group("utterance")
+
+        # store experiment-wide results
+        store_to_group(f, features["experiment"])
+
+        # store per-tier results
+        for tier_name, value in features["tier"].items():
+            tier_grp = tier.create_group(tier_name)
+            store_to_group(tier_grp, value)
+
+        # store per-utterance results
+        for i, value in enumerate(features["utterance"]):
+            utt_grp = utterance.create_group(str(i))
+            store_to_group(utt_grp, value)
+
+        f.close()
+
 
 
 # f = h5py.File("../../talkbank-alignment/tmp.hdf5", "w")
