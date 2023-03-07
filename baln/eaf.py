@@ -1,4 +1,5 @@
 # XML facilities
+from posixpath import isfile
 import xml.etree.ElementTree as ET
 
 # Also, stdlib
@@ -411,3 +412,32 @@ def elan2chat(directory, video=False):
         # change media type if needed
         if video:
             change_media(f.replace(".elan.cha", ".cha"), "video")
+
+# chat2elan a whole path
+def elan2chat__single(fl, video=False):
+    """Convert a folder of CLAN .eaf files to corresponding CHATs
+    files:
+        f (string): the string directory in that points to one eaf
+        [video] (bool): replace @Media tier annotation from audio => video
+    Returns:
+        None
+    """
+   
+    # elan2chatit!
+    CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} "
+    # run!
+    os.system(CMD)
+    # find error file and remove it
+    error_file = fl.replace(".eaf", ".err.cex")
+    if os.path.isfile(error_file):
+        os.remove(error_file)
+    # process out file
+    out_file = fl.replace(".eaf", ".elan.cha")
+    # and rename the files
+    if os.path.isfile(out_file):
+        os.rename(out_file, fl.replace(".eaf",".cha"))
+
+        # change media type if needed
+        if video:
+            change_media(fl.replace(".eaf",".cha"), "video")
+

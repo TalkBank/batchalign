@@ -768,8 +768,8 @@ def do_align(in_dir, out_dir, data_directory="data", model=None, dictionary=None
                                     pathlib.Path(elan).name)
         # Dump the aligned result into the new eaf
         eafinject(old_eaf_path, new_eaf_path, aligned_result)
-    # convert the aligned eafs back into chat
-    elan2chat(out_dir, is_video)
+        # convert the aligned eafs back into chat
+        elan2chat__single(new_eaf_path, is_video)
 
     ### CLEANUP OPS ###
 
