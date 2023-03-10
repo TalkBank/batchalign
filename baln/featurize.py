@@ -39,6 +39,7 @@ class FProcessorAction(Enum):
     EXPERIMENT = 0
     TIER = 1
     UTTERANCE = 2
+    TURN = 3
 
 class FProcessor(ABC):
     produces_scalar = False
@@ -64,6 +65,7 @@ class Featurizer(object):
         self.__experiment_processors = []
         self.__tier_processors = []
         self.__utterance_processors = []
+        self.__turn_processors = []
 
     def register_processor(self, name, processor:FProcessor, 
                            processor_action:FProcessorAction):
@@ -74,6 +76,8 @@ class Featurizer(object):
             self.__tier_processors.append((name, processor))
         elif processor_action == FProcessorAction.UTTERANCE:
             self.__utterance_processors.append((name, processor))
+        elif processor_action == FProcessorAction.TURN:
+            self.__turn_processors.append((name, processor))
         else:
             raise ValueError(f"Batchalign: processor action {processor_action} unknown!")
 
@@ -134,8 +138,8 @@ class Featurizer(object):
             raw = [data["raw"][i] for i in value]
 
             tier_processed[tier] = self.__process_with(self.__tier_processors,
-                                                    raw, alignments,
-                                                    audio)
+                                                       raw, alignments,
+                                                       audio)
         # process utterance level
         utterance_processed = []
 
@@ -146,9 +150,44 @@ class Featurizer(object):
 
             utterance_processed.append(result)
 
+        # process turn level
+        turns_processed = []
+
+        current_turn = data["tiers"][0]
+        raw_cache = []
+        alignments_cache = []
+
+        for raw, alignments, tier in zip(data["raw"], data["alignments"], data["tiers"]):
+            if current_turn != tier:
+                # process and append
+                result = self.__process_with(self.__turn_processors,
+                                             raw_cache, alignments_cache,
+                                             audio)
+                # add the tier info to the list
+                result["scalars"]["speaker"] = current_turn
+                turns_processed.append(result)
+
+                current_turn = tier
+                raw_cache = []
+                alignments_cache = []
+
+            # append current
+            raw_cache.append(raw)
+            alignments_cache.append(alignments)
+
+        # if there's anything left, process the last one
+        # process and append
+        result = self.__process_with(self.__turn_processors,
+                                        raw_cache, alignments_cache,
+                                        audio)
+        # add the tier info to the list
+        result["scalars"]["speaker"] = current_turn
+        turns_processed.append(result)
+
         return { "experiment": experiment_processed,
                  "tier": tier_processed,
-                 "utterance": utterance_processed }
+                 "utterance": utterance_processed,
+                 "turn": turns_processed }
 
 ###### Actual Processors ######
 
@@ -194,7 +233,10 @@ class VoiceSilenceRatio(FBulletProcessor):
     produces_scalar = True
     @staticmethod
     def process(bullet_array:list):
-        return VoicedDuration.process(bullet_array)/SilenceDuration.process(bullet_array)
+        try:
+            return VoicedDuration.process(bullet_array)/SilenceDuration.process(bullet_array)
+        except ZeroDivisionError:
+            return -100
 
 class MFCC(FAudioProcessor):
     produces_scalar = False
@@ -226,9 +268,14 @@ featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorActio
 featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TIER)
 featurizer.register_processor("voice_silence_ratio", VoiceSilenceRatio, FProcessorAction.TIER)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TIER)
+# turn processors
+featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.TURN)
+featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TURN)
+featurizer.register_processor("voice_silence_ratio", VoiceSilenceRatio, FProcessorAction.TURN)
+featurizer.register_processor("mfcc", MFCC, FProcessorAction.TURN)
 # utterance processors
 featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.UTTERANCE)
-featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TIER)
+featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.UTTERANCE)
 
 ###### Normal Commands ######
 def store_to_group(group, feature_dict):
@@ -270,6 +317,7 @@ def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True
         exp = f.create_group("experiment")
         tier = f.create_group("tier")
         utterance = f.create_group("utterance")
+        turn = f.create_group("turn")
 
         # store experiment-wide results
         store_to_group(exp, features["experiment"])
@@ -283,6 +331,12 @@ def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True
         for i, value in enumerate(features["utterance"]):
             utt_grp = utterance.create_group(str(i))
             store_to_group(utt_grp, value)
+
+        # store per-utterance results
+        for i, value in enumerate(features["turn"]):
+            turn_grp = turn.create_group(str(i))
+            store_to_group(turn_grp, value)
+
 
         f.close()
 

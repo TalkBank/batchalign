@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.1"
-NOTES="make FA generate CHAT file all the way"
+VERSION="0.2.2"
+NOTES="turn-based analysis and more features"
 
 #################### OPTIONS ################################
 
