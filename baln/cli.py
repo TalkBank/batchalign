@@ -5,7 +5,7 @@ from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
 VERSION="0.2.2"
-NOTES="turn-based analysis and more features"
+NOTES="turn-based analysis and alignment bug fixes"
 
 #################### OPTIONS ################################
 
