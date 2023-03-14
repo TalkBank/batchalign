@@ -93,15 +93,31 @@ class Featurizer(object):
 
         processed = {"scalars": {},
                      "vectors": {}}
-        
-        for name, i in processors:
-            scalarp = "scalars" if i.produces_scalar else "vectors"
+
+        def do(i, bullets, alignments, audio):
+            """util to apply the processor"""
+
             if issubclass(i, FAudioProcessor):
-                processed[scalarp][name] = i.process(audio, alignments)
+                return i.process(audio, alignments)
             elif issubclass(i, FBulletProcessor):
-                processed[scalarp][name] = i.process(bullets)
+                return i.process(bullets)
             else:
                 raise ValueError(f"Batchalign: processor type {type(i)} unknown!")
+
+        for name, i in processors:
+
+            scalarp = "scalars" if i.produces_scalar else "vectors"
+            
+            # processors can return a dict, which is a group of features
+            result = do(i, bullets, alignments, audio)
+
+            # if it is a diction
+            if isinstance(result, dict):
+                for k,v in dict.items():
+                    processed[scalarp][f"{name}_{k}"] = v
+            # else, just append
+            processed[scalarp][name] = result
+            
 
         return processed
 
@@ -234,7 +250,7 @@ class VoiceSilenceRatio(FBulletProcessor):
     @staticmethod
     def process(bullet_array:list):
         try:
-            return VoicedDuration.process(bullet_array)/SilenceDuration.process(bullet_array)
+            return [VoicedDuration.process(bullet_array)/SilenceDuration.process(bullet_array)]
         except ZeroDivisionError:
             return -100
 
