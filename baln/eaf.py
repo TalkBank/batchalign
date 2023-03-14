@@ -9,7 +9,7 @@ import re, os
 import glob
 
 # import cleanup
-from .utils import resolve_clan
+from .utils import resolve_clan, change_media
 
 # import pathlib
 import pathlib
