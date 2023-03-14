@@ -113,10 +113,11 @@ class Featurizer(object):
 
             # if it is a diction
             if isinstance(result, dict):
-                for k,v in dict.items():
+                for k,v in result.items():
                     processed[scalarp][f"{name}_{k}"] = v
-            # else, just append
-            processed[scalarp][name] = result
+            else:
+                # else, just append
+                processed[scalarp][name] = result
             
 
         return processed
@@ -268,7 +269,7 @@ class MFCC(FAudioProcessor):
 
         # if we are given no time, skip
         if len(sig_sliced) == 0:
-            return np.array([0])
+            return np.array([])
 
         # else, carry on
         mfcc_feat = mfcc(sig_sliced,rate)
@@ -284,12 +285,12 @@ featurizer.register_processor("mfcc", MFCC, FProcessorAction.EXPERIMENT)
 # tier processors
 featurizer.register_processor("mlu", MLU, FProcessorAction.TIER)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TIER)
-featurizer.register_processor("duration", Duration, FProcessorAction.TURN)
+featurizer.register_processor("duration", Duration, FProcessorAction.TIER)
 # turn processors
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TURN)
 featurizer.register_processor("duration", Duration, FProcessorAction.TURN)
 # utterance processors
-featurizer.register_processor("TEST", Test, FProcessorAction.UTTERANCE)
+# featurizer.register_processor("TEST", Test, FProcessorAction.UTTERANCE)
 
 ###### Normal Commands ######
 def store_to_group(group, feature_dict):
@@ -326,6 +327,7 @@ def featurize(alignment, in_dir, out_dir, data_dir="data", lang="en", clean=True
         # store the features
         f = h5py.File(hdf5, "w")
         f.attrs["num_utterances"] = len(data["raw"])
+        f.attrs["num_turns"] = len(features["turn"])
 
         # create the initial groups
         exp = f.create_group("experiment")
