@@ -218,19 +218,13 @@ class MLU(FBulletProcessor):
 
         return sum(num_morphemes)/num_utterances
 
-class VoicedDuration(FBulletProcessor):
+class Duration(FBulletProcessor):
     produces_scalar = True
     @staticmethod
     def process(bullet_array:list):
         # sum the time when something's voiced
-        return sum([sum(word[1][1]-word[1][0] for word in utt if word[1]) for utt in bullet_array])
-
-class SilenceDuration(FBulletProcessor):
-    # TODO how to compute this. Does this include inter-utterance?
-    produces_scalar = True
-    @staticmethod
-    def process(bullet_array:list):
-        # tally
+        voiced = sum([sum(word[1][1]-word[1][0] for word in utt if word[1]) for utt in bullet_array])
+        # silence
         silence = 0
         # loop through each utterance to compute silences
         for utterance in bullet_array:
@@ -242,17 +236,22 @@ class SilenceDuration(FBulletProcessor):
 
                 # compute silence: i.e. space between two words
                 silence += next_word[1][0] - cur_word[1][1]
+        # get ratio
+        ratio = voiced/silence if silence!=0 else None
 
-        return silence
+        # collect
+        result = {"voiced": voiced,
+                  "silence": silence}
+        if ratio:
+            result["ratio"] = ratio 
+            
+        return result
 
-class VoiceSilenceRatio(FBulletProcessor):
-    produces_scalar = True
+class Test(FBulletProcessor):
+    produces_scalar=True
     @staticmethod
-    def process(bullet_array:list):
-        try:
-            return [VoicedDuration.process(bullet_array)/SilenceDuration.process(bullet_array)]
-        except ZeroDivisionError:
-            return -100
+    def process(_):
+        return 1
 
 class MFCC(FAudioProcessor):
     produces_scalar = False
@@ -264,11 +263,16 @@ class MFCC(FAudioProcessor):
         timestamps_sliced = [(int(i[0]*rate),
                             int(i[1]*rate)) for i in timestamps]
         timestamps_range = sum([list(range(start, end)) for start, end in timestamps_sliced], [])
-        # slice the signal based on the ranges
+
         sig_sliced = sig[timestamps_range]
 
+        # if we are given no time, skip
+        if len(sig_sliced) == 0:
+            return np.array([0])
+
+        # else, carry on
         mfcc_feat = mfcc(sig_sliced,rate)
-        
+
         return mfcc_feat
 
 ###### Create Default Featurizer ######
@@ -276,22 +280,16 @@ featurizer = Featurizer()
 
 # Register...
 # experiment processors
-featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.EXPERIMENT)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.EXPERIMENT)
 # tier processors
 featurizer.register_processor("mlu", MLU, FProcessorAction.TIER)
-featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.TIER)
-featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TIER)
-featurizer.register_processor("voice_silence_ratio", VoiceSilenceRatio, FProcessorAction.TIER)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TIER)
+featurizer.register_processor("duration", Duration, FProcessorAction.TURN)
 # turn processors
-featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.TURN)
-featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.TURN)
-featurizer.register_processor("voice_silence_ratio", VoiceSilenceRatio, FProcessorAction.TURN)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TURN)
+featurizer.register_processor("duration", Duration, FProcessorAction.TURN)
 # utterance processors
-featurizer.register_processor("voiced_duration", VoicedDuration, FProcessorAction.UTTERANCE)
-featurizer.register_processor("silence_duration", SilenceDuration, FProcessorAction.UTTERANCE)
+featurizer.register_processor("TEST", Test, FProcessorAction.UTTERANCE)
 
 ###### Normal Commands ######
 def store_to_group(group, feature_dict):
