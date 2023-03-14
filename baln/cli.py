@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.2"
-NOTES="turn-based analysis and alignment bug fixes"
+VERSION="0.2.3"
+NOTES="updated inter-turn pause analysis"
 
 #################### OPTIONS ################################
 

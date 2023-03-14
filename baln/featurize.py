@@ -55,7 +55,7 @@ class FAudioProcessor(FProcessor):
 
 class FBulletProcessor(FProcessor):
     @abstractstaticmethod
-    def process(bullet_array:list):
+    def process(bullet_array:list, speaker:list):
         pass
 
 class Featurizer(object):
@@ -82,25 +82,26 @@ class Featurizer(object):
             raise ValueError(f"Batchalign: processor action {processor_action} unknown!")
 
     @staticmethod
-    def __process_with(processors, bullets, alignments, audio):
+    def __process_with(processors, bullets, alignments, audio, speaker):
         """Process a set of data with a set of processors
 
         Attributes:
             processors ([FProcessor]): list of processors to use
             bullets ([[("word", (beg, end)) ...] ...]): list of utterances contining list of words
             audio (str): audio file path
+            speaker (["PAR" ...]): the active speaker
         """
 
         processed = {"scalars": {},
                      "vectors": {}}
 
-        def do(i, bullets, alignments, audio):
+        def do(i, bullets, alignments, audio, speaker):
             """util to apply the processor"""
 
             if issubclass(i, FAudioProcessor):
                 return i.process(audio, alignments)
             elif issubclass(i, FBulletProcessor):
-                return i.process(bullets)
+                return i.process(bullets, speaker)
             else:
                 raise ValueError(f"Batchalign: processor type {type(i)} unknown!")
 
@@ -109,7 +110,7 @@ class Featurizer(object):
             scalarp = "scalars" if i.produces_scalar else "vectors"
             
             # processors can return a dict, which is a group of features
-            result = do(i, bullets, alignments, audio)
+            result = do(i, bullets, alignments, audio, speaker)
 
             # if it is a diction
             if isinstance(result, dict):
@@ -136,7 +137,7 @@ class Featurizer(object):
         # process experiment level
         experiment_processed = self.__process_with(self.__experiment_processors,
                                                 data["raw"], data["alignments"],
-                                                audio)
+                                                audio, data["tiers"])
 
         # process tier level (sorry for the code quality)
         # get tier ids
@@ -153,17 +154,18 @@ class Featurizer(object):
 
             alignments = [data["alignments"][i] for i in value]
             raw = [data["raw"][i] for i in value]
+            tiers = [data["tiers"][i] for i in value]
 
             tier_processed[tier] = self.__process_with(self.__tier_processors,
                                                        raw, alignments,
-                                                       audio)
+                                                       audio, tiers)
         # process utterance level
         utterance_processed = []
 
-        for raw, alignments in zip(data["raw"], data["alignments"]):
+        for raw, alignments, tiers in zip(data["raw"], data["alignments"], data["tiers"]):
             result = self.__process_with(self.__utterance_processors,
                                         [raw], [alignments],
-                                        audio)
+                                         audio, [tiers])
 
             utterance_processed.append(result)
 
@@ -179,7 +181,7 @@ class Featurizer(object):
                 # process and append
                 result = self.__process_with(self.__turn_processors,
                                              raw_cache, alignments_cache,
-                                             audio)
+                                             audio, [tier for _ in range(len(raw_cache))])
                 # add the tier info to the list
                 result["scalars"]["speaker"] = current_turn
                 turns_processed.append(result)
@@ -196,7 +198,7 @@ class Featurizer(object):
         # process and append
         result = self.__process_with(self.__turn_processors,
                                         raw_cache, alignments_cache,
-                                        audio)
+                                        audio, [tier for _ in range(len(raw_cache))])
         # add the tier info to the list
         result["scalars"]["speaker"] = current_turn
         turns_processed.append(result)
@@ -211,7 +213,7 @@ class Featurizer(object):
 class MLU(FBulletProcessor):
     produces_scalar = True
     @staticmethod
-    def process(bullet_array:list):
+    def process(bullet_array:list, _):
         # get number of utterances
         num_utterances = len(bullet_array)
         # TODO TODO BAD get the numer of morphemes 
@@ -222,7 +224,7 @@ class MLU(FBulletProcessor):
 class Duration(FBulletProcessor):
     produces_scalar = True
     @staticmethod
-    def process(bullet_array:list):
+    def process(bullet_array:list, _):
         # sum the time when something's voiced
         voiced = sum([sum(word[1][1]-word[1][0] for word in utt if word[1]) for utt in bullet_array])
         # silence
@@ -248,11 +250,39 @@ class Duration(FBulletProcessor):
             
         return result
 
-class Test(FBulletProcessor):
-    produces_scalar=True
+class MeanInterTurnSilence(FBulletProcessor):
+    """WARNING! this does not work anywhere but EXPERIMENT level"""
+
+    produces_scalar = True
     @staticmethod
-    def process(_):
-        return 1
+    def process(bullet_array:list, turns:list):
+        # if there is not enough to analyze, we give up
+        if len(bullet_array) < 2:
+            return {}
+
+        turn_pauses = defaultdict(list) # PAR_INV signals a change from PAR to INV
+
+        # otherwise track turn changes
+        cur_turn = turns[0]
+        cur_time = 0
+
+        # loop through each utterance to compute silences
+        for utterance,turn in zip(bullet_array, turns):
+            # filter for no times
+            bulleted_words_with_time = list(filter(lambda x:x[1], utterance))
+            # if there is no words, do nothing lese
+            if len(bulleted_words_with_time) == 0:
+                continue
+
+            # check if the the tier is different, and if so return
+            if turn != cur_turn:
+                turn_pauses[f"{cur_turn}_{turn}"].append(bulleted_words_with_time[0][1][0] - cur_time)
+                cur_turn = turn
+
+            cur_time = bulleted_words_with_time[-1][1][1]
+
+        # freeze dict, take mean, and return
+        return {k:(sum(v)/len(v)) for k,v in dict(turn_pauses).items()}
 
 class MFCC(FAudioProcessor):
     produces_scalar = False
@@ -282,6 +312,7 @@ featurizer = Featurizer()
 # Register...
 # experiment processors
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.EXPERIMENT)
+featurizer.register_processor("inter_turn_pause", MeanInterTurnSilence, FProcessorAction.EXPERIMENT)
 # tier processors
 featurizer.register_processor("mlu", MLU, FProcessorAction.TIER)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TIER)
@@ -290,7 +321,7 @@ featurizer.register_processor("duration", Duration, FProcessorAction.TIER)
 featurizer.register_processor("mfcc", MFCC, FProcessorAction.TURN)
 featurizer.register_processor("duration", Duration, FProcessorAction.TURN)
 # utterance processors
-# featurizer.register_processor("TEST", Test, FProcessorAction.UTTERANCE)
+# featurizer.register_processor("example", ExampleClass, FProcessorAction.UTTERANCE)
 
 ###### Normal Commands ######
 def store_to_group(group, feature_dict):
