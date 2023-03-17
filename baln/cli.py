@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.3"
-NOTES="updated inter-turn pause analysis"
+VERSION="0.2.4"
+NOTES="correct behavior with studder"
 
 #################### OPTIONS ################################
 

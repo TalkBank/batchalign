@@ -315,8 +315,8 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
             cleaned_word = cleaned_word.replace("〕","").replace("//","")
             cleaned_word = re.sub(r"@.", '', cleaned_word)
             cleaned_word = re.sub(r"&.", '', cleaned_word)
-            cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
-            cleaned_word = re.sub(r"↫", r'', cleaned_word)
+            # cleaned_word = re.sub(r"↫(.*)↫", r'', cleaned_word)
+            # cleaned_word = re.sub(r"↫", r'', cleaned_word)
             cleaned_word = cleaned_word.strip()
 
             if debug:
