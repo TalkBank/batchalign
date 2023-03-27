@@ -68,6 +68,17 @@ ATTRIBS_PATH=os.path.join(CURRENT_PATH, "./attribs.cut")
 
 DISFLULENCY_CODE = re.compile("\[.*?\]")
 
+# utility to filter out unwanted codes
+def clean_codes(string):
+    string = re.sub(r".*\]", "", string).strip()
+    string = re.sub(r"\[.*", "", string).strip()
+    string = re.sub(r"<|>", "", string).strip()
+    string = re.sub(r"&=\w+", "", string).strip()
+    string = re.sub(r"\(\.+\)", "", string).strip()
+    string = string.replace("„", "").replace("‡", "")
+
+    return string
+
 class G2P_MODEL(enum.Enum):
     en = "english_us_arpa"
     es = "spanish_spain_mfa"
@@ -572,79 +583,14 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
             # load the value
             i = sentence[indx]
             # if alignable and ends with a angle bracket or plus sign, put the bullet inside the bracket
-            if i[1] and (i[0] != '' and (i[0][-1] == '>' or i[0][-1] == '+')):
-                sentence_bulleted.append(i[0].strip()[:-1] + bullet(i[1][0], i[1][1]) + i[0].strip()[-1])
-            # if alignable and ends with a dollar sign, put the next mark, then add the bullet
-            elif i[1] and indx+1 < len(sentence) and i[0] != '' and i[0][-1] == '$':
-                # get the cucrent expression, the next, then bullet
-                cur = i[0].strip()
-                indx += 1
-                cur += sentence[indx][0]
-                sentence_bulleted.append(cur + bullet(i[1][0], i[1][1]))
-            # if alignable and ends with a square bracket, put the bullet after the last the bracket
-            # TODO. Future editors, please accept my apologies for the following line.
-            # elif (i[1] and ((indx+1 < len(sentence) and sentence[indx+1][0] and sentence[indx+1][0][0] == '[') or (indx+2 < len(sentence) and sentence[indx+1][0] == "" and sentence[indx+2][0] and sentence[indx+2][0][0] == '['))) or (i[0] and i[0][0] == '['):
-            #     # if "12033" in elan:
-            #     #     print(i, sentence[indx+1])
-
-            #     # get template result
-            #     result = i[0].strip()
-            #     # clear start and end
-            #     start = None
-            #     end = None
-            #     # get start
-            #     if i[1]:
-            #         start = i[1][0]
-            #         end = i[1][1]
-
-            #     # while we are open, keep reading
-            #     while (indx+1) < len(sentence):
-            #         # check if closed
-            #         if "]" in sentence[indx][0].strip():
-            #             # if there's a next, and the next is not another open
-            #             if (indx+1 < len(sentence) and sentence[indx+1][0] != "" and sentence[indx+1][0][0] != "[") or indx+1 >= len(sentence):
-
-            #                 break
-
-            #         # increment reading
-            #         indx += 1
-            #         # if no start, but have start now, set start
-            #         if not start and sentence[indx][1]:
-            #             start = sentence[indx][1][0]
-            #         # set end to the new end
-            #         if sentence[indx][1]:
-            #             end = sentence[indx][1][1]
-
-            #         # append result
-            #         result = result + " " + sentence[indx][0].strip()
-
-            #     if start:
-            #         # append result
-            #         sentence_bulleted.append(result + bullet(start, end))
-            #     else:
-            #         # append result without bullet
-            #         sentence_bulleted.append(result)
-            # if alignable and next is a code, append the code first
-            # elif i[1] and indx+1 < len(sentence) and DISFLULENCY_CODE.match(sentence[indx+1][0]):
-                # sentence_bulleted.append(i[0] + " " + sentence[indx+1][0] + bullet(i[1][0], i[1][1]))
-                # indx += 1
-            # if alignable and next is a repeat, append a bracket
-            # and then the bullet
-            # elif i[1] and indx < len(sentence)-1 and sentence[indx+1][0] != "" and sentence[indx+1][0][0:2] == "[/":
-            #     sentence_bulleted.append(i[0].strip() +
-            #                              " " +
-            #                              sentence[indx+1][0].strip() +
-            #                              bullet(i[1][0], i[1][1]))
-            #     # also skip the next iteration as its already appended
-            #     indx+=1 
             # else, just append the element and bullet
-            elif i[1]:
+            if i[1]:
                 # appending the current word and chorresponding bullet
-                sentence_bulleted.append(i[0].strip() + bullet(i[1][0], i[1][1]))
+                sentence_bulleted.append(clean_codes(i[0]) + bullet(i[1][0], i[1][1]))
             else:
                 # remove, conservatively, all codes
-                res = re.sub(r"\[.*?\]", "", i[0]).strip()
                 # if it has something
+                res = clean_codes(i[0])
                 if res != "":
                     sentence_bulleted.append(res)
             # increment
@@ -671,6 +617,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
         sentence = sentence.replace("<<","< <")
         sentence = sentence.replace("+<"," +< ")
         sentence = sentence.replace("[<]"," [<] ")
+        sentence = sentence.replace("  "," ") # remove double spcaes
 
         # sentence = re.sub(r" +", " ", sentence)
 
