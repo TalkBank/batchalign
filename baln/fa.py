@@ -157,7 +157,7 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         os.system(f"mfa g2p {directory} {g2p_model} {dictionary} --clean")
 
     # run alignment
-    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} -j 8 --single_speaker --clean")
+    os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} --clean")
    
 # Parse a TextGrid file for word tier
 def parse_textgrid_long(file_path):
