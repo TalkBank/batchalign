@@ -32,7 +32,7 @@ requirements:
     - tokenizers
     - h5py
     - nltk
-    - libcxx <16.0.0
+    - libcxx
     - stanza
 
 build:
