@@ -76,6 +76,8 @@ def clean_codes(string):
     string = re.sub(r"&=\w+", "", string).strip()
     string = re.sub(r"\(\.+\)", "", string).strip()
     string = string.replace("„", "").replace("‡", "")
+    string = re.sub(r".:\+", "", string).strip()
+    string = re.sub(r":", "", string).strip()
 
     return string
 
@@ -582,8 +584,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
         while indx < len(sentence):
             # load the value
             i = sentence[indx]
-            # if alignable and ends with a angle bracket or plus sign, put the bullet inside the bracket
-            # else, just append the element and bullet
             if i[1]:
                 # appending the current word and chorresponding bullet
                 sentence_bulleted.append(clean_codes(i[0]) + bullet(i[1][0], i[1][1]))
