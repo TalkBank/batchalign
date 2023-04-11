@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.7"
-NOTES="patched issue regarding plus signs"
+VERSION="0.2.8"
+NOTES="patched more alignment issues"
 
 #################### OPTIONS ################################
 

@@ -77,7 +77,6 @@ def clean_codes(string):
     string = re.sub(r"\(\.+\)", "", string).strip()
     string = string.replace("„", "").replace("‡", "")
     string = re.sub(r".:\+", "", string).strip()
-    string = re.sub(r":", "", string).strip()
 
     return string
 
@@ -615,11 +614,11 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
         sentence = sentence.replace("↫ ","↫")
         # however, double < should have a space between
         sentence = sentence.replace("<<","< <")
-        sentence = sentence.replace("+<"," +< ")
+        sentence = sentence.replace("+<","")
         sentence = sentence.replace("[<]"," [<] ")
         sentence = sentence.replace("  "," ") # remove double spcaes
 
-        # sentence = re.sub(r" +", " ", sentence)
+        sentence = re.sub(r"^\+", "", sentence)
 
 
         # concat and append to bulleted results
