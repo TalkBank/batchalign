@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.9"
-NOTES="patched more alignment issues"
+VERSION="0.2.10"
+NOTES="fixing IPA based coding based on MSU data"
 
 #################### OPTIONS ################################
 
