@@ -77,7 +77,6 @@ def clean_codes(string):
     string = re.sub(r"\(\.+\)", "", string).strip()
     string = string.replace("„", "").replace("‡", "")
     string = re.sub(r".:\+", "", string).strip()
-    string = re.sub(r'\"', "", string).strip()
 
     return string
 
@@ -275,7 +274,6 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
     # For each sentence
     for tier, current_sentence in zip(tiers, transcript):
         # remove extra delimiters
-        current_sentence = re.sub(r"\+\W+/", "", current_sentence).strip()
         current_sentence = re.sub(r"\$\w+", "", current_sentence).strip()
         current_sentence = current_sentence.replace("+","+ ")
         current_sentence = current_sentence.replace("$","$ ")
@@ -283,6 +281,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
         current_sentence = current_sentence.replace("↫","↫ ")
         current_sentence = re.sub(r"&=\w+?:\w+", "", current_sentence).strip()
         current_sentence = re.sub(r"\[.*?\]", "", current_sentence).strip()
+        current_sentence = re.sub(r'\"[^/]', "", current_sentence).strip()
 
         # split results
         splits = current_sentence.split(" ")
