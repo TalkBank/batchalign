@@ -3673,6 +3673,15 @@ static void rewrapComboTier(char *line) {
 	*line = EOS;
 }
 
+/**
+ * Sets the vocative marks to not be removed; i.e. double commas, etc.
+ * Houjun Liu 04/30/2023 for Batchalign
+ **/
+void setVocative() {
+	isRemoveCAChar[NOTCA_DOUBLE_COMMA] = FALSE;
+	isRemoveCAChar[NOTCA_VOCATIVE] = FALSE;
+}
+
 void createMorUttline(char *new_mor_tier, char *spTier, const char *dcode, char *mor_tier, char isFilterSP, char linkTiers) {
 	int  i, j, t, matchType, res;
 	char spWord[BUFSIZ], MorWord[BUFSIZ], spTierDone, dMark[4], sMark[4], missMatch;

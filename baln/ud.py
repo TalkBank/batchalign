@@ -10,7 +10,7 @@ from stanza.pipeline.core import CONSTITUENCY
 from stanza import DownloadMethod
 from torch import heaviside
 
-# tqdm
+# the loading bar
 from tqdm import tqdm
 
 # out utiltiies
@@ -125,6 +125,8 @@ def handler__actual_PUNCT(word):
         return "cm|cm"
     elif word.lemma in ['.', '!', '?']:
         return word.lemma
+    elif word.text in ['„', '‡']:
+        return "end|end"
     # all other cases return None
     # to skip
 
@@ -133,6 +135,8 @@ def handler__PUNCT(word):
     # or sometimes straight up words, but  so it goes
     # either punctuation or inflection words
     if word.lemma in ['.', '!', '?', ',']:
+        return handler__actual_PUNCT(word)
+    elif word.text in ['„', '‡']:
         return handler__actual_PUNCT(word)
     # otherwise, if its a word, return the word
     elif re.match(r"^\w+$", word.text): # we match text here because .text is the ultumate content

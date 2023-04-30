@@ -49,6 +49,9 @@ void usage() {
 
 void init(char first) {
 	int i;
+    if (isMorFlo) {
+        setVocative();
+    }
 
     if (first) {
 		isFirstTime = TRUE;

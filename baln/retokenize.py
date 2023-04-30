@@ -143,7 +143,7 @@ def interactive_edit(name, string):
 corpus = None
 
 # process asr output jsons 
-def process_asr_output(data, name=None, interactive=False):
+def process_asr_output(data, name=None, interactive=False, noprompt=False):
     global corpus
     
     """Process JSON Data
@@ -152,6 +152,7 @@ def process_asr_output(data, name=None, interactive=False):
         data (dict): JSON data in the Rev.AI spec
         [name] (str): name of the audio, to add to @Media tier
         [interactive] (bool): whether to support interactive fixes
+        [noprompt] (bool): whether or not to prompt nothing
     """
 
     # create array for total collected utterance
@@ -206,46 +207,54 @@ def process_asr_output(data, name=None, interactive=False):
     # generate the speaker information, or
     # otherwise fill it out
 
-    speakers_filtered = []
-    # filter 2 statements for each speaker needed
-    # and then push
-    for speaker in speaker_ids:
-        speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
+    if noprompt:
+        # generate info
+        for speaker in speaker_ids:
+            # add to list
+            speakers[speaker] = {"name": f"Participant", "tier": f"PAR{speaker}"}
+        # corpus name
+        corpus = "corpus_name"
+    else:
+        speakers_filtered = []
+        # filter 2 statements for each speaker needed
+        # and then push
+        for speaker in speaker_ids:
+            speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
 
-    # prompt hello
-    print("Welcome to interactive speaker identification!")
-    print(f"You are working with sample {name}.\n")
+        # prompt hello
+        print("Welcome to interactive speaker identification!")
+        print(f"You are working with sample {name}.\n")
 
-    # print out samples from speaker
-    for indx, speaker in enumerate(speaker_ids):
-        print(f"\033[1mSpeaker {speaker}\033[0m")
-        try: 
-            print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
-        except:
-            breakpoint()
-        print()
+        # print out samples from speaker
+        for indx, speaker in enumerate(speaker_ids):
+            print(f"\033[1mSpeaker {speaker}\033[0m")
+            try: 
+                print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+            except:
+                breakpoint()
+            print()
 
-    # prompt for info
-    for speaker in speaker_ids:
-        # get info and handle error correction
-        # get speaker info
-        speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
-        # if we don't have first capital and spelt correctly
-        while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
-            print("Invalid response. Please follow the formatting example provided.")
+        # prompt for info
+        for speaker in speaker_ids:
+            # get info and handle error correction
+            # get speaker info
             speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
-        # get tier info
-        speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ")
-        # if we don't have first capital and spelt correctly
-        while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
-            print("Invalid response. Please follow the formatting example provided.")
-            speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ").strip()
-        # add to list
-        speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
-        print()
-    # Name of the corpus
-    if not corpus:
-        corpus = input("Corpus name not found; please enter corpus name: ")
+            # if we don't have first capital and spelt correctly
+            while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
+                print("Invalid response. Please follow the formatting example provided.")
+                speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
+            # get tier info
+            speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ")
+            # if we don't have first capital and spelt correctly
+            while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
+                print("Invalid response. Please follow the formatting example provided.")
+                speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ").strip()
+            # add to list
+            speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
+            print()
+        # Name of the corpus
+        if not corpus:
+            corpus = input("Corpus name not found; please enter corpus name: ")
 
     # go through the list and reshape the main tier
     utterance_col = [['*'+speakers[i[0]]["tier"]+":",
@@ -338,7 +347,7 @@ def asr__rev_wav(f, key=None, lang="en"):
     return transcript_json
 
 # global realignment function
-def retokenize(infile, outfile, utterance_engine, interactive=False, provider=ASRProvider.REV, lang="en", **kwargs):
+def retokenize(infile, outfile, utterance_engine, interactive=False, provider=ASRProvider.REV, lang="en", noprompt=False, **kwargs):
     """Function to retokenize an entire chat file
 
     Attributes:
@@ -348,6 +357,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         provider (ASRProvider): which asr provider to use
         [lang] (str): language
         [interactive] (bool): whether to enable midway user fixes to label data/train
+        [noprompt] (bool): whether or not to provide no prompt
         **kwargs: keyword parameters 
 
     Used for output side effects
@@ -381,7 +391,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
             asr = asr__rev_wav(infile, key=key, lang=lang)
 
     # then, process the ASR
-    header, main, closing = process_asr_output(asr, pathlib.Path(infile).stem)
+    header, main, closing = process_asr_output(asr, pathlib.Path(infile).stem, noprompt=noprompt)
         
     # chunk the data with our model
     chunked_passages = []
@@ -482,7 +492,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         fix_transcript(outfile)
 
 
-def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en"):
+def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en", noprompt=False):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -491,6 +501,7 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
                           trained on the segmentation task.
         [interactive] (bool): whether to run the interactive routine
         [lang] (str): language
+        [noprompt] (bool): whether or not to provide no prompt
 
     Returns:
         None, used for .cha file generation side effects.
@@ -548,5 +559,5 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
-        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang)
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang, noprompt=noprompt)
 
