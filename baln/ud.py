@@ -172,6 +172,14 @@ def parse_sentence(sentence, delimiter="."):
     # root indx to point the ending delimiter to
     root = 0
 
+    # counter for number of words skipped
+    actual_indicies = []
+    num_skipped = 0
+
+    # generating temp "gra" data (array numerical, before shift
+    # correction)
+    gra_tmp = []
+
     for indx, word in enumerate(sentence.words):
         # append the appropriate mor line
         # by trying all handlers, and defaulting
@@ -180,18 +188,30 @@ def parse_sentence(sentence, delimiter="."):
         # some handlers may return None to skip the word
         if mor_word:
             mor.append(mor_word)
-        # +1 because we are 1-indexed
-        # and .head is also 1-indexed already
-        deprel = word.deprel.upper()
-        deprel = deprel.replace(":", "-")
-        gra.append(f"{indx+1}|{word.head}|{deprel}")
-        # if depedence relation is root, mark the current
-        # ID as root
-        if word.deprel.upper() == "ROOT":
-            root = word.id
+            # +1 because we are 1-indexed
+            # and .head is also 1-indexed already
+            deprel = word.deprel.upper()
+            deprel = deprel.replace(":", "-")
+            gra_tmp.append(((indx+1)-num_skipped, word.head, deprel))
+            actual_indicies.append((indx+1)-num_skipped) # so we can check later
+            # if depedence relation is root, mark the current
+            # ID as root
+            if word.deprel.upper() == "ROOT":
+                root = ((indx+1)-num_skipped)
+        else:
+            num_skipped+=1 # mark skipped if skipped
+            actual_indicies.append(root) # TODO janky but if anybody refers to a skipped
+                                         # word they are root now.
+
+    # and now for each element, we shift and generate
+    # recall that indicies are one indexed
+    for i, elem in enumerate(gra_tmp):
+        # the third element is responsible for looking up the correctly
+        # shifted index for the item in question
+        gra.append(f"{elem[0]}|{actual_indicies[elem[1]-1]}|{elem[2]}")
 
     # append ending delimiter to GRA
-    gra.append(f"{len(sentence.words)+1}|{root}|PUNCT")
+    gra.append(f"{len(sentence.words)+1-num_skipped}|{root}|PUNCT")
 
     mor_str = (" ".join(mor)).strip()
     gra_str = (" ".join(gra)).strip()
@@ -328,5 +348,3 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     if clean:
         cleanup(in_dir, out_dir, data_dir)
         
-
-      

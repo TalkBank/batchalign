@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.13"
-NOTES="adding back utterance end symbols"
+VERSION="0.2.14"
+NOTES="stanza and parallel processing updates"
 
 #################### OPTIONS ################################
 
@@ -125,6 +125,61 @@ def morphotag(ctx, **kwargs):
               help="actually invoke MFA or just run Batchalign operations", default=True)
 @click.option("--prealigned/--scratch",
               help="process CHAT file that is already utterance aligned", default=True)
+def featurize(ctx, **kwargs):
+    """generate .hdf5 feature file usable for analysis"""
+
+    # forced alignment tools
+    from .fa import do_align
+
+    # featurization tools
+    from .featurize import featurize
+
+    # fa!
+    alignments = do_align(**kwargs)
+
+    # featurize
+    featurize(alignments, kwargs["in_dir"], kwargs["out_dir"],
+              lang=kwargs["lang"], clean=kwargs["clean"])
+
+#################### RECURSIVE ################################
+
+@batchalign.command()
+@click.pass_context
+@click.argument("in_dir", 
+                type=click.Path(exists=True, file_okay=False))
+@click.argument("out_dir", 
+                type=click.Path(exists=True, file_okay=False))
+@click.argument("command", 
+                type=str)
+def recursive(ctx, **kwargs):
+    """batch execute a batchalign command through directories"""
+
+    import os
+    import glob
+    import shutil
+    from pathlib import Path
+
+    # find files and calculate directories
+    files = glob.glob(os.path.join(kwargs["in_dir"], '**', '*.*'), recursive=True)
+    in_dirs = list(set([os.path.abspath(os.path.join(i, os.pardir)) for i in files]))
+    out_dirs = [os.path.abspath(os.path.join(kwargs["out_dir"], os.path.relpath(i, start=kwargs["in_dir"])))
+                for i in in_dirs]
+
+    # zip!
+    dirs = zip(in_dirs, out_dirs)
+
+    # and now, batchalign for every pair, making directories as needed
+    for inp, out in dirs:
+        # make out directory
+        Path(out).mkdir(parents=True, exist_ok=True)
+
+        # get batchalign
+        batchalign_binary = shutil.which("batchalign")
+
+        # batch align!
+        os.system(f"{batchalign_binary} {kwargs['command']} {inp} {out}")
+
+
 def featurize(ctx, **kwargs):
     """generate .hdf5 feature file usable for analysis"""
 
