@@ -102,16 +102,16 @@ def fix_transcript(f, lowcase="caps.cut"):
     CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{DISFLUENCY_FILE} {f} "
     os.system(CMD)
     # move old file to backup
-    os.rename(f, f.replace("cha", "old.cha"))
+    os.rename(f, f.replace(".cha", ".old.cha"))
     # rename new file
-    os.rename(f.replace("cha", "chstr.cex"), f)
+    os.rename(f.replace(".cha", ".chstr.cex"), f)
     # run rep join replacement
     CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{REP_JOIN_FILE} {f} "
     os.system(CMD)
     # delete old file
     os.remove(f)
     # rename new file
-    os.rename(f.replace("cha", "chstr.cex"), f)
+    os.rename(f.replace(".cha", ".chstr.cex"), f)
 
 
     ###############
@@ -124,7 +124,7 @@ def fix_transcript(f, lowcase="caps.cut"):
     # delete old file
     os.remove(f)
     # rename new file
-    os.rename(f.replace("cha", "retrace.cex"), f)
+    os.rename(f.replace(".cha", ".retrace.cex"), f)
 
 
     #################
@@ -144,9 +144,9 @@ def fix_transcript(f, lowcase="caps.cut"):
         os.chdir(workdir)
         # delete old file
         os.remove(f)
-        os.remove(f.replace("cha", "old.cha"))
+        os.remove(f.replace(".cha", ".old.cha"))
         # rename new file
-        os.rename(f.replace("cha", "lowcas.cex"), f)
+        os.rename(f.replace(".cha", ".lowcas.cex"), f)
 
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
@@ -178,7 +178,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     tgfiles = globase(in_directory, "*.TextGrid")
     # Rename each one
     for f in tgfiles:
-        os.rename(f, repath_file(f.replace("TextGrid", "orig.textGrid"), DATA_DIR)) 
+        os.rename(f, repath_file(f.replace(".TextGrid", ".orig.textGrid"), DATA_DIR)) 
 
     # move all the lab files 
     labfiles = globase(in_directory, "*.lab")
@@ -269,7 +269,7 @@ def fixbullets(directory):
         os.remove(f)
     # delete any preexisting chat files to old
     for f in globase(directory, "*.cha"):
-        os.rename(f, f.replace("cha", "old.cha"))
+        os.rename(f, f.replace(".cha", ".old.cha"))
     # and rename the files
     for f in globase(directory, "*.fxblts.cex"):
         os.rename(f, f.replace(".fxblts.cex", ".cha"))

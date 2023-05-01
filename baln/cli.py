@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.15"
-NOTES="--noprompt and further Stanza optimizatinos"
+VERSION="0.2.16"
+NOTES="updating support with compounds"
 
 #################### OPTIONS ################################
 

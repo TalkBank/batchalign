@@ -56,7 +56,7 @@ def handler(word):
     if "<SOS>" in target:
         target = word.text
 
-    return f"{'' if not unknown else '0'}{word.upos.lower()}|{target}"
+    return f"{'' if not unknown else '0'}{word.upos.lower()}|{target.replace(',', '')}"
 
 # POS specific handler
 def handler__PRON(word):
@@ -65,7 +65,7 @@ def handler__PRON(word):
     # parse
     return (handler(word)+"-"+
             feats.get("PronType", "Int")+"-"+
-            feats.get("Case", "Acc")+"-"+
+            feats.get("Case", "Acc").replace(",", "")+"-"+
             feats.get("Number", "S")[0]+str(feats.get("Person", 1)))
 
 def handler__DET(word):
@@ -90,7 +90,7 @@ def handler__NOUN(word):
     feats = parse_feats(word)
 
     # get gender and numer
-    gender_str = "&"+feats.get("Gender", "Com,Neut")
+    gender_str = "&"+feats.get("Gender", "ComNeut").replace(",", "")
     number_str = "-"+feats.get("Number", "Sing")
 
     # clear defaults
@@ -110,7 +110,7 @@ def handler__VERB(word):
     # seed flag
     flag = ""
     # append number and form if needed
-    flag += "-"+feats.get("VerbForm", "Inf")
+    flag += "-"+feats.get("VerbForm", "Inf").replace(",", "")
     number = feats.get("Number", "Sing")
     if number != "Sing":
         flag += f"-{number}"
@@ -285,8 +285,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
         print(f"Tagging {Path(f).stem}.cha...")
 
         # get file names
-        label_file = f.replace("cha", "lab")
-        elan_file = f.replace("cha", "eaf")
+        label_file = f.replace(".cha", ".lab")
+        elan_file = f.replace(".cha", ".eaf")
         elan_target = repath_file(elan_file, out_dir)
 
         # open label file
