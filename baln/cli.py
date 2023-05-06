@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.16"
-NOTES="updating support with compounds"
+VERSION="0.2.17"
+NOTES="aggressively featureful UD + morphology"
 
 #################### OPTIONS ################################
 

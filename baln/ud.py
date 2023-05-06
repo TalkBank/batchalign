@@ -26,6 +26,12 @@ def parse_feats(word):
         return {i.split("=")[0]: i.split("=")[1] for i in word.feats.split("|")}
     except AttributeError:
         return {}
+# one liner to join feature string
+def stringify_feats(*feats):
+    template= ("-"+"-".join(filter(lambda x: x!= "", feats))).strip()
+
+    if template == "-": return ""
+    else: return template
 
 # the following is a list of feature-extracting handlers
 # it is used to extract features from specific parts of
@@ -76,14 +82,17 @@ def handler__DET(word):
         return handler(word)
     # parse
     return (handler(word)+"-"+
-            feats.get("Definite", "Def"))
+            feats.get("Definite", "Def") + stringify_feats(feats.get("PronType", "")))
 
 def handler__ADJ(word):
     # get the features
     feats = parse_feats(word)
     # if there is a non-degree
     deg = feats.get("Degree", "Pos")
-    return handler(word)+(("-"+deg) if deg != "Pos" else "") 
+    case = feats.get("Case", "").replace(",", "")
+    number = feats.get("Number", "S")[0]
+    person = str(feats.get("Person", 1))
+    return handler(word)+stringify_feats(deg, case, number, person)
 
 def handler__NOUN(word):
     # get the features
@@ -92,12 +101,15 @@ def handler__NOUN(word):
     # get gender and numer
     gender_str = "&"+feats.get("Gender", "ComNeut").replace(",", "")
     number_str = "-"+feats.get("Number", "Sing")
+    case  = feats.get("Case", "").replace(",", "")
+    type  = feats.get("PronType", "")
+
 
     # clear defaults
     if gender_str == "&Com,Neut" or gender_str == "&Com": gender_str=""
     if number_str == "-Sing": number_str=""
 
-    return handler(word)+gender_str+number_str
+    return handler(word)+gender_str+number_str+stringify_feats(case, type)
 
 def handler__PROPN(word):
     # code as noun
@@ -115,9 +127,14 @@ def handler__VERB(word):
     if number != "Sing":
         flag += f"-{number}"
     # append tense
-    if feats.get("Tense", "Pres") == "Past":
-        flag += "-Past"
-    return handler(word)+flag
+    aspect = feats.get("Aspect", "")
+    mood = feats.get("Mood", "")
+    person = feats.get("Person", "")
+    tense = feats.get("Tense", "")
+    polarity = feats.get("Polarity", "")
+    polite = feats.get("Polite", "")
+    return handler(word)+flag+stringify_feats(aspect, mood, person,
+                                              tense, polarity, polite)
 
 def handler__actual_PUNCT(word):
     # actual punctuation handler
@@ -184,7 +201,18 @@ def parse_sentence(sentence, delimiter="."):
     # correction)
     gra_tmp = []
 
+    # keep track of multi-word tokens
+    mwts = []
+
+    # TODO jank 2O(n) parse!
+    # get mwts
+    for indx, token in enumerate(sentence.tokens):
+        if len(token.id) > 1:
+            mwts.append(token.id)
+
+    # get words
     for indx, word in enumerate(sentence.words):
+
         # append the appropriate mor line
         # by trying all handlers, and defaulting
         # to the default handler
@@ -217,7 +245,28 @@ def parse_sentence(sentence, delimiter="."):
     # append ending delimiter to GRA
     gra.append(f"{len(sentence.words)+1-num_skipped}|{root}|PUNCT")
 
-    mor_str = (" ".join(mor)).strip()
+    mor_clone = mor.copy()
+
+    while len(mwts) > 0:
+        # handle MWTs
+        # TODO assumption MWTs are continuous
+        mwt = mwts.pop(0)
+        mwt_start = mwt[0]
+        mwt_end = mwt[-1]
+
+        # why the copious -1s? One indexing
+
+        # combine results
+        mwt_str = "~".join(mor[mwt_start-1:mwt_end])
+
+        # delete old
+        for j in mwt:
+          mor_clone[j-1] = None
+
+        # replace in new dict
+        mor_clone[mwt_start-1] = mwt_str
+
+    mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip()
     gra_str = (" ".join(gra)).strip()
 
     # add the endning delimiter
