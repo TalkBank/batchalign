@@ -268,7 +268,7 @@ def parse_sentence(sentence, delimiter="."):
         # replace in new dict
         mor_clone[mwt_start-1] = mwt_str
 
-    mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip()
+    mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()
 
     # add the endning delimiter
