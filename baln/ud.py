@@ -46,6 +46,8 @@ def handler(word):
 
     if target == '"':
         target = word.text
+    if not target:
+        target = word.text
 
     # unknown flag
     unknown = False
@@ -395,7 +397,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     # and then find all the chat files, removing bullets from them
     for f in globase(out_dir, "*.cha"):
-        strip_bullets(f)
+        check_media_link(f)
 
     # cleanup!
     if clean:

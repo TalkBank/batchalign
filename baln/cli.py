@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.17"
-NOTES="aggressively featureful UD + morphology"
+VERSION="0.2.18"
+NOTES="fixes for media line and certain behaviors in Icelandic"
 
 #################### OPTIONS ################################
 
