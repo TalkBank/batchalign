@@ -378,6 +378,9 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             if line_cut == "":
                 line_cut = ending
 
+            line_cut = line_cut.replace("+<", "")
+            line_cut = line_cut.replace("+/", "")
+
             sents = nlp(line_cut).sentences
 
             sentences.append(
@@ -402,4 +405,4 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     # cleanup!
     if clean:
         cleanup(in_dir, out_dir, data_dir)
-        
+
