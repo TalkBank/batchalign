@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.19"
-NOTES="remove +<, +/ marks "
+VERSION="0.2.20"
+NOTES="less aggressive commas"
 
 #################### OPTIONS ################################
 

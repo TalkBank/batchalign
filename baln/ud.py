@@ -31,7 +31,7 @@ def stringify_feats(*feats):
     template= ("-"+"-".join(filter(lambda x: x!= "", feats))).strip()
 
     if template == "-": return ""
-    else: return template
+    else: return template.replace(",", "")
 
 # the following is a list of feature-extracting handlers
 # it is used to extract features from specific parts of
@@ -268,7 +268,7 @@ def parse_sentence(sentence, delimiter="."):
         # replace in new dict
         mor_clone[mwt_start-1] = mwt_str
 
-    mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
+    mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip()
     gra_str = (" ".join(gra)).strip()
 
     # add the endning delimiter
