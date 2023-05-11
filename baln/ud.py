@@ -143,7 +143,7 @@ def handler__VERB(word):
 
 def handler__actual_PUNCT(word):
     # actual punctuation handler
-    if word.lemma==",":
+    if word.lemma=="," or word.lemma=="$,":
         return "cm|cm"
     elif word.lemma in ['.', '!', '?']:
         return word.lemma
@@ -156,7 +156,7 @@ def handler__PUNCT(word):
     # no idea why SYM and PUNCT returns punctuation
     # or sometimes straight up words, but  so it goes
     # either punctuation or inflection words
-    if word.lemma in ['.', '!', '?', ',']:
+    if word.lemma in ['.', '!', '?', ',', '$,']:
         return handler__actual_PUNCT(word)
     elif word.text in ['„', '‡']:
         return handler__actual_PUNCT(word)
