@@ -64,6 +64,9 @@ def handler(word):
     if "<SOS>" in target:
         target = word.text
 
+    target = target.replace("$", "")
+    target = target.replace(".", "")
+
     return f"{'' if not unknown else '0'}{word.upos.lower()}|{target.replace(',', '')}"
 
 # POS specific handler
