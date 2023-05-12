@@ -384,11 +384,18 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+<", "")
             line_cut = line_cut.replace("+/", "")
 
+            # if line cut is still nothing, we get very angry
+            if line_cut == "":
+                line_cut = ending
+
             # Norwegian apostrophe fix
             if line_cut[-1] == "'":
                 line_cut = line_cut[:-1]
 
             sents = nlp(line_cut).sentences
+
+            if len(sents) == 0:
+                breakpoint()
 
             sentences.append(
                 # we want to treat the entire thing as one large sentence

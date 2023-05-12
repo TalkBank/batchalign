@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.22"
-NOTES="icelandic end terminators"
+VERSION="0.2.23"
+NOTES="fixes for empty utterances"
 
 #################### OPTIONS ################################
 
