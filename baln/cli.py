@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.22"
-NOTES="icelandic end terminators"
+VERSION="0.2.23"
+NOTES="no prompt default"
 
 #################### OPTIONS ################################
 
@@ -79,9 +79,9 @@ def align(ctx, **kwargs):
 @click.option("-i", "--interactive",
               is_flag=True,
               help="interactive retokenization (with user correction), useless without retokenize", default=False)
-@click.option("-n", "--noprompt",
+@click.option("-p", "--prompt",
               is_flag=True,
-              help="fill in dummy values for corpus info, continue fully through pipeline automatically", default=False)
+              help="prompt the user for the information regarding the speakers instead of using dummy values", default=False)
 @click.option("--model", type=click.Path(exists=True, file_okay=False),
               help="path to utterance tokenization model")
 def transcribe(ctx, **kwargs):
@@ -96,7 +96,7 @@ def transcribe(ctx, **kwargs):
     print("Performing ASR...")
     retokenize_directory(kwargs["in_dir"], model_path=kwargs["model"],
                          interactive=kwargs["interactive"], lang=kwargs["lang"],
-                         noprompt=kwargs["noprompt"])
+                         noprompt=(not kwargs["prompt"]))
 
     # now, if we need asr, then run ASR
     if kwargs["align"]:
