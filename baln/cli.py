@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.24"
-NOTES="no prompt default"
+VERSION="0.2.25"
+NOTES="benchmarking tools"
 
 #################### OPTIONS ################################
 
@@ -130,7 +130,7 @@ def morphotag(ctx, **kwargs):
 def benchmark(ctx, **kwargs):
     """benchmark ASR performance on an existing CHAT file"""
 
-    # benchmarknig tools
+    # benchmarking tools
     from .benchmark import benchmark_directory
 
     benchmark_directory(kwargs["in_dir"], kwargs["out_dir"],
