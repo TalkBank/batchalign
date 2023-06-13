@@ -118,6 +118,25 @@ def morphotag(ctx, **kwargs):
     morphanalyze(**kwargs)
 
 
+#################### BENCHMARK ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+@click.option("--beam", type=int,
+              default=30, help="beam width for MFA")
+@click.option("--model", type=click.Path(exists=True, file_okay=False),
+              help="path to utterance tokenization model")
+def benchmark(ctx, **kwargs):
+    """benchmark ASR performance on an existing CHAT file"""
+
+    # benchmarknig tools
+    from .benchmark import benchmark_directory
+
+    benchmark_directory(kwargs["in_dir"], kwargs["out_dir"],
+                        model_path=kwargs["model"], lang=kwargs["lang"],
+                        beam=kwargs["beam"], clean=kwargs["clean"])
+
 #################### FEATURIZE ################################
 
 @batchalign.command()
@@ -129,6 +148,24 @@ def morphotag(ctx, **kwargs):
               help="actually invoke MFA or just run Batchalign operations", default=True)
 @click.option("--prealigned/--scratch",
               help="process CHAT file that is already utterance aligned", default=True)
+def featurize(ctx, **kwargs):
+    """generate .hdf5 feature file usable for analysis"""
+
+    # forced alignment tools
+    from .fa import do_align
+
+    # featurization tools
+    from .featurize import featurize
+
+    # fa!
+    alignments = do_align(**kwargs)
+
+    # featurize
+    featurize(alignments, kwargs["in_dir"], kwargs["out_dir"],
+              lang=kwargs["lang"], clean=kwargs["clean"])
+
+#################### FEATURIZE ################################
+
 def featurize(ctx, **kwargs):
     """generate .hdf5 feature file usable for analysis"""
 
@@ -182,23 +219,6 @@ def recursive(ctx, **kwargs):
 
         # batch align!
         os.system(f"{batchalign_binary} {kwargs['command']} {inp} {out}")
-
-
-def featurize(ctx, **kwargs):
-    """generate .hdf5 feature file usable for analysis"""
-
-    # forced alignment tools
-    from .fa import do_align
-
-    # featurization tools
-    from .featurize import featurize
-
-    # fa!
-    alignments = do_align(**kwargs)
-
-    # featurize
-    featurize(alignments, kwargs["in_dir"], kwargs["out_dir"],
-              lang=kwargs["lang"], clean=kwargs["clean"])
 
 #################### CLEAN ################################
 

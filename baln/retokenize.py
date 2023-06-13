@@ -362,7 +362,6 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
 
     Used for output side effects
     """
-
     # store ASR output by performing ASR using the indicated method
     asr = None
 
@@ -490,6 +489,8 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         fix_transcript(outfile, None)
     else:
         fix_transcript(outfile)
+
+    return asr, header, main, closing
 
 
 def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en", noprompt=False):
