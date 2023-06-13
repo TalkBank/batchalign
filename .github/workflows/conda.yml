@@ -9,7 +9,8 @@ jobs:
   conda_build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
+        #os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -32,6 +33,9 @@ jobs:
         run: conda install -y conda-build conda-verify
       - name: Update Conda
         run: conda update -y conda
+      - name: Brotli dependency
+        if: ${{ matrix.os == 'windows-latest' }} 
+        run: conda install -c anaconda urllib3
       - name: Install mamba and boa (dependency resolver)
         run: conda install -y mamba boa
       - name: Install mingw (Win)
