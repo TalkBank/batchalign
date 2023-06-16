@@ -11,6 +11,7 @@ import scipy.io.wavfile as wavfile
 from baln.utokengine import UtteranceEngine
 
 # their utilities
+import re
 import os
 import csv
 import json
@@ -69,8 +70,9 @@ def calculate_wer(asr, transcript):
         Note that this function uses the timing 
 
     Returns:
-        float, the WER value
+        Tuple[float, list], the WER value, and difflist
     """
+
     # cut to minimum possible time
     minimum = min(asr[-1][1][1],
                   transcript[-1][1][1])
@@ -79,8 +81,26 @@ def calculate_wer(asr, transcript):
     asr = [i[0] for i in filter(lambda x:x[1][1] <= minimum, asr)]
     transcript = [i[0] for i in filter(lambda x:x[1][1] <= minimum, transcript)]
 
+    # break up the underscores _ from the transcript
+    transcript = [j for i in transcript for j in i.split("_")]
+
+    # perform some necessary filtering
+    # lowercase everything
+    asr = [i.lower() for i in asr]
+    transcript = [i.lower() for i in transcript]
+
+    # remove symbols
+    asr = [re.sub(r'[^\w]', '', i).strip() for i in asr]
+    transcript = [re.sub(r'[^\w]', '', i).strip() for i in transcript]
+
+    # remove blank strings
+    asr = [i for i in asr if i != ""]
+    transcript = [i for i in transcript if i != ""]
+
     # and diff! Recall WER is (substitution + deletion + insertion)/(number of words)
     diff = Differ().compare(asr, transcript)
+
+    # ['- I', '+ i', '  ask', '  people', "  who've", '  had', '  strokes', '- to', '+ <to', '? +\n', '  tell', '- me', '+ me>', '?   +\n', '+ uh', '  to', '  tell', '  me', '  what', '  they', '  remember', '  about', '  when', '  they', '  had', '  their', '  stroke', '  since', '  you', "  haven't", '  had', '  a', '  stroke', '  i', '  wonder', '  if', '  you', '  could', '  tell', '  me', '  what', '  you', '  remember', '  about', '  any', '  illness', '  or', '  injury', "  you've", '  had', '- Um', '+ um', '  back', '  in', '  two', '  thousand', '  and', '  nine', '  i', '  had', '  shingles', '  and', '  that', '  was', '  extremely', '  painful', '- i', '- sir', '- was', '+ and', '+ it', '+ started', '+ with', '  a', '  small', '  blister', '  that', '  came', '  up', '  on', '  the', '  side', '  of', '  my', '  head', '  and', "  i'd", '  just', '  been', '  to', '  nicaragua', '  so', '  i', '  thought', '- hmm', '?   -\n', '+ hm', '  did', '  i', '  get', '  something', '  really', '  creepy', '  down', '  there', '  um', '  but', '  then', '  it', '  just', '  started', '  getting', '  worse', '  and', '  i', '  started', '  having', '  extreme', '  headaches', '  and', '  went', '  to', '  the', '  doctor', '  found', '  out', '- i', '+ it', '  was', '  shingles', '- Um', '+ um', '- Tell', '? ^\n', '+ tell', '? ^\n', '  me', '  about', '  your', '  recovery', '  from', '  that', '  illness', '- Um', '+ um', '  i', '- spent', '?     ^\n', '+ spend', '?     ^\n', '  a', '  couple', '  days', '  in', '  bed', '  um', '  really', '  bad', '  headaches', '  like', "  didn't", '  even', '  wanna', '  move', '- kinda', '+ kind_of', '  like', '  a', '  migraine', '  type', '  of', '  headache', '  um', '  took', '  medication', '  um', '+ i', '  was', '  glad', '  my', '  mom', '  was', '  visiting', '- cuz', '+ because', '  she', '- would', '? ^\n', '+ could', '? ^\n', '  bring', '  me', '  the', '  things', '  that', '  i', '  needed', '- but', '  i', '  slept']
 
     # track change
     S = 0
@@ -92,6 +112,9 @@ def calculate_wer(asr, transcript):
     for i in diff:
         # for each change, we could be '', '+', '-'
         diff_type = i.split(" ")[0]
+
+        if diff_type == "?":
+            continue
 
         # if previous is '-', and the next is '+', it is actually a substitution
         if diff_type=='+' and prev_minus:
@@ -106,7 +129,7 @@ def calculate_wer(asr, transcript):
             C += 1
 
     # https://en.wikipedia.org/wiki/Word_error_rate
-    return round((S+D+I)/(S+D+C), 3)
+    return round((S+D+I)/(S+D+C), 3), list(Differ().compare(asr, transcript))
 
 def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.path.join("~","mfa_data","model"),
                         lang="en", beam=10, align=True, clean=True):
@@ -194,7 +217,7 @@ def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.pa
         # Align the alignment results
         # MFA TextGrids are long form
         print(f"Processing {alignment.replace('.TextGrid', '')}...")
-        aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long", aggressive=True)
+        aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long", aggressive=False)
 
         aligned_results.append((repath_file(alignment.replace('.TextGrid', ''), out_dir)+".cha",
                                 aligned_result["raw"]))
@@ -229,9 +252,12 @@ def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.pa
         writer = csv.writer(df)
         writer.writerow(["file", "wer"])
 
-        for (i, _), wer in zip(aligned_results, WER):
+        for (i, _), (wer, txt) in zip(aligned_results, WER):
             os.rename(i, repath_file(i, DATA_DIR))
             writer.writerow([Path(i).stem, wer])
+            # write the cut file
+            with open(i.replace(".cha",".diff"), 'w') as cutfile:
+                cutfile.write("\n".join(txt).strip())
 
     if clean:
         cleanup(in_dir, out_dir, data_directory)

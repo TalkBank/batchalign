@@ -4,8 +4,8 @@ import functools
 from multiprocessing import Process, freeze_support
 
 # REMINDER: did you change meta.yaml as well?
-VERSION="0.2.25"
-NOTES="benchmarking tools"
+VERSION="0.2.26"
+NOTES="bug fixes with benchmarking"
 
 #################### OPTIONS ################################
 
