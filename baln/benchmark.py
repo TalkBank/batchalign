@@ -63,6 +63,7 @@ def __cleanstring(s, splittoken="|||"):
     s = s.replace("hmm", "hm")
     s = s.replace("mmhmm", "mhm")
     s = s.replace("mmhm", "mhm")
+    s = s.replace("um", "uh")
     s = s.replace("selfemployed", f"self{splittoken}employed")
     s = s.replace("cuz", f"because")
     s = s.replace("gonna", f"going{splittoken}to")

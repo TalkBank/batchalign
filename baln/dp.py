@@ -22,6 +22,7 @@ class PayloadTarget:
 @dataclass
 class ReferenceTarget:
     key: str # the key to align against the reference
+    payload: Any = None
 
 # for extra outputs, which one has the extra
 # i.e. "which one is contributing to this Extra" class
@@ -43,6 +44,7 @@ class OutputType(Enum):
 class Match:
     key: str
     payload: Any
+    reference_payload: Any
 
 # if there is _not_ a match, we return the Extra type, and
 # further describe whether or not its an extra sequence in PAYLOAD
@@ -178,16 +180,18 @@ def __dp(payload, reference):
         # the index needed
         if action == OutputType.MATCH:
             output.append(Match(reference[ref_index].key,
-                                payload[payload_index].payload))
+                                payload[payload_index].payload,
+                                reference[ref_index].payload))
         if action == OutputType.EXTRA_BOTH or action == OutputType.EXTRA_PAYLOAD:
             output.append(Extra(payload[payload_index].key,
                                 ExtraType.PAYLOAD,
                                 payload[payload_index].payload))
         if action == OutputType.EXTRA_BOTH or action == OutputType.EXTRA_REFERENCE:
             output.append(Extra(reference[ref_index].key,
-                                ExtraType.REFERENCE))
+                                ExtraType.REFERENCE,
+                                reference[ref_index].payload))
 
-        dist, action, prev = dp[ref_index][payload_index]
+        _, action, prev = dp[ref_index][payload_index]
         
 
     # given we backtraced, we need to reverse this list to output the right direction
