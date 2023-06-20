@@ -48,13 +48,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Linux batchalign
-          path: /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2
+          path: /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
       - name: Upload Build Artifact (macOS)
         if: ${{ matrix.os == 'macos-latest' }} 
         uses: actions/upload-artifact@v3
         with:
           name: macOS batchalign
-          path: /Users/runner/miniconda3/conda-bld/osx-64/*.tar.bz2
+          path: /usr/local/miniconda/conda-bld/osx-64/*.tar.bz2
       - name: Upload Build Artifact (Windows)
         if: ${{ matrix.os == 'windows-latest' }} 
         uses: actions/upload-artifact@v3
