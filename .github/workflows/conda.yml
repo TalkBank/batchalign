@@ -9,8 +9,7 @@ jobs:
   conda_build:
     strategy:
       matrix:
-        os: [macos-latest]
-        # os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         #os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -28,12 +27,10 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
+          auto-update-conda: true
           activate-environment: ""
-          miniforge-version: latest
-      - name: Install Conda build tools
-        run: conda install -y conda-build conda-verify
-      - name: Update Conda
-        run: conda update -y conda
+      # - name: Install Conda build tools
+        # run: conda install -y conda-build conda-verify
       - name: Brotli dependency
         if: ${{ matrix.os == 'windows-latest' }} 
         run: conda install -c anaconda urllib3
