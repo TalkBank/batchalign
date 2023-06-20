@@ -29,6 +29,8 @@ jobs:
           auto-activate-base: true
           auto-update-conda: true
           activate-environment: ""
+      - name: Forge!
+        run: conda config --add channels conda-forge
       # - name: Install Conda build tools
         # run: conda install -y conda-build conda-verify
       - name: Brotli dependency
