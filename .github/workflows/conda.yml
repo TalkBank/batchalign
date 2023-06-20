@@ -33,6 +33,13 @@ jobs:
         run: conda config --add channels conda-forge
       # - name: Install Conda build tools
         # run: conda install -y conda-build conda-verify
+      - name: Install anaconda client
+        run: conda install anaconda-client
+      - name: Authenticate
+        env:
+            ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
+            ANACONDA_PASSPHRASE: ${{ secrets.ANACONDA_PASSPHRASE }}
+        run: conda activate base; anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
       - name: Brotli dependency
         if: ${{ matrix.os == 'windows-latest' }} 
         run: conda install -c anaconda urllib3
@@ -41,13 +48,6 @@ jobs:
       - name: Install mingw (Win)
         if: ${{ matrix.os == 'windows-latest' }} 
         run: conda install -y m2w64-toolchain m2w64-gcc
-      - name: Install anaconda client
-        run: conda install anaconda-client
-      - name: Authenticate
-        env:
-            ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
-            ANACONDA_PASSPHRASE: ${{ secrets.ANACONDA_PASSPHRASE }}
-        run: anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
       - name: Upload Build Artifact (Linux)
@@ -70,12 +70,12 @@ jobs:
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Publish build (macOS)
         if: ${{ matrix.os == 'macos-latest' }} 
-        run: anaconda upload -u jemoka /usr/local/miniconda/conda-bld/osx-64/*.tar.bz2
+        run: conda activate base; anaconda upload -u jemoka /usr/local/miniconda/conda-bld/osx-64/*.tar.bz2
       - name: Publish build (Windows)
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: anaconda upload -u jemoka C:\Miniconda3\conda-bld\win-64\*.tar.bz2
+        run: conda activate base; anaconda upload -u jemoka C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Publish build (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }} 
-        run: anaconda upload -u jemoka /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
+        run: conda activate base; anaconda upload -u jemoka /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
 
 
