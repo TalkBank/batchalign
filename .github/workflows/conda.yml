@@ -33,13 +33,6 @@ jobs:
         run: conda config --add channels conda-forge
       # - name: Install Conda build tools
         # run: conda install -y conda-build conda-verify
-      - name: Install anaconda client
-        run: conda install anaconda-client
-      - name: Authenticate
-        env:
-            ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
-            ANACONDA_PASSPHRASE: ${{ secrets.ANACONDA_PASSPHRASE }}
-        run: conda run anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
       - name: Brotli dependency
         if: ${{ matrix.os == 'windows-latest' }} 
         run: conda install -c anaconda urllib3
@@ -68,6 +61,13 @@ jobs:
         with:
           name: Windows batchalign
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
+      - name: Install anaconda client
+        run: conda install anaconda-client
+      - name: Authenticate
+        env:
+            ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
+            ANACONDA_PASSPHRASE: ${{ secrets.ANACONDA_PASSPHRASE }}
+        run: conda run anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
       - name: Publish build (macOS)
         if: ${{ matrix.os == 'macos-latest' }} 
         run: conda run anaconda upload -u jemoka /usr/local/miniconda/conda-bld/osx-64/*.tar.bz2
