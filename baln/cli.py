@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.27"
-NOTES="much more aggressive benchmarking algorithm"
+VERSION="0.2.28"
+NOTES="TED_LLIUM SPH processing tools"
 
 #################### OPTIONS ################################
 
@@ -218,6 +218,20 @@ def recursive(ctx, **kwargs):
 
         # batch align!
         os.system(f"{batchalign_binary} {kwargs['command']} {inp} {out}")
+
+#################### SPH/STM Conversion ################################
+
+@batchalign.command(hidden=True)
+@click.argument("in_dir", type=click.Path(exists=True, file_okay=False))
+@click.argument("out_dir", type=click.Path(exists=True, file_okay=False))
+@click.pass_context
+def sph(ctx, **kwargs):
+    """process sphere files, mostly from TED"""
+
+    # cleanup tools
+    from .sph import sph2cha_dir
+
+    sph2cha_dir(kwargs["in_dir"], kwargs["out_dir"])
 
 #################### CLEAN ################################
 

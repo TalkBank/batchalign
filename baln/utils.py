@@ -388,6 +388,25 @@ def mp32wav(directory):
     for f in mp3s:
         os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
 
+# optionally convert sph to wav files
+def sph2wav(directory):
+    """Generate wav files from mp3
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    sphs = globase(directory, "*.sph")
+
+    # convert each file
+    for f in sphs:
+        os.system(f"sox {f} {f.replace('sph','wav')}")
+
+
 # optionally convert mp4 to wav files
 def mp42wav(directory):
     """Generate wav files from mp4
