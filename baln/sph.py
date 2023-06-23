@@ -43,8 +43,8 @@ def stm_to_chat_string(f):
     header = [
         "@UTF8",
         "@Begin",
-        "@Languages: eng", # TODO are there non-English ted talks?
-        "@Participants: PAR0 Participant",
+        "@Languages:\teng", # TODO are there non-English ted talks?
+        "@Participants:\tPAR0 Participant",
         f"@ID:\teng|{corpus_name}|PAR0|||||Participant|||",
         f"@Media:\t{corpus_name}, audio"
     ]
