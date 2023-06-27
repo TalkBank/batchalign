@@ -5,7 +5,8 @@
 # For installation and usage instructions, please
 # visit https://github.com/TalkBank/batchalign.
 #
-# Copyright © 2023 Brian MacWhinney
+# Copyright © 2023 Brian MacWhinney and the TalkBank Project
+# Developed by Houjun Liu and Brian MacWhinney
 
 from baln.cli import batchalign
 
