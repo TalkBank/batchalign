@@ -7,6 +7,7 @@ from baln.retokenize import *
 # audio tools 
 import numpy as np
 import scipy.io.wavfile as wavfile
+from scipy.fftpack import fft
 
 # import the tokenization engine
 from baln.utokengine import UtteranceEngine
@@ -15,6 +16,7 @@ from baln.utokengine import UtteranceEngine
 import re
 import os
 import csv
+import math
 import json
 import time
 import string
@@ -24,16 +26,23 @@ from urllib import request
 # difflib
 from difflib import Differ
 
-def norm(f):
-    """Gets the normalized audio signal from a file
+def mono(f:str) -> np.ndarray:
+    """gets the mono signal from a file
 
-    Attributes:
-        file (str): the file to read
+    averages out the input signal to return a mono source
 
-    Returns:
-        np array
+    Parameters
+    ----------
+    f : str
+        the url of the file
+
+    Returns
+    -------
+    np.ndarray
+        numpy array representing the signal
     """
-    data = wavfile.read(f)[1]
+    
+    fs, data = wavfile.read(f)
     singleChannel = data
     try:
         singleChannel = np.sum(data, axis=1)
@@ -41,23 +50,32 @@ def norm(f):
         # was mono after all
         pass
 
-    norm = singleChannel / (max(np.amax(singleChannel), -1 * np.amin(singleChannel)))
-    return norm
+    return fs, singleChannel
 
-def signaltonoise(a, axis=0, ddof=0):
-    """Calculates decibel signal to noise
+def log_power(sound_url:str) -> float:
+    """calculate the log power of sound
 
-    Attributes:
-        a (np.Array): the array to compute snr
-        [axis] (int): axis to compute
-        [ddof] (int): ???
+    signal to noise is defined as 10log10 of the power of the input
+    signal.
 
-    Returns:
-        float
+    Parameters
+    ----------
+    sound_url : str
+        the url to the .wav file to calculate power
+
+    Returns
+    -------
+    float
+        the power
     """
-    m = a.mean(axis)
-    sd = a.std(axis=axis, ddof=ddof)
-    return 20*np.log10(abs(np.where(sd == 0, 0, m/sd)))
+
+
+    # read the audio file
+    fs, data = mono(sound_url)
+    # energy is the magnitude of the signal
+    energy = np.sum(np.abs(data)**2)
+    # power is mean energy over time
+    return 10*math.log10((energy/(len(data)/fs)))
 
 def __cleanstring(s, splittoken="|||"):
     s = s.replace("hmm", "hm")
@@ -195,7 +213,7 @@ def calculate_wer(asr, transcript):
     return wer, diff
 
 def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.path.join("~","mfa_data","model"),
-                        lang="en", beam=10, align=True, clean=True):
+                        lang="en", beam=10, align=True, clean=True, noise=None):
     """Calculate WER benchmarks from a directory.
 
     Attributes:
@@ -217,127 +235,152 @@ def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.pa
     if not os.path.exists(DATA_DIR):
         os.mkdir(DATA_DIR)
 
-    TMPDEBUG = False
-    if TMPDEBUG == False:
-        # check if model exists. If not, download it if needed.
-        if not model_path and not os.path.exists(os.path.expanduser(defaultmodel("model"))):
-            print("Getting segmentation model...")
-            # make the path
-            os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
-            # download the tarball
-            model_data = request.urlopen(MODEL_PATH)
-            # put it down
-            model_zip = os.path.expanduser(defaultmodel("model.tar.gz"))
-            with open(model_zip, 'wb') as df:
-                df.write(model_data.read())
-            # open it
-            tar = tarfile.open(model_zip, "r:gz")
-            tar.extractall(os.path.expanduser(defaultfolder))
-            tar.close()
-            # and then rename it
-            basepath = os.path.expanduser(defaultfolder)
-            os.rename(os.path.join(basepath, MODEL), os.path.join(basepath, "model"))
+    # if we are provided a noise plate, calculate the power of the noise
+    # in anticipation of computing SNR
+    if noise:
+        noise_power = log_power(noise)
 
-        # if a None was explicitly passed in
-        if not model_path:
-            model_path = os.path.join("~","mfa_data","model")
+    # check if model exists. If not, download it if needed.
+    if not model_path and not os.path.exists(os.path.expanduser(defaultmodel("model"))):
+        print("Getting segmentation model...")
+        # make the path
+        os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
+        # download the tarball
+        model_data = request.urlopen(MODEL_PATH)
+        # put it down
+        model_zip = os.path.expanduser(defaultmodel("model.tar.gz"))
+        with open(model_zip, 'wb') as df:
+            df.write(model_data.read())
+        # open it
+        tar = tarfile.open(model_zip, "r:gz")
+        tar.extractall(os.path.expanduser(defaultfolder))
+        tar.close()
+        # and then rename it
+        basepath = os.path.expanduser(defaultfolder)
+        os.rename(os.path.join(basepath, MODEL), os.path.join(basepath, "model"))
 
-        
-        ### PREPATORY OPS ###
-        # convert all mp3s to wavs
-        wavs = globase(in_dir, "*.wav")
-        # if there are no wavs, convert
-        if len(wavs) == 0 and len(globase(in_dir, "*.mp4")) > 0:
-            mp42wav(in_dir)
-            # indeed, is video!
-            is_video = True
-        elif len(wavs) == 0: 
-            mp32wav(in_dir)
+    # if a None was explicitly passed in
+    if not model_path:
+        model_path = os.path.join("~","mfa_data","model")
 
-        # Generate elan elan elan elan
-        chat2elan(in_dir)
 
-        # generate utterance and word-level alignments
-        elans = globase(in_dir, "*.eaf")
+    ### PREPATORY OPS ###
+    # convert all mp3s to wavs
+    wavs = globase(in_dir, "*.wav")
+    # if there are no wavs, convert
+    if len(wavs) == 0 and len(globase(in_dir, "*.mp4")) > 0:
+        mp42wav(in_dir)
+        # indeed, is video!
+        is_video = True
+    elif len(wavs) == 0: 
+        mp32wav(in_dir)
 
-        # convert all chats to TextGrids
-        chat2praat(in_dir)
+    # Generate elan elan elan elan
+    chat2elan(in_dir)
 
-        # if we are to align
-        if align:
-            # Align the files
-            align_directory_mfa(in_dir, DATA_DIR, beam=beam, lang=lang)
+    # generate utterance and word-level alignments
+    elans = globase(in_dir, "*.eaf")
 
-        # find textgrid files
-        alignments = globase(DATA_DIR, "*.TextGrid")
+    # convert all chats to TextGrids
+    chat2praat(in_dir)
 
-        # store aligned files
-        aligned_results = []
+    # if we are to align
+    if align:
+        # Align the files
+        align_directory_mfa(in_dir, DATA_DIR, beam=beam, lang=lang)
 
-        # zip the results and dump into new eafs
-        print("Done with MFA! Generating final word-level alignments and bullets...")
-        for alignment in tqdm(sorted(alignments)):
-            # Find the relative elan file
-            elan = repath_file(alignment, in_dir).replace("TextGrid", "eaf").replace("textGrid", "eaf")
-            # Align the alignment results
-            # MFA TextGrids are long form
-            print(f"Processing {alignment.replace('.TextGrid', '')}...")
-            aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long", aggressive=False)
+    # find textgrid files
+    alignments = globase(DATA_DIR, "*.TextGrid")
 
-            aligned_results.append((repath_file(alignment.replace('.TextGrid', ''), out_dir)+".cha",
-                                    aligned_result["raw"]))
+    # store aligned files
+    aligned_results = []
 
-        # so, we will convert the input directory to
-        # seed an utterance engine to use
-        Engine = UtteranceEngine(os.path.expanduser(model_path))
+    # zip the results and dump into new eafs
+    print("Done with MFA! Generating final word-level alignments and bullets...")
+    for alignment in tqdm(sorted(alignments)):
+        # Find the relative elan file
+        elan = repath_file(alignment, in_dir).replace("TextGrid", "eaf").replace("textGrid", "eaf")
+        # Align the alignment results
+        # MFA TextGrids are long form
+        print(f"Processing {alignment.replace('.TextGrid', '')}...")
+        aligned_result = transcript_word_alignment(elan, alignment, alignment_form="long", aggressive=False)
 
-        # for each output results, we will go through and also ASR it
-        asr_words = []
-        for path, _ in aligned_results:
-            # ASR!
-            asr, header, main, closing = retokenize(repath_file(path, in_dir).replace('.cha', '.wav'), path, Engine,
-                                                    False, lang=lang, noprompt=True)
-            asr_words.append([j for i in main for j in i[1]])
+        aligned_results.append((repath_file(alignment.replace('.TextGrid', ''), out_dir)+".cha",
+                                aligned_result["raw"]))
 
-        transcript_words = []
-        # also, parse the transcripts words by flattening the whole array
-        for _,result in aligned_results:
-            transcript_words.append([[j[0].lower(), [int(k*1000) for k in j[1]]]
-                                    for i in result
-                                    for j in i if j[1]])
-        # import pickle
-        # with open("./tmp.bin", "wb") as df:
-        #     pickle.dump([asr_words, transcript_words, aligned_results], df)
+    # so, we will convert the input directory to
+    # seed an utterance engine to use
+    Engine = UtteranceEngine(os.path.expanduser(model_path))
 
-    else:
-        import pickle
-        with open("./tmp.bin", "rb") as df:
-            asr_words, transcript_words, aligned_results = pickle.load(df)
+    # for each output results, we will go through and also ASR it
+    asr_words = []
+    signal_power = []
+    for path, _ in aligned_results:
+        # if SNR calculation is possible (i.e. noise plate is provided)
+        if noise:
+            signal_power.append(log_power(repath_file(path, in_dir).replace('.cha', '.wav')))
+        # ASR!
+        asr, header, main, closing = retokenize(repath_file(path, in_dir).replace('.cha', '.wav'), path, Engine,
+                                                False, lang=lang, noprompt=True)
+        asr_words.append([j for i in main for j in i[1]])
+
+    transcript_words = []
+    # also, parse the transcripts words by flattening the whole array
+    for _,result in aligned_results:
+        transcript_words.append([[j[0].lower(), [int(k*1000) for k in j[1]]]
+                                for i in result
+                                for j in i if j[1]])
+
+    # import pickle
+    # with open("./tmp.bin", "wb") as df:
+    #     pickle.dump([asr_words, transcript_words, aligned_results], df)
+
+    # else:
+    #     import pickle
+    #     with open("./tmp.bin", "rb") as df:
+    #         asr_words, transcript_words, aligned_results = pickle.load(df)
 
     # get WER results
     WER = []
 
+    # calculate word error rates
     for asr, transcript in zip(asr_words, transcript_words):
         WER.append(calculate_wer(asr, transcript))
 
-    # featurize
+    # write each of the diff files
+    for (i, _), (_, diff) in zip(aligned_results, WER):
+        # write the cut file
+        with open(i.replace(".cha",".diff"), 'w') as cutfile:
+            cutfile.write("\n".join(diff).strip())
+
+    # serialize all other information into a dictionary
+    feature_dict = {
+        "file": [i[0] for i in aligned_results],
+        "wer": [i[0] for i in WER]
+    }
+
+    # if there is noise information, we additionaly include that
+    if noise:
+        # recall that the log law log(a/b) = log(a)-log(b)
+        # so, 10log(signal) - 10log(noise) = 10log(signal/noise)
+        # which is the the typical definition of the signal to noise ratio
+        snrs = [i-noise_power for i in signal_power]
+        feature_dict["snr"] = snrs
+
+    # featurize the dictionary
     with open(os.path.join(out_dir, "benchmarks.csv"), 'w') as df:
         writer = csv.writer(df)
-        writer.writerow(["file", "wer"])
 
-        for (i, _), (wer, txt) in zip(aligned_results, WER):
-            if not TMPDEBUG:
-                os.rename(i, repath_file(i, DATA_DIR))
-            writer.writerow([Path(i).stem, wer])
-            # write the cut file
-            with open(i.replace(".cha",".diff"), 'w') as cutfile:
-                cutfile.write("\n".join(txt).strip())
+        writer.writerow(list(feature_dict.keys()))
+
+        for n in zip(*list(feature_dict.values())):
+            writer.writerow(n)
 
     if clean:
         cleanup(in_dir, out_dir, data_directory)
 
-    if TMPDEBUG:
-        raise Exception("TMPDEBUG is on")
+    # if TMPDEBUG:
+    #     raise Exception("TMPDEBUG is on")
 
 
 

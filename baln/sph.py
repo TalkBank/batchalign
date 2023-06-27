@@ -66,8 +66,6 @@ def sph2cha_dir(in_dir, out_dir):
         The input directory with which to recieve the file.
     out_dir : str
         The directory to dump the generated CHAT files.
-
-    Returns nothing.
     """
 
     # convert all the audio to wavs

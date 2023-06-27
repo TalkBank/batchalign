@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.28"
-NOTES="TED_LLIUM SPH processing tools"
+VERSION="0.2.29"
+NOTES="experimental signal to noise ratio"
 
 #################### OPTIONS ################################
 
@@ -126,6 +126,8 @@ def morphotag(ctx, **kwargs):
               default=30, help="beam width for MFA")
 @click.option("--model", type=click.Path(exists=True, file_okay=False),
               help="path to utterance tokenization model")
+@click.option("--noise", type=click.Path(exists=True, file_okay=True, dir_okay=False),
+              help="optional noise profile directory")
 def benchmark(ctx, **kwargs):
     """benchmark ASR performance on an existing CHAT file"""
 
@@ -134,7 +136,7 @@ def benchmark(ctx, **kwargs):
 
     benchmark_directory(kwargs["in_dir"], kwargs["out_dir"],
                         model_path=kwargs["model"], lang=kwargs["lang"],
-                        beam=kwargs["beam"], clean=kwargs["clean"])
+                        beam=kwargs["beam"], clean=kwargs["clean"], noise=kwargs["noise"])
 
 #################### FEATURIZE ################################
 
