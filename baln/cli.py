@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.29"
-NOTES="experimental signal to noise ratio"
+VERSION="0.2.30"
+NOTES="joining clitics in French"
 
 #################### OPTIONS ################################
 

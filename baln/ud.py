@@ -179,11 +179,14 @@ HANDLERS = {
 }
 
 # the follow
-def parse_sentence(sentence, delimiter="."):
+def parse_sentence(sentence, delimiter=".", french=False):
     """Parses Stanza sentence into %mor and %gra strings
 
     Arguments:
         sentence: the stanza sentence object
+        [delimiter]: the default delimiter to use to end utterances
+        [french]: wether we are doing french (forms like "t'as" needs
+                                              to be counted as one word)
 
     Returns:
         (str, str): (mor_string, gra_string)---strings matching
@@ -206,8 +209,9 @@ def parse_sentence(sentence, delimiter="."):
     # correction)
     gra_tmp = []
 
-    # keep track of multi-word tokens
+    # keep track of mwts
     mwts = []
+    clitics = []
 
     # TODO jank 2O(n) parse!
     # get mwts
@@ -215,9 +219,13 @@ def parse_sentence(sentence, delimiter="."):
         if len(token.id) > 1:
             mwts.append(token.id)
 
+        # for french, we have to keep track of the words
+        # that end in an apostrophe and join them later
+        if token.text[-1] == "'":
+            clitics.append(token.id[0])
+
     # get words
     for indx, word in enumerate(sentence.words):
-
         # append the appropriate mor line
         # by trying all handlers, and defaulting
         # to the default handler
@@ -236,6 +244,7 @@ def parse_sentence(sentence, delimiter="."):
             if word.deprel.upper() == "ROOT":
                 root = ((indx+1)-num_skipped)
         else:
+            mor.append(None)
             num_skipped+=1 # mark skipped if skipped
             actual_indicies.append(root) # TODO janky but if anybody refers to a skipped
                                          # word they are root now.
@@ -270,6 +279,20 @@ def parse_sentence(sentence, delimiter="."):
 
         # replace in new dict
         mor_clone[mwt_start-1] = mwt_str
+
+    if french:
+        # if we are parsing french, we will join
+        # all the segments with ' in the end with
+        # a dollar sign because those are considered
+        # one word
+        # recall again one indexing
+        while len(clitics) > 0:
+            clitic = clitics.pop()
+            try:
+                mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
+            except IndexError:
+                breakpoint()
+            mor_clone[clitic] = None
 
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()
@@ -399,7 +422,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             sentences.append(
                 # we want to treat the entire thing as one large sentence
-                parse_sentence(sents[0], ending)
+                parse_sentence(sents[0], ending, french=(lang == "fr"))
             )
 
         # inject into EAF

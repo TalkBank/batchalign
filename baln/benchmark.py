@@ -98,6 +98,7 @@ def __cleanstring(s, splittoken="|||"):
     s = s.replace("wouldve", f"would{splittoken}have")
     s = s.replace("coattails", f"coat{splittoken}tails")
     s = s.replace("exmarines", f"ex{splittoken}marines")
+    s = s.replace("wellbeing", f"well{splittoken}being")
     s = s.replace(f"all{splittoken}right", f"alright")
 
     return s
