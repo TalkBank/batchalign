@@ -212,10 +212,19 @@ def parse_sentence(sentence, delimiter=".", french=False):
     # keep track of mwts
     mwts = []
     clitics = []
+    # locations of elements with -ce, -être, -là
+    # needs to be joined
+    auxiliaries = []
 
     # TODO jank 2O(n) parse!
     # get mwts
     for indx, token in enumerate(sentence.tokens):
+        if token.text[0]=="-":
+
+            # we have to subtract 1 becasue $ goes to the
+            # NEXT element
+            auxiliaries.append(token.id[0]-1)
+
         if len(token.id) > 1:
             mwts.append(token.id)
 
@@ -293,6 +302,20 @@ def parse_sentence(sentence, delimiter=".", french=False):
             except IndexError:
                 breakpoint()
             mor_clone[clitic] = None
+
+        # connect auxiliaries with a "~"
+        # recall 1 indexing
+        for aux in auxiliaries:
+            # if the previous one was joined,
+            # we keep searching backwards
+
+            orig_aux = aux
+            while not mor_clone[aux-1]:
+                aux -= 1
+
+            mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
+            mor_clone[orig_aux] = None
+                
 
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()

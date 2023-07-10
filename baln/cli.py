@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.30"
-NOTES="joining clitics in French"
+VERSION="0.2.31"
+NOTES="processing with ~ to combine auxiliaries"
 
 #################### OPTIONS ################################
 
