@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.2.31" %}
+{% set version = "0.2.32" %}
 
 package:
   name: {{ name }}
@@ -29,6 +29,8 @@ requirements:
     - montreal-forced-aligner 2.1.7
     - pytorch
     - transformers 4.24.*
+    - scikit-learn 1.2.2
+    - hdbscan 0.8.29
     - tokenizers
     - h5py
     - loguru 0.7.0
