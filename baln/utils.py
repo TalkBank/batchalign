@@ -57,7 +57,7 @@ def check_media_link(f):
     # open the file and write content
     with open(f, 'w') as df:
         # write
-        df.write(new_string)
+        df.write(new_string.replace("\n\t\n","\n"))
 
 def strip_bullets(f):
     """Remove bullets from a file

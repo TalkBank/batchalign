@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.32"
-NOTES="pinning scikit-learn to prevent https://github.com/scikit-learn-contrib/hdbscan/issues/597"
+VERSION="0.2.33"
+NOTES="fixed bullet removal systems to not leave blank new lines"
 
 #################### OPTIONS ################################
 
