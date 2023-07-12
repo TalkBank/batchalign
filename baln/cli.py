@@ -65,6 +65,9 @@ def mainloop():
     # parse!
     MODE, REV_API, args = cli()
 
+    # print(args.beam)
+    # breakpoint()
+
     # if we are cleaning
     if args.clean:
         cleanup(args.in_dir, args.out_dir, args.data_dir)

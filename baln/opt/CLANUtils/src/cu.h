@@ -337,6 +337,7 @@ extern void freeUpIxes(IXXS *ixes, int max);
 extern void cleanupGRAWord(char *word);
 extern void processSPTier(char *spTier, char *line);
 extern void filterMorTier(char *morUtt, char *morLine, char isReplace, char linkDepTier2OtherTier);
+extern void setVocative(); // 04/30/2023 for Batchalign see cutt.cpp
 extern void createMorUttline(char *new_mor_tier, char *spTier, const char *dcode, char *mor_tier, char isFilterSP, char linkTiers);
 extern void cutt_cleanUpLine(const char *sp, char *ch, AttTYPE *att, int oIndex);
 extern void getMediaName(char *line, FNType *tMediaFileName, long size);

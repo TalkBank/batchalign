@@ -31,7 +31,7 @@ LIB = -lcurses -ltermcap
 # Linux on Intel and most other machines:
 # 	CFLAGS = -O -DUNX -fwritable-strings -Wall
 # for Linux g++ 4.4.1-4ubuntu9 compiler:
-CFLAGS = -DUNX -Wno-deprecated -Wno-deprecated-declarations
+CFLAGS = -DUNX -Wno-deprecated -Wno-deprecated-declarations -Wno-register 
 # if previous doesn't work try:
 #	CFLAGS = -DUNX -fwritable-strings
 # OR

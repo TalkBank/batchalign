@@ -7,3 +7,4 @@ dependencies:
   - pip
   - pip:
     - rev_ai
+    - python_speech_features

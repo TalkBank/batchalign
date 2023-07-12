@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.0.16" %}
+{% set version = "0.1.0" %}
 
 package:
   name: {{ name }}
@@ -7,7 +7,7 @@ package:
 
 source:
   git_url: https://github.com/TalkBank/batchalign.git
-  git_rev: master
+  git_rev: feat/next
 
 requirements:
   build:
@@ -28,20 +28,25 @@ requirements:
     - scikit-learn 1.2.2
     - hdbscan 0.8.29
     - pgvector-python 0.1.6
-    - montreal-forced-aligner 2.1.5
+    - montreal-forced-aligner 2.1.7
     - pytorch
     - transformers 4.24.*
+    - scikit-learn 1.2.2
+    - hdbscan 0.8.29
     - tokenizers
+    - h5py
+    - loguru 0.7.0
     - nltk
     - libcxx
+    - stanza
 
 build:
   entry_points:
-    - batchalign = baln.command_line:mainloop
+    - batchalign = baln.cli:batchalign
 
 about:
   home: https://github.com/TalkBank/batchalign
-  summary: 'an utility to generate and align CHAT files with ASR + Forced Alignment'
+  summary: 'CHAT file batch-processing utilities'
   dev_url: https://github.com/TalkBank/batchalign.git
   doc_url: https://github.com/TalkBank/batchalign
 

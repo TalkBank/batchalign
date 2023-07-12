@@ -6,4 +6,5 @@ dist/*
 *.py#
 .env
 *.sh#
+/.log/
 *~undo-tree~

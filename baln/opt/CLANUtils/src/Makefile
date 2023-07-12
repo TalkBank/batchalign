@@ -38,7 +38,7 @@ CC = g++
 #	CFLAGS = -O -DUNX -DAPPLEUNX -fwritable-strings -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body
 # Windows DOS MinGW-w64:
 #   install "tdm64-gcc-10.3.0-2.exe" from "jmeubank.github.io/tdm-gcc/" and uncomment next line
-CFLAGS = -O -D_DOS -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body
+CFLAGS = -O -D_DOS -fshort-wchar -Wcomment -Wdeprecated-declarations -Wempty-body -Wno-register
 
 # Debian 'sid' distribution
 #	CC = g++

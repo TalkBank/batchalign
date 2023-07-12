@@ -22,6 +22,43 @@ CLAN_PATH=resolve_clan()
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
 
+def check_media_link(f):
+    """Remove bullets from a file
+
+    Attributes:
+        f (string): file path
+
+    Returns:
+        none, used for side effects
+    """
+
+    # get abspath of file
+    f = os.path.abspath(f)
+    # open the file and strip bullets
+    with open(f, 'r') as df:
+        new_string = df.read()
+    # check for unlinked media line
+    if re.search(r"@Media:	, audio", new_string): # this is the sign of no media line
+        # remove media line
+        new_string = re.sub(r'@Media.*\n', '', new_string)
+        new_string = re.sub(r'\d+_\d+', '', new_string)
+    else:
+        new_string = re.sub(r'\d+_\d+', '', new_string)
+        # now, we also nee to add unlinked to the @Media line
+        # as we just got rid of the bullets;
+        # first we look for the media line
+        media_line_match = re.search(r"@Media.*", new_string)
+        if media_line_match and media_line_match[0].split(" ")[-1] != 'unlinked':
+            media_line_new = media_line_match[0].strip() # clone the string
+            # replace and add `unlinked` if needed
+            media_line_new += ", unlinked"
+            # replace!
+            new_string = new_string.replace(media_line_match[0], media_line_new)
+    # open the file and write content
+    with open(f, 'w') as df:
+        # write
+        df.write(new_string.replace("\n\t\n","\n"))
+
 def strip_bullets(f):
     """Remove bullets from a file
 
@@ -39,6 +76,16 @@ def strip_bullets(f):
         file_content = df.read()
         # remove all bullet symbols
         new_string = re.sub(r'\d+_\d+', '', file_content)
+    # now, we also nee to add unlinked to the @Media line
+    # as we just got rid of the bullets;
+    # first we look for the media line
+    media_line_match = re.search(r"@Media.*", new_string)
+    if media_line_match and media_line_match[0].split(" ")[-1] != 'unlinked':
+        media_line_new = media_line_match[0].strip() # clone the string
+        # replace and add `unlinked` if needed
+        media_line_new += ", unlinked"
+        # replace!
+        new_string = new_string.replace(media_line_match[0], media_line_new)
     # open the file and write content
     with open(f, 'w') as df:
         # write
@@ -66,11 +113,12 @@ def change_media(f, format="video"):
         # write
         df.write(new_string)
 
-def fix_transcript(f):
+def fix_transcript(f, lowcase="caps.cut"):
     """Fix transcript by adding any needed annotations, retracings, etc.
 
     Attributes:
         f (string): file path
+        lowcase (string): lowcase file, if None is used then it will not be ran
 
     Returns:
         none, used for side effects
@@ -91,16 +139,16 @@ def fix_transcript(f):
     CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{DISFLUENCY_FILE} {f} "
     os.system(CMD)
     # move old file to backup
-    os.rename(f, f.replace("cha", "old.cha"))
+    os.rename(f, f.replace(".cha", ".old.cha"))
     # rename new file
-    os.rename(f.replace("cha", "chstr.cex"), f)
+    os.rename(f.replace(".cha", ".chstr.cex"), f)
     # run rep join replacement
     CMD = f"{os.path.join(CLAN_PATH, 'chstring')} +c{REP_JOIN_FILE} {f} "
     os.system(CMD)
     # delete old file
     os.remove(f)
     # rename new file
-    os.rename(f.replace("cha", "chstr.cex"), f)
+    os.rename(f.replace(".cha", ".chstr.cex"), f)
 
 
     ###############
@@ -113,27 +161,29 @@ def fix_transcript(f):
     # delete old file
     os.remove(f)
     # rename new file
-    os.rename(f.replace("cha", "retrace.cex"), f)
+    os.rename(f.replace(".cha", ".retrace.cex"), f)
 
 
     #################
     ## Lowercasing ##
     #################
 
-    CAPS_FILE = os.path.abspath(os.path.join(dir_path, "caps.cut"))
-    # save/change workdir for lowcase
-    workdir = os.getcwd()
-    # change it to the output
-    os.chdir(pathlib.Path(f).parent.absolute())
-    # run 
-    CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} "
-    os.system(CMD)
-    # change it back to the output
-    os.chdir(workdir)
-    # delete old file
-    os.remove(f)
-    # rename new file
-    os.rename(f.replace("cha", "lowcas.cex"), f)
+    if lowcase:
+        CAPS_FILE = os.path.abspath(os.path.join(dir_path, lowcase))
+        # save/change workdir for lowcase
+        workdir = os.getcwd()
+        # change it to the output
+        os.chdir(pathlib.Path(f).parent.absolute())
+        # run 
+        CMD = f"lowcase +d1 +i{CAPS_FILE} {os.path.basename(f)} "
+        os.system(CMD)
+        # change it back to the output
+        os.chdir(workdir)
+        # delete old file
+        os.remove(f)
+        os.remove(f.replace(".cha", ".old.cha"))
+        # rename new file
+        os.rename(f.replace(".cha", ".lowcas.cex"), f)
 
 def cleanup(in_directory, out_directory, data_directory="data"):
     """Clean up alignment results so that workspace is clear
@@ -165,7 +215,7 @@ def cleanup(in_directory, out_directory, data_directory="data"):
     tgfiles = globase(in_directory, "*.TextGrid")
     # Rename each one
     for f in tgfiles:
-        os.rename(f, repath_file(f.replace("TextGrid", "orig.textGrid"), DATA_DIR)) 
+        os.rename(f, repath_file(f.replace(".TextGrid", ".orig.textGrid"), DATA_DIR)) 
 
     # move all the lab files 
     labfiles = globase(in_directory, "*.lab")
@@ -256,7 +306,7 @@ def fixbullets(directory):
         os.remove(f)
     # delete any preexisting chat files to old
     for f in globase(directory, "*.cha"):
-        os.rename(f, f.replace("cha", "old.cha"))
+        os.rename(f, f.replace(".cha", ".old.cha"))
     # and rename the files
     for f in globase(directory, "*.fxblts.cex"):
         os.rename(f, f.replace(".fxblts.cex", ".cha"))
@@ -338,6 +388,25 @@ def mp32wav(directory):
     for f in mp3s:
         os.system(f"ffmpeg -i {f} {f.replace('mp3','wav')} -c copy")
 
+# optionally convert sph to wav files
+def sph2wav(directory):
+    """Generate wav files from mp3
+
+    Arguments:
+        directory (string): string directory filled with chat files
+
+    Returns:
+        none
+    """
+
+    # then, finding all the elan files
+    sphs = globase(directory, "*.sph")
+
+    # convert each file
+    for f in sphs:
+        os.system(f"sox {f} {f.replace('sph','wav')}")
+
+
 # optionally convert mp4 to wav files
 def mp42wav(directory):
     """Generate wav files from mp4
@@ -377,3 +446,85 @@ def wavconformation(directory):
         os.remove(f)
         # and move the new back
         os.rename("temp.wav", f)
+
+# read all chat files
+def read_flo(f):
+    """Utility to read a single flo file
+
+    Arguments:
+        f (str): the file to read
+
+    Returns:
+        list[str] a string of results
+    """
+
+    # open and read file
+    with open(f, 'r') as df:
+        # read!
+        lines = df.readlines()
+
+    # coallate results
+    results = []
+
+    # process lines for tab-deliminated run-on lines
+    for line in lines:
+        # if we have a tab
+        if line[0] == '\t':
+            # take away the tab, append, and put back in results
+            results.append(results.pop()+" "+line.strip())
+        # otherwise, just append
+        else:
+            results.append(line.strip())
+
+    # return results
+    return results
+
+def read_chat(f):
+    # get lines in the file
+    lines = read_flo(f)
+
+    # split by tier and crop info
+    lines = [i.split("\t") for i in lines]
+
+    # chop off end delimiters in main tier
+    lines = [[i[0], i[1][:-2]] if i[0][0]=='*' else i for i in lines]
+
+    # get tiers seperated
+
+    # array for header tiers
+    header_tiers = []
+    # pop out header tiers
+    while lines[0][0][0] == '@':
+        header_tiers.append(lines.pop(0))
+
+    # array for main tiers
+    main_tiers = []
+    # pop out main tiers
+    while lines[0][0][0] == '*':
+        main_tiers.append(lines.pop(0))
+
+    # and set the rest to closing
+    closing_tiers = lines
+
+    # process main tiers
+    main_tiers_processed = []
+
+    # for every line, process
+    for line in main_tiers:
+        # split the line
+        line_split = line[1].split(" ")
+        # pair them up
+        line_paired = [(line_split[i],
+                        line_split[i+1])
+                    for i in range(0,len(line_split), 2)]
+        # and fix the right end
+        bullet_extract = lambda x: [int(i)
+                                    for i in
+                                    re.sub(r".(\d+)_(\d+).", r"\1|\2", x).split('|')]
+        line_extracted = [[i[0], bullet_extract(i[1])] for i in line_paired]
+
+        # append results
+        main_tiers_processed.append((line[0], line_extracted))
+
+    return header_tiers, main_tiers_processed, closing_tiers
+

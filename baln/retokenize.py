@@ -49,6 +49,13 @@ from tkinter.scrolledtext import ScrolledText
 from .utokengine import UtteranceEngine
 from .utils import fix_transcript
 
+# enums for provider
+from enum import Enum
+
+class ASRProvider(Enum):
+    REV = 1
+    WHISPER = 2
+
 MODEL_PATH="https://dl.dropboxusercontent.com/s/4qhixi742955p35/model.tar.gz?dl=0"
 MODEL="flowing-salad-6"
 
@@ -58,285 +65,9 @@ os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 
-SPEAKER_TRANSLATIONS = {
-    "p": ("Participant", "PAR"),
-    "i": ("Investigator", "INV"),
-    "c": ("Child", "CHI"),
-    "s": ("Student", "STU"),
-    # "n": ("Partner", "PTN")
-}
-
-# read all chat files
-def read_file(f):
-    """Utility to read a single flo file
-
-    Arguments:
-        f (str): the file to read
-
-    Returns:
-        list[str] a string of results
-    """
-
-    # open and read file
-    with open(f, 'r') as df:
-        # read!
-        lines = df.readlines()
-
-    # coallate results
-    results = []
-
-    # process lines for tab-deliminated run-on lines
-    for line in lines:
-        # if we have a tab
-        if line[0] == '\t':
-            # take away the tab, append, and put back in results
-            results.append(results.pop()+" "+line.strip())
-        # otherwise, just append
-        else:
-            results.append(line.strip())
-
-    # return results
-    return results
-
-# process a file
-def process_chat_file(f):
-    # get lines in the file
-    lines = read_file(f)
-
-    # split by tier and crop info
-    lines = [i.split("\t") for i in lines]
-
-    # chop off end delimiters in main tier
-    lines = [[i[0], i[1][:-2]] if i[0][0]=='*' else i for i in lines]
-
-    # get tiers seperated
-
-    # array for header tiers
-    header_tiers = []
-    # pop out header tiers
-    while lines[0][0][0] == '@':
-        header_tiers.append(lines.pop(0))
-
-    # array for main tiers
-    main_tiers = []
-    # pop out main tiers
-    while lines[0][0][0] == '*':
-        main_tiers.append(lines.pop(0))
-
-    # and set the rest to closing
-    closing_tiers = lines
-
-    # process main tiers
-    main_tiers_processed = []
-
-    # for every line, process
-    for line in main_tiers:
-        # split the line
-        line_split = line[1].split(" ")
-        # pair them up
-        line_paired = [(line_split[i],
-                        line_split[i+1])
-                    for i in range(0,len(line_split), 2)]
-        # and fix the right end
-        bullet_extract = lambda x: [int(i)
-                                    for i in
-                                    re.sub(r".(\d+)_(\d+).", r"\1|\2", x).split('|')]
-        line_extracted = [[i[0], bullet_extract(i[1])] for i in line_paired]
-
-        # append results
-        main_tiers_processed.append((line[0], line_extracted))
-
-    return header_tiers, main_tiers_processed, closing_tiers
-
-corpus = None
-
-# process jsons (for both rev API and json files)
-def process_json(data, name=None, interactive=False):
-    global corpus
-    
-    """Process JSON Data from Rev.ai
-
-    Attributes:
-        data (dict): JSON data from Rev.ai
-        [name] (str): name of the audio, to add to @Media tier
-        [interactive] (bool): whether to support interactive fixes
-    """
-
-    # create array for total collected utterance
-    utterance_col = []
-
-    # for each utterance
-    for utterance in data["monologues"]:
-        # get a list of words
-        words = utterance["elements"]
-        # coallate words (not punct) into the shape we expect
-        # which is ['word', [start_ms, end_ms]]. Yes, this would
-        # involve multiplying by 1000 to s => ms
-        words = [[i["value"], [round(i["ts"]*1000),
-                                round(i["end_ts"]*1000)]] # the shape
-                for i in words # for each word
-                    if i["type"] == "text" and
-                    not re.match(r'<.*>', i["value"])] # if its text
-        # final words
-        final_words = []
-        # go through the words, if there is a space, split time in n parts
-        for word, (i,o) in words:
-            # split the word
-            word_parts = word.split(" ")
-            # if we only have one part, we don't interpolate
-            if len(word_parts) == 1:
-                final_words.append([word, [i,o]])
-                continue
-            # otherwise, we interpolate the itme
-            cur = i
-            div = (o-i)//len(word_parts)
-            # for each part, add the start and end
-            for part in word_parts:
-                final_words.append([part.strip(), [cur, cur+div]])
-                cur += div
-        # if the final words is > 300, split into n parts
-        if len(final_words) > 300:
-            # for each group, append
-            for i in range(0, len(final_words), 300):
-                # concatenate with speaker tier and append to final collection
-                # not unless the crop is empty
-                if len(final_words[i:i+300]) > 0:
-                    utterance_col.append((utterance["speaker"], final_words[i:i+300]))
-        else:
-            # concatenate with speaker tier and append to final collection
-            if len(final_words) > 0:
-                utterance_col.append((utterance["speaker"], final_words))
-
-    # get a list of speaker IDs
-    speaker_ids = {i[0] for i in utterance_col} # this is a set!
-    speakers = {}
-
-    # generate the speaker information, or
-    # otherwise fill it out
-
-    speakers_filtered = []
-    # filter 2 statements for each speaker needed
-    # and then push
-    for speaker in speaker_ids:
-        speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
-
-    # prompt hello
-    print("Welcome to interactive speaker identification!")
-    print(f"You are working with sample {name}.\n")
-
-    # print out samples from speaker
-    for indx, speaker in enumerate(speaker_ids):
-        print(f"\033[1mSpeaker {speaker}\033[0m")
-        try: 
-            print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
-        except:
-            breakpoint()
-        print()
-
-    # prompt for info
-    for speaker in speaker_ids:
-        # get info and handle error correction
-        # get speaker info
-        speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
-        # if we don't have first capital and spelt correctly
-        while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
-            print("Invalid response. Please follow the formatting example provided.")
-            speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
-        # get tier info
-        speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ")
-        # if we don't have first capital and spelt correctly
-        while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
-            print("Invalid response. Please follow the formatting example provided.")
-            speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ").strip()
-        # add to list
-        speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
-        print()
-    # Name of the corpus
-    if not corpus:
-        corpus = input("Corpus name not found; please enter corpus name: ")
-
-    # go through the list and reshape the main tier
-    utterance_col = [['*'+speakers[i[0]]["tier"]+":",
-                    i[1]] for i in utterance_col]
-
-    # create the @Participants tier
-    participants_tier = ", ".join(set([v["tier"]+f" {v['name']}"
-                                       for k,v in speakers.items()]))
-    participants_tier = ["@Participants:", participants_tier]
-
-    # create the @ID tiers and @ID tier string
-    id_tiers = set([f"eng|{corpus}|{v['tier']}|||||{v['name']}|||" for k,v in speakers.items()])
-    id_tiers = [["@ID:",i] for i in id_tiers]
-
-    # finally, create media tier
-    media_tier = ["@Media:", f"{name}, audio"]
-
-    # assemble final header and footer
-    header = [["@Begin"],
-                ["@Languages:", "eng"],
-                participants_tier,
-                *id_tiers,
-                media_tier]
-    footer = [["@End"]]
-
-    # return result
-    return header, utterance_col, footer
-
-# global realignment function (for rev.ai)
-def process_json_file(f, interactive=False):
-    """Process a RevAI text file as input
-
-    Attributes:
-        f (str): file to process
-        interactive (bool): whether or not to prompt for speaker info
-    """
-
-    # open the file and read its lines
-    with open(f, 'r') as df:
-        data = json.load(df)
-
-    # process and return
-    return process_json(data, pathlib.Path(f).stem, interactive)
-
-# sent an audio file to ASR, and then process the resulting JSON
-def process_audio_file(f, key, interactive=False):
-    # late import for backwards capatibility
-    from rev_ai import apiclient, JobStatus
-
-    # create client
-    client = apiclient.RevAiAPIClient(key)
-
-    print(f"Uploading '{pathlib.Path(f).stem}'...")
-    # we will send the file for processing
-    job = client.submit_job_local_file(f,
-                                       metadata=f"batchalign_{pathlib.Path(f).stem}",
-                                       skip_postprocessing=True)
-
-    # we will wait
-    status = client.get_job_details(job.id).status
-
-    # we will wait until it finishes
-    print(f"Rev.AI is transcribing '{pathlib.Path(f).stem}'...")
-
-    # check status
-    while status == JobStatus.IN_PROGRESS:
-        # sleep
-        time.sleep(30)
-        # check again
-        status = client.get_job_details(job.id).status
-
-    # if we failed, report failure and give up
-    if status == JobStatus.FAILED:
-        # get error
-        err = client.get_job_details(job.id).failure_detail
-        # print error
-        raise Exception(f"Job '{pathlib.Path(f).stem}' failed! {err}.")
-
-    # and now, we extract result
-    transcript_json = client.get_transcript_json(job.id)
-
-    # finally, we run processing and return the resutls
-    return process_json(transcript_json, pathlib.Path(f).stem, interactive)
+# default model and directory paths
+defaultmodel = lambda x:os.path.join("~","mfa_data",x)
+defaultfolder = os.path.join("~","mfa_data")
 
 # get text GUI
 def interactive_edit(name, string):
@@ -408,30 +139,259 @@ def interactive_edit(name, string):
     # return the new contents of the textbox
     return final_text.strip()
 
+# process a file
+corpus = None
+
+# process asr output jsons 
+def process_asr_output(data, name=None, interactive=False, noprompt=False):
+    global corpus
+    
+    """Process JSON Data
+
+    Attributes:
+        data (dict): JSON data in the Rev.AI spec
+        [name] (str): name of the audio, to add to @Media tier
+        [interactive] (bool): whether to support interactive fixes
+        [noprompt] (bool): whether or not to prompt nothing
+    """
+
+    # create array for total collected utterance
+    utterance_col = []
+
+    # for each utterance
+    for utterance in data["monologues"]:
+        # get a list of words
+        words = utterance["elements"]
+        # coallate words (not punct) into the shape we expect
+        # which is ['word', [start_ms, end_ms]]. Yes, this would
+        # involve multiplying by 1000 to s => ms
+        words = [[i["value"], [round(i["ts"]*1000),
+                                round(i["end_ts"]*1000)]] # the shape
+                for i in words # for each word
+                    if i["type"] == "text" and
+                    not re.match(r'<.*>', i["value"])] # if its text
+        # final words
+        final_words = []
+        # go through the words, if there is a space, split time in n parts
+        for word, (i,o) in words:
+            # split the word
+            word_parts = word.split(" ")
+            # if we only have one part, we don't interpolate
+            if len(word_parts) == 1:
+                final_words.append([word, [i,o]])
+                continue
+            # otherwise, we interpolate the itme
+            cur = i
+            div = (o-i)//len(word_parts)
+            # for each part, add the start and end
+            for part in word_parts:
+                final_words.append([part.strip(), [cur, cur+div]])
+                cur += div
+        # if the final words is > 300, split into n parts
+        if len(final_words) > 300:
+            # for each group, append
+            for i in range(0, len(final_words), 300):
+                # concatenate with speaker tier and append to final collection
+                # not unless the crop is empty
+                if len(final_words[i:i+300]) > 0:
+                    utterance_col.append((utterance["speaker"], final_words[i:i+300]))
+        else:
+            # concatenate with speaker tier and append to final collection
+            if len(final_words) > 0:
+                utterance_col.append((utterance["speaker"], final_words))
+
+    # get a list of speaker IDs
+    speaker_ids = {i[0] for i in utterance_col} # this is a set!
+    speakers = {}
+
+    # generate the speaker information, or
+    # otherwise fill it out
+
+    if noprompt:
+        # generate info
+        for speaker in speaker_ids:
+            # add to list
+            speakers[speaker] = {"name": f"Participant", "tier": f"PAR{speaker}"}
+        # corpus name
+        corpus = "corpus_name"
+    else:
+        speakers_filtered = []
+        # filter 2 statements for each speaker needed
+        # and then push
+        for speaker in speaker_ids:
+            speakers_filtered.append(sorted(list(filter(lambda x:x[0]==speaker, utterance_col)), key=lambda x:len(x[1]))[-2:])
+
+        # prompt hello
+        print("Welcome to interactive speaker identification!")
+        print(f"You are working with sample {name}.\n")
+
+        # print out samples from speaker
+        for indx, speaker in enumerate(speaker_ids):
+            print(f"\033[1mSpeaker {speaker}\033[0m")
+            try: 
+                print("\n".join(["start: %02d:%02d; "%divmod(i[1][0][1][0]//1000, 60)+" ".join([j[0] for j in i[1]]) for i in speakers_filtered[indx]]))
+            except:
+                breakpoint()
+            print()
+
+        # prompt for info
+        for speaker in speaker_ids:
+            # get info and handle error correction
+            # get speaker info
+            speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
+            # if we don't have first capital and spelt correctly
+            while not (speaker_name.strip() != "" and speaker_name[0].isupper() and "*" not in speaker_name):
+                print("Invalid response. Please follow the formatting example provided.")
+                speaker_name = input(f"Please enter the role of speaker {speaker} (i.e. Participant): ").strip()
+            # get tier info
+            speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ")
+            # if we don't have first capital and spelt correctly
+            while not (speaker_name != "" and speaker_tier.isupper() and "*" not in speaker_name):
+                print("Invalid response. Please follow the formatting example provided.")
+                speaker_tier = input(f"Please enter the 3-letter ID tier code of speaker {speaker} (i.e. PAR): ").strip()
+            # add to list
+            speakers[speaker] = {"name": speaker_name, "tier": speaker_tier}
+            print()
+        # Name of the corpus
+        if not corpus:
+            corpus = input("Corpus name not found; please enter corpus name: ")
+
+    # go through the list and reshape the main tier
+    utterance_col = [['*'+speakers[i[0]]["tier"]+":",
+                    i[1]] for i in utterance_col]
+
+    # create the @Participants tier
+    participants_tier = ", ".join(set([v["tier"]+f" {v['name']}"
+                                       for k,v in speakers.items()]))
+    participants_tier = ["@Participants:", participants_tier]
+
+    # create the @ID tiers and @ID tier string
+    id_tiers = set([f"eng|{corpus}|{v['tier']}|||||{v['name']}|||" for k,v in speakers.items()])
+    id_tiers = [["@ID:",i] for i in id_tiers]
+
+    # finally, create media tier
+    media_tier = ["@Media:", f"{name}, audio"]
+
+    # assemble final header and footer
+    header = [["@Begin"],
+                ["@Languages:", "eng"],
+                participants_tier,
+                *id_tiers,
+                media_tier]
+    footer = [["@End"]]
+
+    # return result
+    return header, utterance_col, footer
+
+# global realignment function (for rev.ai)
+def asr__rev_json(f):
+    """Process a RevAI text file as input
+
+    Attributes:
+        f (str): file to process
+    """
+
+    # open the file and read its lines
+    with open(f, 'r') as df:
+        data = json.load(df)
+
+    # process and return
+    return data
+
+# sent an audio file to ASR, and then process the resulting JSON
+def asr__rev_wav(f, key=None, lang="en"):
+    """Perform ASR on an .wav file and return Rev.AI JSON
+
+    Arguments:
+    f (str): the .wav file path to process
+    key (str): the Rev.AI key
+    lang (str): language
+    """
+    # late import for backwards capatibility
+    from rev_ai import apiclient, JobStatus
+
+    # create client
+    client = apiclient.RevAiAPIClient(key)
+
+    print(f"Uploading '{pathlib.Path(f).stem}'...")
+    # we will send the file for processing
+    job = client.submit_job_local_file(f,
+                                       metadata=f"batchalign_{pathlib.Path(f).stem}",
+                                       language=lang,
+                                       skip_postprocessing=True)
+
+    # we will wait
+    status = client.get_job_details(job.id).status
+
+    # we will wait until it finishes
+    print(f"Rev.AI is transcribing '{pathlib.Path(f).stem}'...")
+
+    # check status
+    while status == JobStatus.IN_PROGRESS:
+        # sleep
+        time.sleep(30)
+        # check again
+        status = client.get_job_details(job.id).status
+
+    # if we failed, report failure and give up
+    if status == JobStatus.FAILED:
+        # get error
+        err = client.get_job_details(job.id).failure_detail
+        # print error
+        raise Exception(f"Job '{pathlib.Path(f).stem}' failed! {err}.")
+
+    # and now, we extract result
+    transcript_json = client.get_transcript_json(job.id)
+
+    # finally, we run processing and return the resutls
+    return transcript_json
+
 # global realignment function
-def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
+def retokenize(infile, outfile, utterance_engine, interactive=False, provider=ASRProvider.REV, lang="en", noprompt=False, **kwargs):
     """Function to retokenize an entire chat file
 
     Attributes:
         infile (str): in .cha or json file
         outfile (str): out, retokenized out file
         utterance_engine (UtteranceEngine): trained utterance engine instance
+        provider (ASRProvider): which asr provider to use
+        [lang] (str): language
         [interactive] (bool): whether to enable midway user fixes to label data/train
-        [key] (str): Rev.AI API key, used for transcription when needed
+        [noprompt] (bool): whether or not to provide no prompt
+        **kwargs: keyword parameters 
 
     Used for output side effects
     """
+    # store ASR output by performing ASR using the indicated method
+    asr = None
 
-    # if its json, use json the processor
-    if pathlib.Path(infile).suffix == ".json":
-        header, main, closing = process_json_file(infile, interactive)
-    # if its an audio file, we use the audio preprocessor
-    elif pathlib.Path(infile).suffix == ".wav":
-        header, main, closing = process_audio_file(infile, key, interactive)
-    # if its an AWS .cha (from Andrew), we will use the chat processor
-    else:
-        header, main, closing = process_chat_file(infile)
+    if provider == ASRProvider.REV:
+        key = kwargs.get("key")
+        # find key; if non-existant, ask for it.
+        if not key:
+            # find keyfile
+            with open(os.path.expanduser(defaultmodel("rev_key")), "a+") as df:
+                # seek beginning
+                df.seek(0,0)
+                # get contents
+                cont = df.read()
+                # if no content, prompt
+                if cont == "":
+                    cont = input("Enter your Rev.AI API key: ")
+                    df.write(cont.strip())
+                # anyways, its just the keyfile
+                key = cont.strip()
 
+        # if its json, use the Rev json processor
+        if pathlib.Path(infile).suffix == ".json":
+            asr = asr__rev_json(infile)
+        # if its a .wav file, use the .wav processor
+        elif pathlib.Path(infile).suffix == ".wav":
+            asr = asr__rev_wav(infile, key=key, lang=lang)
+
+    # then, process the ASR
+    header, main, closing = process_asr_output(asr, pathlib.Path(infile).stem, noprompt=noprompt)
+        
     # chunk the data with our model
     chunked_passages = []
 
@@ -523,10 +483,17 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, key=None):
         df.writelines([i+'\n' for i in new_chat])
 
     # and fix any errors
-    fix_transcript(outfile)
+    # for most cases, don't use locase
+    # TODO until more lowcase files are avilable
+    if lang != "en":
+        fix_transcript(outfile, None)
+    else:
+        fix_transcript(outfile)
+
+    return asr, header, main, closing
 
 
-def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, key=None):
+def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en", noprompt=False):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -534,17 +501,15 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         model_path (str): path to a BertTokenizer and BertModelForTokenClassification
                           trained on the segmentation task.
         [interactive] (bool): whether to run the interactive routine
-        [key] (str): the key to the Rev.AI API, if we need to run ASR
+        [lang] (str): language
+        [noprompt] (bool): whether or not to provide no prompt
 
     Returns:
         None, used for .cha file generation side effects.
     """
 
-    defaultmodel = lambda x:os.path.join("~","mfa_data",x)
-    defaultfolder = os.path.join("~","mfa_data")
-
-    # check if model exists. If not, download it
-    if not os.path.exists(os.path.expanduser(defaultmodel("model"))):
+    # check if model exists. If not, download it if needed.
+    if not model_path and not os.path.exists(os.path.expanduser(defaultmodel("model"))):
         print("Getting segmentation model...")
         # make the path
         os.makedirs(os.path.expanduser(defaultfolder), exist_ok=True)
@@ -562,35 +527,15 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         basepath = os.path.expanduser(defaultfolder)
         os.rename(os.path.join(basepath, MODEL), os.path.join(basepath, "model"))
 
+    # if a None was explicitly passed in
+    if not model_path:
+        model_path = os.path.join("~","mfa_data","model")
+
     # find all the JSON files
     files = globase(in_directory, "*.json")
-    # if we have no JSON files, we assume that the input
-    # chat files are .cha (Andrew edition)
+    # if we can't find any JSON files, we have to go run
+    # ASR
     if len(files) == 0:
-        # we will scan for .cha files
-        files = globase(in_directory, "*.cha")
-        # move them to the .orig directory
-        for f in files:
-            # move to .old
-            os.rename(f,f.replace("cha","orig.cha"))
-        # we will scan for .cha files again, with new dir
-        files = globase(in_directory, "*.cha")
-    # if we STILL have no files, we need to run ASR
-    if len(files) == 0:
-        # find key; if non-existant, ask for it.
-        if not key:
-            # find keyfile
-            with open(os.path.expanduser(defaultmodel("rev_key")), "a+") as df:
-                # seek beginning
-                df.seek(0,0)
-                # get contents
-                cont = df.read()
-                # if no content, prompt
-                if cont == "":
-                    cont = input("Enter your Rev.AI API key: ")
-                    df.write(cont.strip())
-                # anyways, its just the keyfile
-                key = cont.strip()
         # scan for wav files
         files = globase(in_directory, "*.wav")
         # if we don't have wav files, find mp3/4 and convert
@@ -615,5 +560,5 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
-        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, key)
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang, noprompt=noprompt)
 
