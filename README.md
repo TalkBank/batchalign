@@ -20,7 +20,7 @@ to initialize Anaconda for your workspace.
 For macOS and Linux users needing to perform this step manually (i.e. the final screen of the installer didn't offer to do it automatically or provide next step instructions), the process will involve executing some variant of the commands `source [PATH TO WHERE CONDA IS INSTALLED]/bin/activate` and `conda init`. 
 
 ## First Time Setup
-If you have never used `batchalign` before, execute the following
+If you have never used `batchalign` before, execute the following (remember to hover your cursor over the following codeblock, and tap the copy button that appears to the right to ensure you copy the whole command)
 
 ```bash
 curl -O "https://raw.githubusercontent.com/TalkBank/batchalign/master/environment.yml" & conda env create -f environment.yml
