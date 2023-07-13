@@ -185,8 +185,8 @@ def parse_sentence(sentence, delimiter=".", french=False):
     Arguments:
         sentence: the stanza sentence object
         [delimiter]: the default delimiter to use to end utterances
-        [french]: wether we are doing french (forms like "t'as" needs
-                                              to be counted as one word)
+        [french]: whether we are doing french (forms like "t'as" needs
+                                               to be counted as one word)
 
     Returns:
         (str, str): (mor_string, gra_string)---strings matching
@@ -239,8 +239,16 @@ def parse_sentence(sentence, delimiter=".", french=False):
         # by trying all handlers, and defaulting
         # to the default handler
         mor_word = HANDLERS.get(word.upos, handler)(word)
-        # some handlers may return None to skip the word
-        if mor_word:
+        # exception: if the word is 0, it is probably 0word
+        # occationally Stanza screws up and makes forms like 0thing as 2 tokens:
+        # 0 and thing 
+        if word.text.strip() == "0":
+            mor.append("$ZERO$")
+            num_skipped+=1 # mark skipped if skipped
+            actual_indicies.append(root) # TODO janky but if anybody refers to a skipped
+                                         # word they are root now.
+        # normal parsing
+        elif mor_word:
             mor.append(mor_word)
             # +1 because we are 1-indexed
             # and .head is also 1-indexed already
@@ -252,6 +260,7 @@ def parse_sentence(sentence, delimiter=".", french=False):
             # ID as root
             if word.deprel.upper() == "ROOT":
                 root = ((indx+1)-num_skipped)
+        # some handlers may return None to skip the word
         else:
             mor.append(None)
             num_skipped+=1 # mark skipped if skipped
@@ -319,6 +328,9 @@ def parse_sentence(sentence, delimiter=".", french=False):
 
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()
+
+    # handle special zeros, see $ZERO$ above
+    mor_str = mor_str.replace("$ZERO$ ","0")
 
     # add the endning delimiter
     if len(mor_str) != 1: # if we actually have content (not just . or ?)
@@ -429,6 +441,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             line_cut = line_cut.replace("+<", "")
             line_cut = line_cut.replace("+/", "")
+            line_cut = line_cut.replace("(", "")
+            line_cut = line_cut.replace(")", "")
 
             # if line cut is still nothing, we get very angry
             if line_cut == "":

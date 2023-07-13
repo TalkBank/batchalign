@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.33"
-NOTES="fixed bullet removal systems to not leave blank new lines"
+VERSION="0.2.34"
+NOTES="paranthese and 0forms"
 
 #################### OPTIONS ################################
 
