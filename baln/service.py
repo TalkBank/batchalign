@@ -75,7 +75,7 @@ class BAInstruction:
 
     # read only instruction ID for storage
     def __post_init__(self): 
-        self.__id = str(uuid4())
+        self.__id = str(uuid4())[:8] 
 
     @property
     def id(self):
@@ -230,7 +230,7 @@ def submit():
         lang = request.form.get("lang", "en")
 
         # create the new instruction's ID
-        id = str(uuid4())
+        id = str(uuid4())[:8]
 
         # create the input folder
         input_path = os.path.join(app.config["DATA_PATH"], f"{corpus_name}-{id}-input")
