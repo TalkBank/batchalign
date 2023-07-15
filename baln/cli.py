@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.34"
-NOTES="paranthese and 0forms"
+VERSION="0.2.35"
+NOTES="various small frenchy changes"
 
 #################### OPTIONS ################################
 

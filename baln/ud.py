@@ -67,6 +67,10 @@ def handler(word):
     target = target.replace("$", "")
     target = target.replace(".", "")
 
+    # if we have a clitic that's broken off, we remove the extra dash
+    if target[0] == "-":
+        target = target[1:]
+
     return f"{'' if not unknown else '0'}{word.upos.lower()}|{target.replace(',', '')}"
 
 # POS specific handler
@@ -443,6 +447,10 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+/", "")
             line_cut = line_cut.replace("(", "")
             line_cut = line_cut.replace(")", "")
+
+            # frenchy adaptations
+            if lang == "fr":
+                line_cut = line_cut.replace("ohlàlà", "oh là là")
 
             # if line cut is still nothing, we get very angry
             if line_cut == "":
