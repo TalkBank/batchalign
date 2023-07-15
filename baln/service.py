@@ -6,17 +6,20 @@ from baln.ud import morphanalyze
 
 # flasky tools
 from werkzeug.utils import secure_filename
-from flask import Flask, flash, request, redirect, url_for
+from flask import Flask, flash, request, redirect, url_for, send_file
+from werkzeug.utils import secure_filename
 
 # python tools
 from uuid import uuid4
 
 import sys
 
+from datetime import datetime
+
 from enum import Enum
 from dataclasses import dataclass
 
-from multiprocessing import Process, Manager, Queue
+from multiprocessing import Process, Manager, Queue, cpu_count, freeze_support
 from multiprocessing.connection import Connection
 from multiprocessing.managers import DictProxy, AutoProxy
 
@@ -25,11 +28,38 @@ import tarfile
 
 from loguru import logger as L
 
+from gunicorn.app.base import BaseApplication
+
+# util to calculate number of works
+def number_of_workers():
+    return (cpu_count() * 2) + 1
+
+# create the api object
+app = Flask("batchalign")
+
+# gunicorn application boilerplate
+class BatchalignGunicornService(BaseApplication):
+    def __init__(self, app, ip="0.0.0.0", port="8080", workers=5):
+        self.options = {"preload_app": True,
+                        "bind": f"{ip}:{port}",
+                        "workers": workers}
+        self.application = app
+        super().__init__()
+
+    def load_config(self):
+        config = {key: value for key, value in self.options.items()
+                  if key in self.cfg.settings and value is not None}
+        for key, value in config.items():
+            self.cfg.set(key.lower(), value)
+
+    def load(self):
+        return self.application
+
 # command dataclass
 class BACommand(Enum):
-    TRANSCRIBE = 0
-    ALIGN = 1
-    UD = 2
+    TRANSCRIBE = "transcribe"
+    ALIGN = "align"
+    UD = "morphotag"
 
 @dataclass
 class BAInstruction:
@@ -49,6 +79,10 @@ class BAInstruction:
     @property
     def id(self):
         return self.__id
+
+    @id.setter
+    def id(self, id):
+        self.__id = id
 
 def execute(instruction:BAInstruction, output_path:str, registry:DictProxy, mfa_mutex:AutoProxy):
     """Execute a BAInstruction, sending the output to the dictproxy registry
@@ -94,12 +128,13 @@ def execute(instruction:BAInstruction, output_path:str, registry:DictProxy, mfa_
             morphanalyze(in_dir, out_dir, lang=instruction.lang)
 
         # create a tarball out of the output direcotry
-        out_tar_path = os.path.join(output_path, f"{instruction.corpus_name}-{instruction.id}.tar.gz")
+        out_tar_path = os.path.join(output_path, f"{instruction.corpus_name}-{instruction.id}-output.tar.gz")
         with tarfile.open(out_tar_path, "w:gz") as tf:
             tf.add(f"./{instruction.corpus_name}")
 
         registry[instruction.id] = {
             "id": instruction.id,
+            "name": instruction.corpus_name,
             "status": "success",
             "payload": out_tar_path
         }
@@ -119,6 +154,7 @@ def worker_loop(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Auto
             error_str = str(e)
             registry[instruction.id] = {
                 "id": instruction.id,
+                "name": instruction.corpus_name,
                 "status": "error",
                 "payload": error_str
             }
@@ -138,28 +174,130 @@ def spawn_workers(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Au
 
     return processes
 
+@app.route('/jobs/<id>', methods=['GET'])
+def jobs(id):
+    try: 
+        # return the result
+        data =  app.config["REGISTRY"][id.strip()]
+
+        res =  {
+            "id": data.get("id"),
+            "status": data.get("status"),
+            "name": data.get("name"),
+        }
+
+        if data.get("status") == "error":
+            res["payload"] = data.get("payload")
+
+        return res
+
+    except KeyError:
+        return {
+            "status": "not_found",
+            "message": "That's not an ID we are used to! Check your input arguments please."
+        }, 404
+
+@app.route('/download/<id>', methods=['GET'])
+def download(id):
+    try: 
+        # return the result
+        data = app.config["REGISTRY"][id.strip()]
+
+        if data["status"] != "success":
+            return {
+                "status": "error",
+                "message": "That file is not ready yet or has errored; please use /jobs/<id> to check on its status."
+            }, 400
+
+        return send_file(data["payload"])
+
+    except KeyError:
+        return {
+            "status": "not_found",
+            "message": "that's not an ID we are used to! check your input please"
+        }, 404
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    try: 
+        # get the parameters from form info
+        corpus_name = request.form["name"]
+        command = request.form["command"]
+        lang = request.form.get("lang", "en")
+
+        # create the new instruction's ID
+        id = str(uuid4())
+
+        # create the input folder
+        input_path = os.path.join(app.config["DATA_PATH"], f"{corpus_name}-{id}-input")
+        os.mkdir(input_path)
+
+        # save the input files
+        for file in request.files.getlist("input"):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(input_path, filename))
+
+        # create the instruction
+        instruction = BAInstruction(corpus_name, BACommand(command), input_path, lang=lang)
+        instruction.id = id
+
+        # and submit it!
+        app.config["QUEUE"].put_nowait(instruction)
+
+        # write it down
+        res = {
+            "id": instruction.id,
+            "name": corpus_name,
+            "status": "processing"
+        }
+
+        app.config["REGISTRY"][instruction.id] = res
+
+        # return the result
+        return res, 200
+
+    except ValueError:
+        return {
+            "status": "error",
+            "message": "it looks like there was a malformed request, check your input arguments"
+        }, 400
+
 # set up logging by removing the default logger and adding our own
 L.remove()
 L.add(sys.stdout, level="DEBUG", format="({time:YYYY-MM-DD HH:mm:ss}) <lvl>{level}</lvl>: {message}", enqueue=True)
 
 # the input and output queues
 if __name__ == "__main__":
-    # set up the tools
+    # magic to make sure things don't break
+    freeze_support()
+
+    # application tools
     manager = Manager()
     registry = manager.dict()
     queue = manager.Queue()
     mfa_mutex = manager.Lock()
 
-    # start!
-    workers = spawn_workers("../opt/", tasks=queue, registry=registry, mfa_mutex=mfa_mutex, num=5)
+    # data path 
+    data_path = "../opt/"
 
-    # send a fun task
-    instruction0 = BAInstruction("test", BACommand.TRANSCRIBE, "../../talkbank-alignment/testing_playground_2/input")
-    instruction1 = BAInstruction("test", BACommand.TRANSCRIBE, "../../talkbank-alignment/testing_playground_2/input")
-    queue.put_nowait(instruction0)
-    queue.put_nowait(instruction1)
+    # set things
+    app.config["QUEUE"] = queue
+    app.config["REGISTRY"] = registry
+    app.config["DATA_PATH"] = data_path
+
+    # start batchalign workers
+    workers = spawn_workers(data_path, tasks=queue, registry=registry,
+                            mfa_mutex=mfa_mutex, num=5)
+    # start gunicorn workers
+    BatchalignGunicornService(app).run()
 
     # aaaand block main thread execution
     for process in workers:
         process.join()
+
+# send a fun task
+# instruction0 = BAInstruction("test", BACommand.TRANSCRIBE, "../../talkbank-alignment/testing_playground_2/input")
+# instruction1 = BAInstruction("test", BACommand.TRANSCRIBE, "../../talkbank-alignment/testing_playground_2/input")
+# queue.put_nowait(instruction0)
+# queue.put_nowait(instruction1)
 
