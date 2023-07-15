@@ -7,6 +7,7 @@ from baln.ud import morphanalyze
 # flasky tools
 from werkzeug.utils import secure_filename
 from flask import Flask, flash, request, redirect, url_for, send_file
+from flask_cors import cross_origin
 from werkzeug.utils import secure_filename
 
 # python tools
@@ -175,6 +176,7 @@ def spawn_workers(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Au
     return processes
 
 @app.route('/jobs/<id>', methods=['GET'])
+@cross_origin()
 def jobs(id):
     try: 
         # return the result
@@ -198,6 +200,7 @@ def jobs(id):
         }, 404
 
 @app.route('/download/<id>', methods=['GET'])
+@cross_origin()
 def download(id):
     try: 
         # return the result
@@ -218,6 +221,7 @@ def download(id):
         }, 404
 
 @app.route('/submit', methods=['POST'])
+@cross_origin()
 def submit():
     try: 
         # get the parameters from form info
