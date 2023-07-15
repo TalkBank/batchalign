@@ -264,10 +264,10 @@ def submit():
 
 # set up logging by removing the default logger and adding our own
 L.remove()
-L.add(sys.stdout, level="DEBUG", format="({time:YYYY-MM-DD HH:mm:ss}) <lvl>{level}</lvl>: {message}", enqueue=True)
+L.add(sys.stdout, level="INFO", format="({time:YYYY-MM-DD HH:mm:ss}) <lvl>{level}</lvl>: {message}", enqueue=True)
 
 # the input and output queues
-if __name__ == "__main__":
+def run_service(data_path, ip="0.0.0.0", port=8080, num_workers=5):
     # magic to make sure things don't break
     freeze_support()
 
@@ -277,9 +277,6 @@ if __name__ == "__main__":
     queue = manager.Queue()
     mfa_mutex = manager.Lock()
 
-    # data path 
-    data_path = "../opt/"
-
     # set things
     app.config["QUEUE"] = queue
     app.config["REGISTRY"] = registry
@@ -287,17 +284,11 @@ if __name__ == "__main__":
 
     # start batchalign workers
     workers = spawn_workers(data_path, tasks=queue, registry=registry,
-                            mfa_mutex=mfa_mutex, num=5)
+                            mfa_mutex=mfa_mutex, num=num_workers)
     # start gunicorn workers
-    BatchalignGunicornService(app).run()
+    BatchalignGunicornService(app, ip, port, num_workers).run()
 
     # aaaand block main thread execution
     for process in workers:
         process.join()
-
-# send a fun task
-# instruction0 = BAInstruction("test", BACommand.TRANSCRIBE, "../../talkbank-alignment/testing_playground_2/input")
-# instruction1 = BAInstruction("test", BACommand.TRANSCRIBE, "../../talkbank-alignment/testing_playground_2/input")
-# queue.put_nowait(instruction0)
-# queue.put_nowait(instruction1)
 

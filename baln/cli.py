@@ -249,6 +249,29 @@ def clean(ctx, **kwargs):
     click.echo("Performing cleanup operations...")
     cleanup(kwargs["in_dir"], kwargs["out_dir"], "data")
 
+
+#################### DAEMON ################################
+
+@batchalign.command()
+@click.pass_context
+@click.argument("data_path", 
+                type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option("--ip", type=str,
+              default="0.0.0.0", help="the IP address to bind to")
+@click.option("--port", type=int,
+              default=8080, help="the port to bind to")
+@click.option("--num_workers", type=int,
+              default=5, help="number of parallel workers to run")
+def daemon(ctx, **kwargs):
+    """runs batchalign daemon for the web UI"""
+
+    # forced alignment tools
+    from .service import run_service
+
+    run_service(**kwargs)
+
+
+
 #################### CLEAN ################################
 
 @batchalign.command()
