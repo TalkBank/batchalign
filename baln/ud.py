@@ -68,7 +68,7 @@ def handler(word):
     target = target.replace(".", "")
 
     # if we have a clitic that's broken off, we remove the extra dash
-    if target[0] == "-":
+    if target != "" and target[0] == "-":
         target = target[1:]
 
     return f"{'' if not unknown else '0'}{word.upos.lower()}|{target.replace(',', '')}"
