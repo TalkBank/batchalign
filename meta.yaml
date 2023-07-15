@@ -37,6 +37,8 @@ requirements:
     - nltk
     - libcxx
     - stanza
+    - flask 2.3.*
+    - gunicorn 20.1.*
 
 build:
   entry_points:
