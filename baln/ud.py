@@ -447,10 +447,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+/", "")
             line_cut = line_cut.replace("(", "")
             line_cut = line_cut.replace(")", "")
-
-            # frenchy adaptations
-            if lang == "fr":
-                line_cut = line_cut.replace("ohlàlà", "oh là là")
+            line_cut = line_cut.replace("+^", "")
+            line_cut = line_cut.replace("_", "")
 
             # if line cut is still nothing, we get very angry
             if line_cut == "":
