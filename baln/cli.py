@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.37"
-NOTES="fixing +^ and underscores for UD"
+VERSION="0.2.38"
+NOTES="ud empty bug fixes"
 
 #################### OPTIONS ################################
 

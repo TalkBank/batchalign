@@ -393,7 +393,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     # create label and elan files
     chat2transcript(in_dir, True)
-    chat2elan(in_dir)
+    chat2elan(in_dir, False)
 
     # process each file
     print("Performing analysis...")
@@ -461,12 +461,12 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             sents = nlp(line_cut).sentences
 
             if len(sents) == 0:
-                breakpoint()
-
-            sentences.append(
-                # we want to treat the entire thing as one large sentence
-                parse_sentence(sents[0], ending, french=(lang == "fr"))
-            )
+                sents = ["."]
+            else:
+                sentences.append(
+                    # we want to treat the entire thing as one large sentence
+                    parse_sentence(sents[0], ending, french=(lang == "fr"))
+                )
 
         # inject into EAF
         # we have no MFA alignments, instead, we are injecting
