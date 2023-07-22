@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.38"
-NOTES="ud empty bug fixes"
+VERSION="0.2.39"
+NOTES="two quick bug fixes for connecting clitics"
 
 #################### OPTIONS ################################
 
