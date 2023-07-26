@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from multiprocessing import Process, Manager, Queue, cpu_count, freeze_support
 from multiprocessing.connection import Connection
 from multiprocessing.managers import DictProxy, AutoProxy
+from multiprocessing import set_start_method
 
 from tempfile import TemporaryDirectory
 import tarfile
@@ -30,6 +31,8 @@ import tarfile
 from loguru import logger as L
 
 from gunicorn.app.base import BaseApplication
+
+import mysql.connector as mysql
 
 # util to calculate number of works
 def number_of_workers():
@@ -133,12 +136,20 @@ def execute(instruction:BAInstruction, output_path:str, registry:DictProxy, mfa_
         with tarfile.open(out_tar_path, "w:gz") as tf:
             tf.add(f"./{instruction.corpus_name}")
 
-        registry[instruction.id] = {
-            "id": instruction.id,
-            "name": instruction.corpus_name,
-            "status": "success",
-            "payload": out_tar_path
-        }
+        try:
+            cnx = registry.cursor()
+        except:
+            registry.reconnect()
+            cnx = registry.cursor()
+        cnx.execute(f"UPDATE cache SET status='success', payload='{out_tar_path}' WHERE id='{instruction.id}'");
+        registry.commit()
+
+        # registry[instruction.id] = {
+        #     "id": instruction.id,
+        #     "name": instruction.corpus_name,
+        #     "status": "success",
+        #     "payload": out_tar_path
+        # }
 
     # change directory back
     os.chdir(wd)
@@ -153,16 +164,23 @@ def worker_loop(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Auto
             execute(instruction, output_path, registry, mfa_mutex)
         except Exception as e:
             error_str = str(e)
-            registry[instruction.id] = {
-                "id": instruction.id,
-                "name": instruction.corpus_name,
-                "status": "error",
-                "payload": error_str
-            }
+            try:
+                cnx = registry.cursor()
+            except:
+                registry.reconnect()
+                cnx = registry.cursor()
+            cnx.execute(f"UPDATE cache SET status='error', payload='{error_str}' WHERE id='{instruction.id}'");
+            cnx.commit()
+            # registry[instruction.id] = {
+            #     "id": instruction.id,
+            #     "name": instruction.corpus_name,
+            #     "status": "error",
+            #     "payload": error_str
+            # }
 
         L.info(f"Done with Instruction #{instruction.id}")
 
-def spawn_workers(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:AutoProxy, num=5):
+def start_workers(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:AutoProxy, num=5):
     """Function to spawn workers to perform work"""
 
     processes = []
@@ -179,21 +197,32 @@ def spawn_workers(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Au
 @cross_origin()
 def jobs(id):
     try: 
+        registry = app.config["REGISTRY"]
+        try:
+            cnx = registry.cursor(buffered=True)
+        except:
+            registry.reconnect()
+            cnx = registry.cursor(buffered=True)
+
         # return the result
-        data =  app.config["REGISTRY"][id.strip()]
+        cnx.execute(f"SELECT * FROM cache WHERE id='{id.strip()}'");
+        data = cnx.fetchall()
+
+        # why here? to prevent crashing code above from
+        # locking the mutex forever
+        data = data[0]
 
         res =  {
-            "id": data.get("id"),
-            "status": data.get("status"),
-            "name": data.get("name"),
+            "id": data[0],
+            "name": data[1],
+            "status": data[2],
         }
 
-        if data.get("status") == "error":
-            res["payload"] = data.get("payload")
-
+        if data[2] == "error":
+            res["payload"] = data[3]
         return res
 
-    except KeyError:
+    except IndexError:
         return {
             "status": "not_found",
             "message": "That's not an ID we are used to! Check your input arguments please."
@@ -202,19 +231,31 @@ def jobs(id):
 @app.route('/download/<id>', methods=['GET'])
 @cross_origin()
 def download(id):
+    registry = app.config["REGISTRY"]
+    try:
+        cnx = registry.cursor(buffered=True)
+    except:
+        registry.reconnect()
+        cnx = registry.cursor(buffered=True)
+
     try: 
         # return the result
-        data = app.config["REGISTRY"][id.strip()]
+        cnx.execute(f"SELECT * FROM cache WHERE id='{id.strip()}'");
+        data = cnx.fetchall()
 
-        if data["status"] != "success":
+        # why here? to prevent crashing code above from
+        # locking the mutex forever
+        data = data[0]
+
+        if data[2] != "success":
             return {
                 "status": "error",
                 "message": "That file is not ready yet or has errored; please use /jobs/<id> to check on its status."
             }, 400
 
-        return send_file(data["payload"])
+        return send_file(data[3])
 
-    except KeyError:
+    except IndexError:
         return {
             "status": "not_found",
             "message": "that's not an ID we are used to! check your input please"
@@ -223,6 +264,15 @@ def download(id):
 @app.route('/submit', methods=['POST'])
 @cross_origin()
 def submit():
+    registry = app.config["REGISTRY"]
+    try:
+        cnx = registry.cursor()
+    except:
+        registry.reconnect()
+        cnx = registry.cursor()
+
+
+
     try: 
         # get the parameters from form info
         corpus_name = request.form["name"]
@@ -254,8 +304,10 @@ def submit():
             "name": corpus_name,
             "status": "processing"
         }
+        cnx.execute(f"INSERT INTO cache VALUES ('{id}', '{corpus_name}', 'processing', NULL);")
+        registry.commit()
 
-        app.config["REGISTRY"][instruction.id] = res
+        # app.config["REGISTRY"][instruction.id] = res
 
         # return the result
         return res, 200
@@ -270,29 +322,53 @@ def submit():
 L.remove()
 L.add(sys.stdout, level="INFO", format="({time:YYYY-MM-DD HH:mm:ss}) <lvl>{level}</lvl>: {message}", enqueue=True)
 
+
+# db = connection.cursor()
+
+# db.execute("INSERT INTO cache VALUES ('teoh2', 'togher', 'success', 'tmp')")
+# db.execute("SELECT * FROM cache;")
+# db.execute("UPDATE cache SET id='tmpoeu';")
+# db.execute("DELETE FROM cache WHERE id='teoh2';")
+
+# res = db.fetchall()
+# res
+
+
 # the input and output queues
-def run_service(data_path, ip="0.0.0.0", port=8080, num_workers=5):
+def run_service(data_path,
+                ip="0.0.0.0", port=8080,
+                db_ip="localhost", db_port=3306,
+                db_user="root", db_password=None, database="batchalign",
+                num_workers=5):
     # magic to make sure things don't break
     freeze_support()
 
+    # create a pointer to the db
+    cnx = mysql.connect(host=db_ip, database=database,
+                        port=db_port, user=db_user,
+                        password=db_password,
+                        pool_size=num_workers)
+
     # application tools
     manager = Manager()
-    registry = manager.dict()
     queue = manager.Queue()
     mfa_mutex = manager.Lock()
 
     # set things
     app.config["QUEUE"] = queue
-    app.config["REGISTRY"] = registry
+    app.config["REGISTRY"] = cnx
     app.config["DATA_PATH"] = data_path
 
+    # fork instead of spawn to preserve pool state
+    set_start_method('fork', force=True) 
+
     # start batchalign workers
-    workers = spawn_workers(data_path, tasks=queue, registry=registry,
+    workers = start_workers(data_path, tasks=queue, registry=cnx,
                             mfa_mutex=mfa_mutex, num=num_workers)
     # start gunicorn workers
     BatchalignGunicornService(app, ip, port, num_workers).run()
 
-    # aaaand block main thread execution
-    for process in workers:
-        process.join()
+    # # aaaand block main thread execution
+    # for process in workers:
+    #     process.join()
 

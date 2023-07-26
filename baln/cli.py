@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.37"
-NOTES="fixing +^ and underscores for UD"
+VERSION="0.2.40-0"
+NOTES="experimental website"
 
 #################### OPTIONS ################################
 
@@ -260,6 +260,16 @@ def clean(ctx, **kwargs):
               default="0.0.0.0", help="the IP address to bind to")
 @click.option("--port", type=int,
               default=8080, help="the port to bind to")
+@click.option("--db_ip", type=str,
+              default="localhost", help="the mysql database IP address to work with")
+@click.option("--db_port", type=int,
+              default=3306, help="the mysql database IP port to work with")
+@click.option("--db_user", type=str,
+              default="root", help="the mysql database username")
+@click.option("--db_password", type=str,
+              default=None, help="the mysql database username")
+@click.option("--database", type=str,
+              default="batchalign", help="the mysql database to use")
 @click.option("--num_workers", type=int,
               default=5, help="number of parallel workers to run")
 def daemon(ctx, **kwargs):
