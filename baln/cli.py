@@ -3,7 +3,7 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.40-0"
+VERSION="0.2.40"
 NOTES="experimental website"
 
 #################### OPTIONS ################################

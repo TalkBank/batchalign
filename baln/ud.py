@@ -220,9 +220,11 @@ def parse_sentence(sentence, delimiter=".", french=False):
     # needs to be joined
     auxiliaries = []
 
+
     # TODO jank 2O(n) parse!
     # get mwts
     for indx, token in enumerate(sentence.tokens):
+
         if token.text[0]=="-":
 
             # we have to subtract 1 becasue $ goes to the
@@ -234,8 +236,9 @@ def parse_sentence(sentence, delimiter=".", french=False):
 
         # for french, we have to keep track of the words
         # that end in an apostrophe and join them later
-        if token.text[-1] == "'":
-            clitics.append(token.id[0])
+        if french:
+            if token.text[-1] == "'":
+                clitics.append(token.id[0])
 
     # get words
     for indx, word in enumerate(sentence.words):
@@ -296,39 +299,38 @@ def parse_sentence(sentence, delimiter=".", french=False):
         mwt_str = "~".join(mor[mwt_start-1:mwt_end])
 
         # delete old
-        for j in mwt:
-          mor_clone[j-1] = None
+        for j in range(mwt_start, mwt_end+1):
+            mor_clone[j-1] = None
 
         # replace in new dict
         mor_clone[mwt_start-1] = mwt_str
 
-    if french:
-        # if we are parsing french, we will join
-        # all the segments with ' in the end with
-        # a dollar sign because those are considered
-        # one word
-        # recall again one indexing
-        while len(clitics) > 0:
-            clitic = clitics.pop()
-            try:
-                mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
-            except IndexError:
-                breakpoint()
-            mor_clone[clitic] = None
+    # if we are parsing french, we will join
+    # all the segments with ' in the end with
+    # a dollar sign because those are considered
+    # one word
+    # recall again one indexing
+    while len(clitics) > 0:
+        clitic = clitics.pop()
+        try:
+            mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
+        except IndexError:
+            breakpoint()
+        mor_clone[clitic] = None
 
-        # connect auxiliaries with a "~"
-        # recall 1 indexing
-        for aux in auxiliaries:
-            # if the previous one was joined,
-            # we keep searching backwards
+    # connect auxiliaries with a "~"
+    # recall 1 indexing
+    for aux in auxiliaries:
+        # if the previous one was joined,
+        # we keep searching backwards
 
-            orig_aux = aux
-            while not mor_clone[aux-1]:
-                aux -= 1
+        orig_aux = aux
+        while not mor_clone[aux-1]:
+            aux -= 1
 
-            mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
-            mor_clone[orig_aux] = None
-                
+        mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
+        mor_clone[orig_aux] = None
+
 
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()
@@ -393,7 +395,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     # create label and elan files
     chat2transcript(in_dir, True)
-    chat2elan(in_dir)
+    chat2elan(in_dir, False)
 
     # process each file
     print("Performing analysis...")
@@ -461,12 +463,12 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             sents = nlp(line_cut).sentences
 
             if len(sents) == 0:
-                breakpoint()
-
-            sentences.append(
-                # we want to treat the entire thing as one large sentence
-                parse_sentence(sents[0], ending, french=(lang == "fr"))
-            )
+                sents = ["."]
+            else:
+                sentences.append(
+                    # we want to treat the entire thing as one large sentence
+                    parse_sentence(sents[0], ending, french=(lang == "fr"))
+                )
 
         # inject into EAF
         # we have no MFA alignments, instead, we are injecting
