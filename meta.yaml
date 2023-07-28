@@ -17,6 +17,7 @@ requirements:
     - python
     - pip
   run:
+    - python 3.10.12
     - requests
     - six
     - websocket-client
