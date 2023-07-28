@@ -206,6 +206,7 @@ def jobs(id):
 
         # return the result
         cnx.execute(f"SELECT * FROM cache WHERE id='{id.strip()}'");
+        registry.commit()
         data = cnx.fetchall()
 
         # why here? to prevent crashing code above from
@@ -241,6 +242,7 @@ def download(id):
     try: 
         # return the result
         cnx.execute(f"SELECT * FROM cache WHERE id='{id.strip()}'");
+        registry.commit()
         data = cnx.fetchall()
 
         # why here? to prevent crashing code above from
@@ -348,6 +350,7 @@ def run_service(data_path,
                         port=db_port, user=db_user,
                         password=db_password,
                         pool_size=num_workers)
+    cnx.autocommit = True
 
     # application tools
     manager = Manager()
