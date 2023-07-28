@@ -25,7 +25,7 @@ requirements:
     - praatio 6.0.0
     - pgvector 0.4.0
     - pgvector-python 0.1.6
-    - montreal-forced-aligner 2.1.7
+    - montreal-forced-aligner 2.2.15
     - pytorch
     - transformers 4.24.*
     - scikit-learn 1.2.2
