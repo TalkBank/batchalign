@@ -14,7 +14,7 @@ requirements:
     - {{ compiler('cxx') }}
     - make
   host:
-    - python
+    - python 3.10.*
     - pip
   run:
     - python 3.10.12
