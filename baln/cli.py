@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.41"
-NOTES="fixes special form markers: @p, etc."
+VERSION="0.2.42"
+NOTES="creates a processor variant to override specific tokenzation behavior"
 
 #################### OPTIONS ################################
 

@@ -6,20 +6,149 @@ from pathlib import Path
 
 # UD tools
 import stanza
+
+from stanza import Document
+from stanza.models.common.doc import Token
 from stanza.pipeline.core import CONSTITUENCY
 from stanza import DownloadMethod
 from torch import heaviside
 
+from stanza.pipeline.processor import ProcessorVariant, register_processor_variant
+
 # the loading bar
 from tqdm import tqdm
+
+from nltk import word_tokenize
+from collections import defaultdict
 
 # out utiltiies
 from .utils import *
 from .eaf import *
+from .dp import *
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
+
+# Register tokenizer processor variant, and fix tokenization for specific forms
+@register_processor_variant("tokenize", "ba")
+class BATokenizer(ProcessorVariant):
+
+    OVERRIDE = True
+
+    def __init__(self, config):
+        self.__subpipe = stanza.Pipeline(lang=config["lang"], processors='tokenize,mwt')
+        self.__lang = config["lang"]
+
+    def __token_align(self, structural, neural):
+        # we are performing character level alignment
+        # the payload for each type is the token id
+        # which the character belongs to
+        #
+        # ReferenceTarget: structural tokens from NLTK
+        # PayloadTarget: neural tokens from Stanza
+
+        rts = []
+        pts = []
+
+        for i, token in enumerate(structural):
+            for char in token:
+                rts.append(ReferenceTarget(char, i))
+
+        for i, token in enumerate(neural):
+            for char in token:
+                pts.append(PayloadTarget(char, i))
+
+        alignment = align(pts, rts)
+
+        # build a dictionary of what structural token each
+        # neural token corresponds to.
+        # ASSUMPTION: neural will always break up words more than
+        # structural
+
+        matches = defaultdict(set)
+
+        for match in alignment:
+            matches[match.reference_payload].add(match.payload)
+
+        # convert these to actual string pairings
+        pairings = []
+
+        # sort by id to ensure order, as dp process
+        # doesn't garantee input order
+        matches = sorted(matches.items())
+        matches = [(j, sorted(i)) for j,i in matches]
+
+        # and finally, convert the ids back to the tokens
+        matches = [[structural[j], [neural[k] for k in i]]
+                   for j,i in matches]
+
+        return matches
+
+    def process(self, text):
+        # for sentence in document.sentences:
+        #     for word in sentence.words:
+        #         word.lemma = "cool"
+
+        document = self.__subpipe(text) 
+
+        neural_tokens = [i.text for i in document.sentences[0].words]
+
+        structural_text = text
+        structural_text =structural_text.replace("l'", "l' ")
+        structural_tokens = structural_text.split(" ")
+
+        aligned = self.__token_align(structural_tokens,
+                                     neural_tokens)
+        # this should be in the format of
+        # [ (structural_token: [semantic, tokens]), ...]
+
+        # we now perform language specific post-processing
+        aligned = self.__tok_reprocess(aligned)
+
+        # assemble stanza-compatible final output
+        # taking care to treat multi-word tokens the way Stanza
+        # expects; run a mwt through stanza to see
+        # how they want it
+        final_tokens = []
+        current_token_index = 1
+        for text, tokens in aligned:
+            final_tokens.append({
+                "id": (current_token_index,
+                       current_token_index+len(tokens)-1)
+                if len(tokens) > 1 else (current_token_index, ),
+                "text": text})
+            current_token_index = current_token_index+len(tokens)
+
+        reconstructed = Document([final_tokens], text)
+        return reconstructed
+
+    def __tok_reprocess(self, aligned):
+        if self.__lang == "it":
+            return self.__tok_reprocess__it(aligned)
+
+        # if no processor is registered, just return the
+        # original sequence
+        return aligned
+
+    def __tok_reprocess__it(self, aligned):
+
+        new = []
+
+        for key, value in aligned:
+            fixed = value
+            if key == "dai":
+                fixed = ["dai"]
+            elif key == "dài":
+                fixed = ["dài"]
+            elif key == "aòe":
+                fixed = ["aòe"]
+
+            new.append((key, fixed))
+
+        return new
+        
+
 # one liner to parse features
 def parse_feats(word):
     try:
@@ -402,7 +531,11 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     print("Starting Stanza...")
 
     nlp = stanza.Pipeline(lang,
-                          processors='tokenize,pos,lemma,depparse',
+                          processors={"tokenize": "ba",
+                                      "mwt": "default",
+                                      "pos": "default",
+                                      "lemma": "default",
+                                      "depparse": "default"},
                           download_method=DownloadMethod.REUSE_RESOURCES,
                           tokenize_no_ssplit=True)
 
