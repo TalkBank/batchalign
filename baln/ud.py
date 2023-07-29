@@ -326,7 +326,7 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
 
         # for french, we have to keep track of the words
         # that end in an apostrophe and join them later
-        if token.text[-1] == "'":
+        if token.text.strip() == "l'":
             clitics.append(token.id[0])
 
     # because we pop from it
