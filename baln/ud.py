@@ -54,6 +54,7 @@ class BATokenizer(ProcessorVariant):
         structural_text = structural_text.replace("l'", "l' ")
         structural_text = structural_text.replace("nell'", "nell' ")
         structural_text = structural_text.replace("all'", "all' ")
+        structural_text = structural_text.replace("dall'", "dall' ")
         structural_tokens = [i for i in structural_text.split(" ")
                              if i != ""]
 
@@ -308,7 +309,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
     # keep track of mwts
     mwts = []
     clitics = []
-    simpleclitics = []
     # locations of elements with -ce, -être, -là
     # needs to be joined
     auxiliaries = []
@@ -333,7 +333,7 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
             clitics.append(token.id[0])
 
         if token.text.strip()[-3:] == "ll'":
-            simpleclitics.append(token.id[0])
+            auxiliaries.append(token.id[0]+1)
 
     # because we pop from it
     special_forms = special_forms.copy()
@@ -404,20 +404,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
         except IndexError:
             breakpoint()
         mor_clone[clitic] = None
-
-    # if we are parsing french, we will join
-    # all the segments with ' in the end with
-    # a dollar sign because those are considered
-    # one word
-    # recall again one indexing
-    while len(simpleclitics) > 0:
-        clitic = simpleclitics.pop()
-        try:
-            mor_clone[clitic-1] = mor_clone[clitic-1]+"~"+mor_clone[clitic]
-        except IndexError:
-            breakpoint()
-        mor_clone[clitic] = None
-
 
 
 
