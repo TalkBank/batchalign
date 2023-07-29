@@ -328,12 +328,12 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
 
         if token.text.strip() == "l'":
             clitics.append(token.id[0])
-
-        if lang=="it":
-            if token.text.strip()[-3:] == "ll'":
-                auxiliaries.append(token.id[0]+1)
-            if token.text.strip() == "gliel'":
-                auxiliaries.append(token.id[0]+1)
+        elif lang=="it" and token.text.strip()[-3:] == "ll'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="it" and token.text.strip() == "gliel'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="it" and token.text.strip() == "qual'":
+            auxiliaries.append(token.id[-1])
 
     # because we pop from it
     special_forms = special_forms.copy()
@@ -405,27 +405,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             breakpoint()
         mor_clone[clitic] = None
 
-
-
-    while len(mwts) > 0:
-        # handle MWTs
-        # TODO assumption MWTs are continuous
-        mwt = mwts.pop(0)
-        mwt_start = mwt[0]
-        mwt_end = mwt[-1]
-
-        # why the copious -1s? One indexing
-
-        # combine results
-        mwt_str = "~".join([i for i in mor[mwt_start-1:mwt_end] if i])
-
-        # delete old
-        for j in range(mwt_start, mwt_end+1):
-            mor_clone[j-1] = None
-
-        # replace in new dict
-        mor_clone[mwt_start-1] = mwt_str
-
     # connect auxiliaries with a "~"
     # recall 1 indexing
     for aux in auxiliaries:
@@ -440,6 +419,25 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
             mor_clone[orig_aux] = None
 
+    while len(mwts) > 0:
+        # handle MWTs
+        # TODO assumption MWTs are continuous
+        mwt = mwts.pop(0)
+        mwt_start = mwt[0]
+        mwt_end = mwt[-1]
+
+        # why the copious -1s? One indexing
+
+        # combine results
+        mwt_str = "~".join([i for i in mor_clone[mwt_start-1:mwt_end] if i])
+
+        # delete old
+        for j in range(mwt_start, mwt_end+1):
+            mor_clone[j-1] = None
+
+        # replace in new dict
+        mor_clone[mwt_start-1] = mwt_str
+
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()
 
@@ -450,6 +448,9 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
     if len(mor_str) != 1: # if we actually have content (not just . or ?)
                           # add a deliminator
         mor_str = mor_str + " " + delimiter
+
+    mor_str = mor_str.replace("<UNK>", "")
+    gra_str = gra_str.replace("<UNK>", "")
 
     return (mor_str, gra_str)
 
@@ -498,7 +499,6 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     nlp = stanza.Pipeline(lang,
                           processors={"tokenize": "ba",
-                                      "mwt": "default",
                                       "pos": "default",
                                       "lemma": "default",
                                       "depparse": "default"},
