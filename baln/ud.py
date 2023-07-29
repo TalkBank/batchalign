@@ -37,53 +37,8 @@ class BATokenizer(ProcessorVariant):
     OVERRIDE = True
 
     def __init__(self, config):
-        self.__subpipe = stanza.Pipeline(lang=config["lang"], processors='tokenize,mwt')
+        self.__subpipe = stanza.Pipeline(lang=config["lang"], processors='tokenize')
         self.__lang = config["lang"]
-
-    def __token_align(self, structural, neural):
-        # we are performing character level alignment
-        # the payload for each type is the token id
-        # which the character belongs to
-        #
-        # ReferenceTarget: structural tokens from NLTK
-        # PayloadTarget: neural tokens from Stanza
-
-        rts = []
-        pts = []
-
-        for i, token in enumerate(structural):
-            for char in token:
-                rts.append(ReferenceTarget(char, i))
-
-        for i, token in enumerate(neural):
-            for char in token:
-                pts.append(PayloadTarget(char, i))
-
-        alignment = align(pts, rts)
-
-        # build a dictionary of what structural token each
-        # neural token corresponds to.
-        # ASSUMPTION: neural will always break up words more than
-        # structural
-
-        matches = defaultdict(set)
-
-        for match in alignment:
-            matches[match.reference_payload].add(match.payload)
-
-        # convert these to actual string pairings
-        pairings = []
-
-        # sort by id to ensure order, as dp process
-        # doesn't garantee input order
-        matches = sorted(matches.items())
-        matches = [(j, sorted(i)) for j,i in matches]
-
-        # and finally, convert the ids back to the tokens
-        matches = [[structural[j], [neural[k] for k in i]]
-                   for j,i in matches]
-
-        return matches
 
     def process(self, text):
         # for sentence in document.sentences:
@@ -92,14 +47,16 @@ class BATokenizer(ProcessorVariant):
 
         document = self.__subpipe(text) 
 
-        neural_tokens = [i.text for i in document.sentences[0].words]
+        neural_tokens = [[j.text for j in i.words] for i in document.sentences[0].tokens]
 
         structural_text = text
-        structural_text =structural_text.replace("l'", "l' ")
-        structural_tokens = structural_text.split(" ")
+        structural_text = structural_text.replace("l'  ", "l'")
+        structural_text = structural_text.replace("l'", "l' ")
+        structural_tokens = [i for i in structural_text.split(" ")
+                             if i != ""]
 
-        aligned = self.__token_align(structural_tokens,
-                                     neural_tokens)
+        aligned = list(zip(structural_tokens, neural_tokens))
+
         # this should be in the format of
         # [ (structural_token: [semantic, tokens]), ...]
 
@@ -120,7 +77,10 @@ class BATokenizer(ProcessorVariant):
                 "text": text})
             current_token_index = current_token_index+len(tokens)
 
-        reconstructed = Document([final_tokens], text)
+        try:
+            reconstructed = Document([final_tokens], text)
+        except:
+            breakpoint()
         return reconstructed
 
     def __tok_reprocess(self, aligned):
@@ -366,9 +326,8 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
 
         # for french, we have to keep track of the words
         # that end in an apostrophe and join them later
-        if french:
-            if token.text[-1] == "'":
-                clitics.append(token.id[0])
+        if token.text[-1] == "'":
+            clitics.append(token.id[0])
 
     # because we pop from it
     special_forms = special_forms.copy()
@@ -428,6 +387,21 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
 
     mor_clone = mor.copy()
 
+    # if we are parsing french, we will join
+    # all the segments with ' in the end with
+    # a dollar sign because those are considered
+    # one word
+    # recall again one indexing
+    while len(clitics) > 0:
+        clitic = clitics.pop()
+        try:
+            mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
+        except IndexError:
+            breakpoint()
+        mor_clone[clitic] = None
+
+
+
     while len(mwts) > 0:
         # handle MWTs
         # TODO assumption MWTs are continuous
@@ -447,19 +421,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
         # replace in new dict
         mor_clone[mwt_start-1] = mwt_str
 
-    # if we are parsing french, we will join
-    # all the segments with ' in the end with
-    # a dollar sign because those are considered
-    # one word
-    # recall again one indexing
-    while len(clitics) > 0:
-        clitic = clitics.pop()
-        try:
-            mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
-        except IndexError:
-            breakpoint()
-        mor_clone[clitic] = None
-
     # connect auxiliaries with a "~"
     # recall 1 indexing
     for aux in auxiliaries:
@@ -470,9 +431,9 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
         while not mor_clone[aux-1]:
             aux -= 1
 
-        mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
-        mor_clone[orig_aux] = None
-
+        if mor_clone[orig_aux]:
+            mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
+            mor_clone[orig_aux] = None
 
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()

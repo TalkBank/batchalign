@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.42"
-NOTES="creates a processor variant to override specific tokenzation behavior"
+VERSION="0.2.43"
+NOTES="bug fixes for UD"
 
 #################### OPTIONS ################################
 
