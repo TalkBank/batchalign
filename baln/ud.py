@@ -275,15 +275,14 @@ HANDLERS = {
 }
 
 # the follow
-def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
+def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"):
     """Parses Stanza sentence into %mor and %gra strings
 
     Arguments:
         sentence: the stanza sentence object
         [delimiter]: the default delimiter to use to end utterances
         [special_forms]: a list of special forms to replace back
-        [french]: whether we are doing french (forms like "t'as" needs
-                                               to be counted as one word)
+        [lang]: language we are working with
 
     Returns:
         (str, str): (mor_string, gra_string)---strings matching
@@ -327,13 +326,14 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
         if len(token.id) > 1:
             mwts.append(token.id)
 
-        # for french, we have to keep track of the words
-        # that end in an apostrophe and join them later
         if token.text.strip() == "l'":
             clitics.append(token.id[0])
 
-        if token.text.strip()[-3:] == "ll'":
-            auxiliaries.append(token.id[0]+1)
+        if lang=="it":
+            if token.text.strip()[-3:] == "ll'":
+                auxiliaries.append(token.id[0]+1)
+            if token.text.strip() == "gliel'":
+                auxiliaries.append(token.id[0]+1)
 
     # because we pop from it
     special_forms = special_forms.copy()
@@ -588,7 +588,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             else:
                 sentences.append(
                     # we want to treat the entire thing as one large sentence
-                    parse_sentence(sents[0], ending, special_forms_cleaned, french=(lang == "fr"))
+                    parse_sentence(sents[0], ending, special_forms_cleaned, lang)
                 )
 
         # inject into EAF
