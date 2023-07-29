@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Linux batchalign
-          path: /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
+          path: /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2
       - name: Upload Build Artifact (macOS)
         if: ${{ matrix.os == 'macos-latest' }} 
         uses: actions/upload-artifact@v3
@@ -79,6 +79,6 @@ jobs:
         run: conda run anaconda upload -u jemoka C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Publish build (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }} 
-        run: conda run anaconda upload -u jemoka /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
+        run: conda run anaconda upload -u jemoka  /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2
 
 
