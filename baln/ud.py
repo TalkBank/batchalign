@@ -183,12 +183,13 @@ HANDLERS = {
 }
 
 # the follow
-def parse_sentence(sentence, delimiter=".", french=False):
+def parse_sentence(sentence, delimiter=".", special_forms=[], french=False):
     """Parses Stanza sentence into %mor and %gra strings
 
     Arguments:
         sentence: the stanza sentence object
         [delimiter]: the default delimiter to use to end utterances
+        [special_forms]: a list of special forms to replace back
         [french]: whether we are doing french (forms like "t'as" needs
                                                to be counted as one word)
 
@@ -240,6 +241,9 @@ def parse_sentence(sentence, delimiter=".", french=False):
             if token.text[-1] == "'":
                 clitics.append(token.id[0])
 
+    # because we pop from it
+    special_forms = special_forms.copy()
+    special_form_ids = []
     # get words
     for indx, word in enumerate(sentence.words):
         # append the appropriate mor line
@@ -256,7 +260,13 @@ def parse_sentence(sentence, delimiter=".", french=False):
                                          # word they are root now.
         # normal parsing
         elif mor_word:
-            mor.append(mor_word)
+            # specivl forms: recall the special form marker is xbxxx
+            if word.text.strip() == "xbxxx":
+                form = special_forms.pop(0)
+                mor.append(f"x|{form.strip()}")
+                special_form_ids.append(word.id)
+            else:
+                mor.append(mor_word)
             # +1 because we are 1-indexed
             # and .head is also 1-indexed already
             deprel = word.deprel.upper()
@@ -277,6 +287,9 @@ def parse_sentence(sentence, delimiter=".", french=False):
     # and now for each element, we shift and generate
     # recall that indicies are one indexed
     for i, elem in enumerate(gra_tmp):
+        # if we are at a special form ID, append a special form mark instead
+        if elem[0] in special_form_ids:
+            elem = (elem[0], elem[1], "FLAT")
         # the third element is responsible for looking up the correctly
         # shifted index for the item in question
         gra.append(f"{elem[0]}|{actual_indicies[elem[1]-1]}|{elem[2]}")
@@ -296,7 +309,7 @@ def parse_sentence(sentence, delimiter=".", french=False):
         # why the copious -1s? One indexing
 
         # combine results
-        mwt_str = "~".join(mor[mwt_start-1:mwt_end])
+        mwt_str = "~".join([i for i in mor[mwt_start-1:mwt_end] if i])
 
         # delete old
         for j in range(mwt_start, mwt_end+1):
@@ -452,6 +465,15 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+^", "")
             line_cut = line_cut.replace("_", "")
 
+            # xbxxx is a sepecial xxx-class token to mark
+            # special form markers, used for processing later
+            # down the line
+            special_forms = re.findall(r"\w+@\w+", line_cut)
+            special_forms_cleaned = []
+            for form in special_forms:
+                line_cut = line_cut.replace(form, "xbxxx")
+                special_forms_cleaned.append(re.sub(r"@\w+", "", form).strip())
+
             # if line cut is still nothing, we get very angry
             if line_cut == "":
                 line_cut = ending
@@ -467,7 +489,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             else:
                 sentences.append(
                     # we want to treat the entire thing as one large sentence
-                    parse_sentence(sents[0], ending, french=(lang == "fr"))
+                    parse_sentence(sents[0], ending, special_forms_cleaned, french=(lang == "fr"))
                 )
 
         # inject into EAF

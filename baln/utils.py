@@ -316,7 +316,7 @@ def chat2transcript(directory, mor=False):
 
     # use flo to convert chat files to text
     if mor:
-        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cm +t*')} {' '.join(files)} "
+        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cm +a +t*')} {' '.join(files)} "
     else:
         CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} "
 

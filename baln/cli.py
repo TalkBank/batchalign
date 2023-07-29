@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.2.40"
-NOTES="experimental website"
+VERSION="0.2.41"
+NOTES="fixes special form markers: @p, etc."
 
 #################### OPTIONS ################################
 
