@@ -29,6 +29,7 @@ jobs:
         with:
           auto-activate-base: true
           auto-update-conda: true
+          use-mamba: true
           activate-environment: ""
       - name: Forge!
         run: conda config --add channels conda-forge
@@ -36,12 +37,12 @@ jobs:
         # run: conda install -y conda-build conda-verify
       - name: Brotli dependency
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: conda install -c anaconda urllib3
+        run: mamba install -c anaconda urllib3
       - name: Install mamba and boa (dependency resolver)
-        run: conda install -y mamba boa
+        run: mamba install -y boa
       - name: Install mingw (Win)
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: conda install -y m2w64-toolchain m2w64-gcc
+        run: mamba install -y m2w64-toolchain m2w64-gcc
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
       - name: Upload Build Artifact (Linux)
@@ -63,7 +64,7 @@ jobs:
           name: Windows batchalign
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Install anaconda client
-        run: conda install anaconda-client
+        run: mamba install anaconda-client
       - name: Authenticate
         env:
             ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
