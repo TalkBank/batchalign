@@ -16,7 +16,7 @@ def common_options(f):
         click.argument("out_dir",
                        type=click.Path(exists=True, file_okay=False)),
         click.option("--aggressive",
-                     help="use dynamic programming to aggressivly align audio"
+                     help="use dynamic programming to aggressivly align audio",
                      is_flag=True,
                      default=False,
                      type=str),
