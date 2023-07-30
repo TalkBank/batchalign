@@ -6,6 +6,8 @@ Hello! Welcome to the Batchalign repository. `batchalign` is a Python script tha
 
 **For most users, we recommend you [visit this detailed guide](https://talkbank.org/info/batchalign.docx) for more detailed instructions.** The remaining instructions on this page provides a very rough overview of the primary functionality of `batchalign`, and assumes familiarity with Docker, Anaconda, and Python. 
 
+Note that, as Batchalign depends on specific platform-specific C programs in the CLAN suite to process CHAT files, Microsoft Windows is currently not supported natively. **Please follow the Docker installation instructions below to use Batchalign on Windows**.
+
 ## Overview
 There are three main interfaces to using Batchalign:
 
