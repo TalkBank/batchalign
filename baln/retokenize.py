@@ -493,7 +493,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
     return asr, header, main, closing
 
 
-def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en", noprompt=False):
+def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","model"), interactive=False, lang="en", noprompt=False, **kwargs):
     """Retokenize the directory, or read Rev.ai JSON files and generate .cha
 
     Attributes:
@@ -560,5 +560,5 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
-        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang, noprompt=noprompt)
+        retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang, noprompt=noprompt, **kwargs)
 

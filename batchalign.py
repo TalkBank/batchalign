@@ -8,7 +8,7 @@
 # Copyright © 2023 Brian MacWhinney and the TalkBank Project
 # Developed by Houjun Liu and Brian MacWhinney
 
-from baln.cli import mainloop
+from baln.cli import batchalign
 
 if __name__=="__main__":
-    mainloop()
+    batchalign()

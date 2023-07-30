@@ -75,6 +75,7 @@ class BAInstruction:
                             # where utterance segmentation is not needed. Default "don't",
                             # which means by default we would require utterance segmentation.
     beam: int = 30 # the alignment beam width
+    key: str = "" # the Rev.AI key
 
     # read only instruction ID for storage
     def __post_init__(self): 
@@ -125,7 +126,7 @@ def execute(instruction:BAInstruction, output_path:str, registry:DictProxy, mfa_
                 do_align(in_dir, out_dir, prealigned=instruction.prealigned,
                         beam=instruction.beam, aggressive=True)
         elif instruction.command == BACommand.TRANSCRIBE:
-            retokenize_directory(in_dir, noprompt=True, interactive=False, lang=instruction.lang)
+            retokenize_directory(in_dir, noprompt=True, interactive=False, lang=instruction.lang, key=instruction.key)
             with mfa_mutex:
                 do_align(in_dir, out_dir, prealigned=True, beam=instruction.beam, aggressive=True)
         elif instruction.command == BACommand.UD:
@@ -279,6 +280,7 @@ def submit():
         # get the parameters from form info
         corpus_name = request.form["name"]
         command = request.form["command"]
+        key = request.form.get("key", "")
         lang = request.form.get("lang", "en")
 
         # create the new instruction's ID
@@ -294,7 +296,7 @@ def submit():
             file.save(os.path.join(input_path, filename))
 
         # create the instruction
-        instruction = BAInstruction(corpus_name, BACommand(command), input_path, lang=lang)
+        instruction = BAInstruction(corpus_name, BACommand(command), input_path, lang=lang, key=key)
         instruction.id = id
 
         # and submit it!

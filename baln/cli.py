@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.0"
-NOTES="release of TalkBank Batchalign to the public channels"
+VERSION="0.3.1"
+NOTES="asks for Rev AI key as an additional component for batchalign service"
 
 #################### OPTIONS ################################
 
