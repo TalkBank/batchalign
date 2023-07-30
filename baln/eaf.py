@@ -337,14 +337,15 @@ def elan2transcript(file_path):
 
 
 # chat2elan a whole path
-def chat2elan(directory):
+def chat2elan(directory, skip_bullets=True):
     """Convert a folder of CLAN .cha files to corresponding ELAN XMLs
 
     Note: this function STRIPS EXISTING TIME CODES (though,
           nondestructively)
 
-    files:
+    Attributes:
         directory (string): the string directory in which .cha is in
+        [skip_bullets] (bool): whether or not to clean out old bullets
 
     Returns:
         None
@@ -362,7 +363,10 @@ def chat2elan(directory):
             in_file_content = df.read()
 
         # perform cleaning and write
-        cleaned_content = re.sub("\x15.*?\x15", "", in_file_content)
+        if skip_bullets:
+            cleaned_content = re.sub("\x15.*?\x15", "", in_file_content)
+        else:
+            cleaned_content = in_file_content.strip()
 
         # write
         with open(out_file, "w") as df:

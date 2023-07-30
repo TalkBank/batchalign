@@ -10602,26 +10602,27 @@ char bmain(int argc, char *argv[], void (*pr_result)(void)) {
 //		}
 	}
 	InitOptions();
-#if defined(UNX)
-  #ifdef USE_TERMIO
-	if (ioctl(fileno(stdin), TCGETA, &otty) == -1) {
-		if (errno == ENOTTY) {
-//fprintf(stderr, "stin = TRUE;\n");
-			stin = TRUE;
-		}
-	}
-  #elif defined(APPLEUNX)
-	if (ioctl(fileno(stdin), TIOCGETP, &otty) != 0) {
-//fprintf(stderr, "stin = TRUE;\n");
-		stin = TRUE;
-	}
-  #else
-	if (gtty(fileno(stdin), &otty) != 0) {
-//fprintf(stderr, "stin = TRUE;\n");
-		stin = TRUE;
-	}
-  #endif
-#endif
+// 07/28/2023 Removes Janky stdin pipe test, as it is not needed and interfers with Conda operations - hjl
+/*#if defined(UNX)*/
+  /*#ifdef USE_TERMIO*/
+	/*if (ioctl(fileno(stdin), TCGETA, &otty) == -1) {*/
+		/*if (errno == ENOTTY) {*/
+/*//fprintf(stderr, "stin = TRUE;\n");*/
+			/*stin = TRUE;*/
+		/*}*/
+	/*}*/
+  /*#elif defined(APPLEUNX)*/
+	/*if (ioctl(fileno(stdin), TIOCGETP, &otty) != 0) {*/
+/*//fprintf(stderr, "stin = TRUE;\n");*/
+		/*stin = TRUE;*/
+	/*}*/
+  /*#else*/
+	/*if (gtty(fileno(stdin), &otty) != 0) {*/
+/*//fprintf(stderr, "stin = TRUE;\n");*/
+		/*stin = TRUE;*/
+	/*}*/
+  /*#endif*/
+/*#endif*/
 //fprintf(stderr, "stin = %d;\n", stin);
 	if (argc < 2 && !stin) {
 		usage();

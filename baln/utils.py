@@ -42,18 +42,6 @@ def check_media_link(f):
         # remove media line
         new_string = re.sub(r'@Media.*\n', '', new_string)
         new_string = re.sub(r'\d+_\d+', '', new_string)
-    else:
-        new_string = re.sub(r'\d+_\d+', '', new_string)
-        # now, we also nee to add unlinked to the @Media line
-        # as we just got rid of the bullets;
-        # first we look for the media line
-        media_line_match = re.search(r"@Media.*", new_string)
-        if media_line_match and media_line_match[0].split(" ")[-1] != 'unlinked':
-            media_line_new = media_line_match[0].strip() # clone the string
-            # replace and add `unlinked` if needed
-            media_line_new += ", unlinked"
-            # replace!
-            new_string = new_string.replace(media_line_match[0], media_line_new)
     # open the file and write content
     with open(f, 'w') as df:
         # write
@@ -328,7 +316,7 @@ def chat2transcript(directory, mor=False):
 
     # use flo to convert chat files to text
     if mor:
-        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cm +t*')} {' '.join(files)} "
+        CMD = f"{os.path.join(CLAN_PATH, 'flo +d +cm +a +t*')} {' '.join(files)} "
     else:
         CMD = f"{os.path.join(CLAN_PATH, 'flo +d +ca +t*')} {' '.join(files)} "
 

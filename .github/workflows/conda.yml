@@ -3,14 +3,14 @@ name: Build and Release for Anaconda
 on:
   push:
     branches:
-      - "**"
+      - master
 
 jobs:
   conda_build:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        #os: [ubuntu-latest, windows-latest, macos-latest]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -27,7 +27,9 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          auto-update-conda: true
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
           activate-environment: ""
       - name: Forge!
         run: conda config --add channels conda-forge
@@ -35,12 +37,12 @@ jobs:
         # run: conda install -y conda-build conda-verify
       - name: Brotli dependency
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: conda install -c anaconda urllib3
+        run: mamba install -c anaconda urllib3
       - name: Install mamba and boa (dependency resolver)
-        run: conda install -y mamba boa
+        run: mamba install -y boa
       - name: Install mingw (Win)
         if: ${{ matrix.os == 'windows-latest' }} 
-        run: conda install -y m2w64-toolchain m2w64-gcc
+        run: mamba install -y m2w64-toolchain m2w64-gcc
       - name: Build batchalign
         run: conda mambabuild . -c pytorch -c conda-forge --no-test
       - name: Upload Build Artifact (Linux)
@@ -48,13 +50,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Linux batchalign
-          path: /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
+          path: /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2
       - name: Upload Build Artifact (macOS)
         if: ${{ matrix.os == 'macos-latest' }} 
         uses: actions/upload-artifact@v3
         with:
           name: macOS batchalign
-          path: /usr/local/miniconda/conda-bld/osx-64/*.tar.bz2
+          path: /Users/runner/miniconda3/conda-bld/osx-64/*.tar.bz2
       - name: Upload Build Artifact (Windows)
         if: ${{ matrix.os == 'windows-latest' }} 
         uses: actions/upload-artifact@v3
@@ -62,7 +64,7 @@ jobs:
           name: Windows batchalign
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Install anaconda client
-        run: conda install anaconda-client
+        run: mamba install anaconda-client
       - name: Authenticate
         env:
             ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
@@ -70,10 +72,10 @@ jobs:
         run: conda run anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
       - name: Publish build (macOS)
         if: ${{ matrix.os == 'macos-latest' }} 
-        run: conda run anaconda upload -u talkbank /usr/local/miniconda/conda-bld/osx-64/*.tar.bz2
+        run: conda run anaconda upload -u talkbank /Users/runner/miniconda3/conda-bld/osx-64/*.tar.bz2
       - name: Publish build (Windows)
         if: ${{ matrix.os == 'windows-latest' }} 
         run: conda run anaconda upload -u talkbank C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Publish build (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }} 
-        run: conda run anaconda upload -u talkbank /usr/share/miniconda/conda-bld/linux-64/*.tar.bz2
+        run: conda run anaconda upload -u talkbank /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2

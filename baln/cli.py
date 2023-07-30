@@ -1,100 +1,300 @@
-# import os
-import os
+import click
+import functools
 
-
-# silence huggingface
-os.environ["TOKENIZERS_PARALLELISM"] = "FALSE"
-
-
-# progra freezing utilities
 from multiprocessing import Process, freeze_support
 
-# import argparse
-import argparse
+VERSION="0.3.0"
+NOTES="release of TalkBank Batchalign to the public channels"
 
+#################### OPTIONS ################################
 
+# common options for batchalign
+def common_options(f):
+    options = [
+        click.argument("in_dir",
+                       type=click.Path(exists=True, file_okay=False)),
+        click.argument("out_dir",
+                       type=click.Path(exists=True, file_okay=False)),
+        click.option("--aggressive",
+                     help="use dynamic programming to aggressivly align audio",
+                     is_flag=True,
+                     default=False,
+                     type=str),
+        click.option("--lang",
+                     help="sample language in two-letter ISO 639-1 code",
+                     show_default=True,
+                     default="en",
+                     type=str),
+        click.option("--clean/--skipclean",
+                     help="sweep stray files from input/output directory to data",
+                     default=True)
+    ]
+    options.reverse()
+    return functools.reduce(lambda x, opt: opt(x), options, f)
 
-# wrap everything in a mainloop for multiprocessing guard
-def cli():
-    # get mode from command line flag
-    mode = os.environ.get("BA_MODE")
-    MODE = -1
+###################### UTILS ##############################
 
-    REV_API = os.environ.get("REV_API")
+@click.group()
+@click.pass_context
+def batchalign(ctx):
+    """batch process CHAT files in IN_DIR and dumps them to OUT_DIR"""
 
-    if mode == "+Analyze Raw Audio+":
-        MODE = 1
-    elif mode == "+Analyze Rev.AI Output+":
-        MODE = 1
-    elif mode == "+Realign CHAT+":
-        MODE = 0
+    ## setup commands ##
+    # multiprocessing thread freeze
+    freeze_support()
+    # ensure that the contex object is a dictionary
+    ctx.ensure_object(dict)
 
-    # manloop to take input
-    parser = argparse.ArgumentParser(description="batch align .cha to audio in a directory with MFA")
-    parser.add_argument("in_dir", type=str, help='input directory containing .cha and .mp3/.wav files')
-    parser.add_argument("out_dir", type=str, help='output directory to store aligned .cha files')
-    parser.add_argument("--prealigned", default=False, action='store_true', help='input .cha has utterance-level alignments')
-    parser.add_argument("--aggressive", default=False, action='store_true', help='use dynamic programming to aggressively align the audio')
-    parser.add_argument("--data_dir", type=str, default="data", help='subdirectory of out_dir to use as data dir')
-    parser.add_argument("--beam", type=int, default=30, help='beam width for MFA, ignored for P2FA')
-    parser.add_argument("--skipalign", default=False, action='store_true', help='don\'t align, just call CHAT ops')
-    parser.add_argument("--skipclean", default=False, action='store_true', help='don\'t clean')
-    parser.add_argument("--dictionary", type=str, help='path to custom dictionary')
-    parser.add_argument("--model", type=str, help='path to custom model')
-    parser.add_argument("--retokenize", type=str, help='retokenize input with model')
-    parser.add_argument('-i', "--interactive", default=False, action='store_true', help='interactive retokenization (with user correction), useless without retokenize')
-    parser.add_argument('-n', "--headless", default=False, action='store_true', help='interactive without GUI prompt, useless without -i')
-    parser.add_argument('-a', "--asronly", default=False, action='store_true', help='ASR only, don\'t run mfa')
-    parser.add_argument("--rev", type=str, help='rev.ai API key, to submit audio')
-    parser.add_argument("--clean", default=False, action='store_true', help='don\'t align, just call cleanup')
+#################### ALIGN ################################
 
-    return MODE, REV_API, parser.parse_args()
+@batchalign.command()
+@common_options
+@click.pass_context
+@click.option("--beam", type=int,
+              default=30, help="beam width for MFA")
+@click.option("--align/--skipalign",
+              help="actually invoke MFA or just run Batchalign operations", default=True)
+@click.option("--prealigned/--scratch",
+              help="process CHAT file that is already utterance aligned", default=True)
+def align(ctx, **kwargs):
+    """align a CHAT transcript against a media file"""
 
-def mainloop():
-    # import our utilities
+    # forced alignment tools
+    from .fa import do_align
+
+    # report status
+    click.echo("Performing forced alignment...")
+
+    # forced align!
+    do_align(**kwargs)
+
+#################### TRANSCRIBE ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+@click.option("--align/--skipalign",
+              help="actually invoke MFA or just run ASR", default=True)
+@click.option("-i", "--interactive",
+              is_flag=True,
+              help="interactive retokenization (with user correction), useless without retokenize", default=False)
+@click.option("-p", "--prompt",
+              is_flag=True,
+              help="prompt the user for the information regarding the speakers instead of using dummy values", default=False)
+@click.option("--model", type=click.Path(exists=True, file_okay=False),
+              help="path to utterance tokenization model")
+def transcribe(ctx, **kwargs):
+    """generate and align a CHAT transcript from a media file"""
+
     # directory retokenization tools
     from .retokenize import retokenize_directory
-    # directory forced alignment tools 
+    # forced alignment tools
     from .fa import do_align
-    # utilities
-    from .utils import cleanup, globase
 
-    # code freezing helper
-    freeze_support()
+    # ASR
+    print("Performing ASR...")
+    retokenize_directory(kwargs["in_dir"], model_path=kwargs["model"],
+                         interactive=kwargs["interactive"], lang=kwargs["lang"],
+                         noprompt=(not kwargs["prompt"]))
 
-    # parse!
-    MODE, REV_API, args = cli()
+    # now, if we need asr, then run ASR
+    if kwargs["align"]:
+        do_align(kwargs["in_dir"], kwargs["out_dir"], prealigned=True,
+                 clean=kwargs["clean"], aggressive=kwargs["aggressive"])
+    
 
-    # print(args.beam)
-    # breakpoint()
+#################### MORPHOTAG ################################
 
-    # if we are cleaning
-    if args.clean:
-        cleanup(args.in_dir, args.out_dir, args.data_dir)
-        # if we need to retokenize or run with audio only (i.e. no files avaliable)
-    elif (args.retokenize and MODE != 0) or ((len(globase(args.in_dir, "*.cha")) == 0) and
-                                             (len(globase(args.in_dir, "*.json")) == 0)) or MODE == 1:
-        # assert retokenize
-        # assert args.retokenize, "Only audio files provided, but no segmentation model provided with --retokenize!"
-        # assert retokenize
-        print("Stage 1: Performing ASR")
-        retokenize_directory(args.in_dir, args.retokenize if args.retokenize else "~/mfa_data/model", 'h' if args.headless else args.interactive, args.rev)
-        if not args.asronly:
-            print("Stage 2: Performing Forced Alignment")
-            do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=True, beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model, aggressive=args.aggressive)
-        else:
-            # Define the data_dir
-            DATA_DIR = os.path.join(args.out_dir, args.data_dir)
+@batchalign.command()
+@common_options
+@click.pass_context
+def morphotag(ctx, **kwargs):
+    """perform morphosyntactic analysis on a CHAT file"""
 
-            # Make the data directory if needed
-            if not os.path.exists(DATA_DIR):
-                os.mkdir(DATA_DIR)
+    # directory morphosyntactic analysis tools
+    from .ud import morphanalyze
 
-            # cleanup
-            cleanup(args.in_dir, args.out_dir, args.data_dir)
-            print("All done! Check the output folder.")
-            # otherwise prealign
-    else: 
-        print("Stage 1: Performing Forced Alignment")
-        do_align(args.in_dir, args.out_dir, args.data_dir, prealigned=(True if MODE==0 else args.prealigned), beam=args.beam, align=(not args.skipalign), clean=(not args.skipclean), dictionary=args.dictionary, model=args.model, aggressive=args.aggressive)
-        print("All done! Check the output folder.")
+    morphanalyze(**kwargs)
+
+
+#################### BENCHMARK ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+@click.option("--beam", type=int,
+              default=30, help="beam width for MFA")
+@click.option("--model", type=click.Path(exists=True, file_okay=False),
+              help="path to utterance tokenization model")
+@click.option("--noise", type=click.Path(exists=True, file_okay=True, dir_okay=False),
+              help="optional noise profile directory")
+def benchmark(ctx, **kwargs):
+    """benchmark ASR performance on an existing CHAT file"""
+
+    # benchmarking tools
+    from .benchmark import benchmark_directory
+
+    benchmark_directory(kwargs["in_dir"], kwargs["out_dir"],
+                        model_path=kwargs["model"], lang=kwargs["lang"],
+                        beam=kwargs["beam"], clean=kwargs["clean"], noise=kwargs["noise"])
+
+#################### FEATURIZE ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+@click.option("--beam", type=int,
+              default=30, help="beam width for MFA")
+@click.option("--align/--skipalign",
+              help="actually invoke MFA or just run Batchalign operations", default=True)
+@click.option("--prealigned/--scratch",
+              help="process CHAT file that is already utterance aligned", default=True)
+def featurize(ctx, **kwargs):
+    """generate .hdf5 feature file usable for analysis"""
+
+    # forced alignment tools
+    from .fa import do_align
+
+    # featurization tools
+    from .featurize import featurize
+
+    # fa!
+    alignments = do_align(**kwargs)
+
+    # featurize
+    featurize(alignments, kwargs["in_dir"], kwargs["out_dir"],
+              lang=kwargs["lang"], clean=kwargs["clean"])
+
+#################### FEATURIZE ################################
+
+def featurize(ctx, **kwargs):
+    """generate .hdf5 feature file usable for analysis"""
+
+    # forced alignment tools
+    from .fa import do_align
+
+    # featurization tools
+    from .featurize import featurize
+
+    # fa!
+    alignments = do_align(**kwargs)
+
+    # featurize
+    featurize(alignments, kwargs["in_dir"], kwargs["out_dir"],
+              lang=kwargs["lang"], clean=kwargs["clean"])
+
+#################### RECURSIVE ################################
+
+@batchalign.command()
+@click.pass_context
+@click.argument("in_dir", 
+                type=click.Path(exists=True, file_okay=False))
+@click.argument("out_dir", 
+                type=click.Path(exists=True, file_okay=False))
+@click.argument("command", 
+                type=str)
+def recursive(ctx, **kwargs):
+    """batch execute a batchalign command through directories"""
+
+    import os
+    import glob
+    import shutil
+    from pathlib import Path
+
+    # find files and calculate directories
+    files = glob.glob(os.path.join(kwargs["in_dir"], '**', '*.*'), recursive=True)
+    in_dirs = list(set([os.path.abspath(os.path.join(i, os.pardir)) for i in files]))
+    out_dirs = [os.path.abspath(os.path.join(kwargs["out_dir"], os.path.relpath(i, start=kwargs["in_dir"])))
+                for i in in_dirs]
+
+    # zip!
+    dirs = zip(in_dirs, out_dirs)
+
+    # and now, batchalign for every pair, making directories as needed
+    for inp, out in dirs:
+        # make out directory
+        Path(out).mkdir(parents=True, exist_ok=True)
+
+        # get batchalign
+        batchalign_binary = shutil.which("batchalign")
+
+        # batch align!
+        os.system(f"{batchalign_binary} {kwargs['command']} {inp} {out}")
+
+#################### SPH/STM Conversion ################################
+
+@batchalign.command(hidden=True)
+@click.argument("in_dir", type=click.Path(exists=True, file_okay=False))
+@click.argument("out_dir", type=click.Path(exists=True, file_okay=False))
+@click.pass_context
+def sph(ctx, **kwargs):
+    """process sphere files, mostly from TED"""
+
+    # cleanup tools
+    from .sph import sph2cha_dir
+
+    sph2cha_dir(kwargs["in_dir"], kwargs["out_dir"])
+
+#################### CLEAN ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+def clean(ctx, **kwargs):
+    """clean input and output folders"""
+
+    # cleanup tools
+    from .utils import cleanup
+
+    click.echo("Performing cleanup operations...")
+    cleanup(kwargs["in_dir"], kwargs["out_dir"], "data")
+
+
+#################### DAEMON ################################
+
+@batchalign.command()
+@click.pass_context
+@click.argument("data_path", 
+                type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option("--ip", type=str,
+              default="0.0.0.0", help="the IP address to bind to")
+@click.option("--port", type=int,
+              default=8080, help="the port to bind to")
+@click.option("--db_ip", type=str,
+              default="localhost", help="the mysql database IP address to work with")
+@click.option("--db_port", type=int,
+              default=3306, help="the mysql database IP port to work with")
+@click.option("--db_user", type=str,
+              default="root", help="the mysql database username")
+@click.option("--db_password", type=str,
+              default=None, help="the mysql database username")
+@click.option("--database", type=str,
+              default="batchalign", help="the mysql database to use")
+@click.option("--num_workers", type=int,
+              default=5, help="number of parallel workers to run")
+def daemon(ctx, **kwargs):
+    """runs batchalign daemon for the web UI"""
+
+    # forced alignment tools
+    from .service import run_service
+
+    run_service(**kwargs)
+
+
+
+#################### CLEAN ################################
+
+@batchalign.command()
+@click.pass_context
+def version(ctx, **kwargs):
+    """program version info"""
+
+    click.echo()
+    click.echo("TalkBank Batchalign")
+    click.echo(f"-------------------")
+    click.echo("Developed by Brian MacWhinney and Houjun Liu")
+    click.echo(f"Version v{VERSION}")
+    click.echo(f"--------------------------------------------")
+    click.echo(f"{NOTES}")
+    click.echo()
+   

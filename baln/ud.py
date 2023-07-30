@@ -6,20 +6,112 @@ from pathlib import Path
 
 # UD tools
 import stanza
+
+from stanza import Document
+from stanza.models.common.doc import Token
 from stanza.pipeline.core import CONSTITUENCY
 from stanza import DownloadMethod
 from torch import heaviside
 
+from stanza.pipeline.processor import ProcessorVariant, register_processor_variant
+
 # the loading bar
 from tqdm import tqdm
+
+from nltk import word_tokenize
+from collections import defaultdict
 
 # out utiltiies
 from .utils import *
 from .eaf import *
+from .dp import *
 
 # Oneliner of directory-based glob and replace
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
+
+# Register tokenizer processor variant, and fix tokenization for specific forms
+@register_processor_variant("tokenize", "ba")
+class BATokenizer(ProcessorVariant):
+
+    OVERRIDE = True
+
+    def __init__(self, config):
+        self.__subpipe = stanza.Pipeline(lang=config["lang"], processors='tokenize')
+        self.__lang = config["lang"]
+
+    def process(self, text):
+        # for sentence in document.sentences:
+        #     for word in sentence.words:
+        #         word.lemma = "cool"
+
+        document = self.__subpipe(text) 
+
+        neural_tokens = [[j.text for j in i.words] for i in document.sentences[0].tokens]
+
+        structural_text = text
+        structural_text = structural_text.replace("l'  ", "l'")
+        structural_text = structural_text.replace("l'", "l' ")
+        structural_text = structural_text.replace("nell'", "nell' ")
+        structural_text = structural_text.replace("all'", "all' ")
+        structural_text = structural_text.replace("dall'", "dall' ")
+        structural_tokens = [i for i in structural_text.split(" ")
+                             if i != ""]
+
+        aligned = list(zip(structural_tokens, neural_tokens))
+
+        # this should be in the format of
+        # [ (structural_token: [semantic, tokens]), ...]
+
+        # we now perform language specific post-processing
+        aligned = self.__tok_reprocess(aligned)
+
+        # assemble stanza-compatible final output
+        # taking care to treat multi-word tokens the way Stanza
+        # expects; run a mwt through stanza to see
+        # how they want it
+        final_tokens = []
+        current_token_index = 1
+        for text, tokens in aligned:
+            final_tokens.append({
+                "id": (current_token_index,
+                       current_token_index+len(tokens)-1)
+                if len(tokens) > 1 else (current_token_index, ),
+                "text": text})
+            current_token_index = current_token_index+len(tokens)
+
+        try:
+            reconstructed = Document([final_tokens], text)
+        except:
+            breakpoint()
+        return reconstructed
+
+    def __tok_reprocess(self, aligned):
+        if self.__lang == "it":
+            return self.__tok_reprocess__it(aligned)
+
+        # if no processor is registered, just return the
+        # original sequence
+        return aligned
+
+    def __tok_reprocess__it(self, aligned):
+
+        new = []
+
+        for key, value in aligned:
+            fixed = value
+            if key == "dai":
+                fixed = ["dai"]
+            elif key == "dài":
+                fixed = ["dài"]
+            elif key == "aòe":
+                fixed = ["aòe"]
+
+            new.append((key, fixed))
+
+        return new
+        
+
 # one liner to parse features
 def parse_feats(word):
     try:
@@ -66,6 +158,10 @@ def handler(word):
 
     target = target.replace("$", "")
     target = target.replace(".", "")
+
+    # if we have a clitic that's broken off, we remove the extra dash
+    if target != "" and target[0] == "-":
+        target = target[1:]
 
     return f"{'' if not unknown else '0'}{word.upos.lower()}|{target.replace(',', '')}"
 
@@ -179,14 +275,14 @@ HANDLERS = {
 }
 
 # the follow
-def parse_sentence(sentence, delimiter=".", french=False):
+def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"):
     """Parses Stanza sentence into %mor and %gra strings
 
     Arguments:
         sentence: the stanza sentence object
         [delimiter]: the default delimiter to use to end utterances
-        [french]: wether we are doing french (forms like "t'as" needs
-                                              to be counted as one word)
+        [special_forms]: a list of special forms to replace back
+        [lang]: language we are working with
 
     Returns:
         (str, str): (mor_string, gra_string)---strings matching
@@ -216,9 +312,11 @@ def parse_sentence(sentence, delimiter=".", french=False):
     # needs to be joined
     auxiliaries = []
 
+
     # TODO jank 2O(n) parse!
     # get mwts
     for indx, token in enumerate(sentence.tokens):
+
         if token.text[0]=="-":
 
             # we have to subtract 1 becasue $ goes to the
@@ -228,20 +326,41 @@ def parse_sentence(sentence, delimiter=".", french=False):
         if len(token.id) > 1:
             mwts.append(token.id)
 
-        # for french, we have to keep track of the words
-        # that end in an apostrophe and join them later
-        if token.text[-1] == "'":
+        if token.text.strip() == "l'":
             clitics.append(token.id[0])
+        elif lang=="it" and token.text.strip()[-3:] == "ll'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="it" and token.text.strip() == "gliel'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="it" and token.text.strip() == "qual'":
+            auxiliaries.append(token.id[-1])
 
+    # because we pop from it
+    special_forms = special_forms.copy()
+    special_form_ids = []
     # get words
     for indx, word in enumerate(sentence.words):
         # append the appropriate mor line
         # by trying all handlers, and defaulting
         # to the default handler
         mor_word = HANDLERS.get(word.upos, handler)(word)
-        # some handlers may return None to skip the word
-        if mor_word:
-            mor.append(mor_word)
+        # exception: if the word is 0, it is probably 0word
+        # occationally Stanza screws up and makes forms like 0thing as 2 tokens:
+        # 0 and thing 
+        if word.text.strip() == "0":
+            mor.append("$ZERO$")
+            num_skipped+=1 # mark skipped if skipped
+            actual_indicies.append(root) # TODO janky but if anybody refers to a skipped
+                                         # word they are root now.
+        # normal parsing
+        elif mor_word:
+            # specivl forms: recall the special form marker is xbxxx
+            if word.text.strip() == "xbxxx":
+                form = special_forms.pop(0)
+                mor.append(f"x|{form.strip()}")
+                special_form_ids.append(word.id)
+            else:
+                mor.append(mor_word)
             # +1 because we are 1-indexed
             # and .head is also 1-indexed already
             deprel = word.deprel.upper()
@@ -252,6 +371,7 @@ def parse_sentence(sentence, delimiter=".", french=False):
             # ID as root
             if word.deprel.upper() == "ROOT":
                 root = ((indx+1)-num_skipped)
+        # some handlers may return None to skip the word
         else:
             mor.append(None)
             num_skipped+=1 # mark skipped if skipped
@@ -261,6 +381,9 @@ def parse_sentence(sentence, delimiter=".", french=False):
     # and now for each element, we shift and generate
     # recall that indicies are one indexed
     for i, elem in enumerate(gra_tmp):
+        # if we are at a special form ID, append a special form mark instead
+        if elem[0] in special_form_ids:
+            elem = (elem[0], elem[1], "FLAT")
         # the third element is responsible for looking up the correctly
         # shifted index for the item in question
         gra.append(f"{elem[0]}|{actual_indicies[elem[1]-1]}|{elem[2]}")
@@ -269,6 +392,32 @@ def parse_sentence(sentence, delimiter=".", french=False):
     gra.append(f"{len(sentence.words)+1-num_skipped}|{root}|PUNCT")
 
     mor_clone = mor.copy()
+
+    # we will join all the segments with ' in the end with
+    # a dollar sign because those are considered
+    # one word
+    # recall again one indexing
+    while len(clitics) > 0:
+        clitic = clitics.pop()
+        try:
+            mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
+        except IndexError:
+            breakpoint()
+        mor_clone[clitic] = None
+
+    # connect auxiliaries with a "~"
+    # recall 1 indexing
+    for aux in auxiliaries:
+        # if the previous one was joined,
+        # we keep searching backwards
+
+        orig_aux = aux
+        while not mor_clone[aux-1]:
+            aux -= 1
+
+        if mor_clone[orig_aux]:
+            mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
+            mor_clone[orig_aux] = None
 
     while len(mwts) > 0:
         # handle MWTs
@@ -280,50 +429,28 @@ def parse_sentence(sentence, delimiter=".", french=False):
         # why the copious -1s? One indexing
 
         # combine results
-        mwt_str = "~".join(mor[mwt_start-1:mwt_end])
+        mwt_str = "~".join([i for i in mor_clone[mwt_start-1:mwt_end] if i])
 
         # delete old
-        for j in mwt:
-          mor_clone[j-1] = None
+        for j in range(mwt_start, mwt_end+1):
+            mor_clone[j-1] = None
 
         # replace in new dict
         mor_clone[mwt_start-1] = mwt_str
 
-    if french:
-        # if we are parsing french, we will join
-        # all the segments with ' in the end with
-        # a dollar sign because those are considered
-        # one word
-        # recall again one indexing
-        while len(clitics) > 0:
-            clitic = clitics.pop()
-            try:
-                mor_clone[clitic-1] = mor_clone[clitic-1]+"$"+mor_clone[clitic]
-            except IndexError:
-                breakpoint()
-            mor_clone[clitic] = None
-
-        # connect auxiliaries with a "~"
-        # recall 1 indexing
-        for aux in auxiliaries:
-            # if the previous one was joined,
-            # we keep searching backwards
-
-            orig_aux = aux
-            while not mor_clone[aux-1]:
-                aux -= 1
-
-            mor_clone[aux-1] = mor_clone[aux-1]+"~"+mor_clone[orig_aux]
-            mor_clone[orig_aux] = None
-                
-
     mor_str = (" ".join(filter(lambda x:x, mor_clone))).strip().replace(",", "")
     gra_str = (" ".join(gra)).strip()
+
+    # handle special zeros, see $ZERO$ above
+    mor_str = mor_str.replace("$ZERO$ ","0")
 
     # add the endning delimiter
     if len(mor_str) != 1: # if we actually have content (not just . or ?)
                           # add a deliminator
         mor_str = mor_str + " " + delimiter
+
+    mor_str = mor_str.replace("<UNK>", "")
+    gra_str = gra_str.replace("<UNK>", "")
 
     return (mor_str, gra_str)
 
@@ -371,13 +498,16 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     print("Starting Stanza...")
 
     nlp = stanza.Pipeline(lang,
-                          processors='tokenize,pos,lemma,depparse',
+                          processors={"tokenize": "ba",
+                                      "pos": "default",
+                                      "lemma": "default",
+                                      "depparse": "default"},
                           download_method=DownloadMethod.REUSE_RESOURCES,
                           tokenize_no_ssplit=True)
 
     # create label and elan files
     chat2transcript(in_dir, True)
-    chat2elan(in_dir)
+    chat2elan(in_dir, False)
 
     # process each file
     print("Performing analysis...")
@@ -429,6 +559,19 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             line_cut = line_cut.replace("+<", "")
             line_cut = line_cut.replace("+/", "")
+            line_cut = line_cut.replace("(", "")
+            line_cut = line_cut.replace(")", "")
+            line_cut = line_cut.replace("+^", "")
+            line_cut = line_cut.replace("_", "")
+
+            # xbxxx is a sepecial xxx-class token to mark
+            # special form markers, used for processing later
+            # down the line
+            special_forms = re.findall(r"\w+@\w+", line_cut)
+            special_forms_cleaned = []
+            for form in special_forms:
+                line_cut = line_cut.replace(form, "xbxxx")
+                special_forms_cleaned.append(re.sub(r"@\w+", "", form).strip())
 
             # if line cut is still nothing, we get very angry
             if line_cut == "":
@@ -441,12 +584,12 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             sents = nlp(line_cut).sentences
 
             if len(sents) == 0:
-                breakpoint()
-
-            sentences.append(
-                # we want to treat the entire thing as one large sentence
-                parse_sentence(sents[0], ending, french=(lang == "fr"))
-            )
+                sents = ["."]
+            else:
+                sentences.append(
+                    # we want to treat the entire thing as one large sentence
+                    parse_sentence(sents[0], ending, special_forms_cleaned, lang)
+                )
 
         # inject into EAF
         # we have no MFA alignments, instead, we are injecting
