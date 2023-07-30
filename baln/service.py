@@ -26,7 +26,7 @@ from multiprocessing.managers import DictProxy, AutoProxy
 from multiprocessing import set_start_method
 
 from tempfile import TemporaryDirectory
-import tarfile
+import shutil
 
 from loguru import logger as L
 
@@ -132,9 +132,9 @@ def execute(instruction:BAInstruction, output_path:str, registry:DictProxy, mfa_
             morphanalyze(in_dir, out_dir, lang=instruction.lang)
 
         # create a tarball out of the output direcotry
-        out_tar_path = os.path.join(output_path, f"{instruction.corpus_name}-{instruction.id}-output.tar.gz")
-        with tarfile.open(out_tar_path, "w:gz") as tf:
-            tf.add(f"./{instruction.corpus_name}")
+        out_tar_path = os.path.join(output_path, f"{instruction.corpus_name}-{instruction.id}-output.zip")
+        # we do :-4 because otherwise it comes out as .zip.zip
+        shutil.make_archive(out_tar_path[:-4], 'zip', instruction.corpus_name)
 
         try:
             cnx = registry.cursor()
@@ -169,7 +169,7 @@ def worker_loop(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Auto
             except:
                 registry.reconnect()
                 cnx = registry.cursor()
-            cnx.execute(f"UPDATE cache SET status='error', payload='{error_str}' WHERE id='{instruction.id}'");
+            cnx.execute(f"UPDATE cache SET status='error', payload='{str(error_str)}' WHERE id='{instruction.id}'");
             cnx.commit()
             # registry[instruction.id] = {
             #     "id": instruction.id,
