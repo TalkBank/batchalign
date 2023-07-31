@@ -368,7 +368,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
     if provider == ASRProvider.REV:
         key = kwargs.get("key")
         # find key; if non-existant, ask for it.
-        if not key:
+        if key == None:
             # find keyfile
             with open(os.path.expanduser(defaultmodel("rev_key")), "a+") as df:
                 # seek beginning

@@ -171,7 +171,7 @@ def worker_loop(output_path:str, tasks:Queue, registry:DictProxy, mfa_mutex:Auto
                 registry.reconnect()
                 cnx = registry.cursor()
             cnx.execute(f"UPDATE cache SET status='error', payload='{str(error_str)}' WHERE id='{instruction.id}'");
-            cnx.commit()
+            registry.commit()
             # registry[instruction.id] = {
             #     "id": instruction.id,
             #     "name": instruction.corpus_name,
