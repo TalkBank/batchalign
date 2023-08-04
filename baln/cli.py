@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.2"
-NOTES="correcting behavior with empty word tiers and with 'cause in English"
+VERSION="0.3.3"
+NOTES="remove skip postprocessing for certain languages that Rev doesn't support"
 
 #################### OPTIONS ################################
 

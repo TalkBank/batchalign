@@ -310,6 +310,8 @@ def asr__rev_wav(f, key=None, lang="en"):
     # late import for backwards capatibility
     from rev_ai import apiclient, JobStatus
 
+    POSTPROCESSOR_LANGS = ['en', 'es', 'fr', 'en/es']
+
     # create client
     client = apiclient.RevAiAPIClient(key)
 
@@ -318,7 +320,7 @@ def asr__rev_wav(f, key=None, lang="en"):
     job = client.submit_job_local_file(f,
                                        metadata=f"batchalign_{pathlib.Path(f).stem}",
                                        language=lang,
-                                       skip_postprocessing=True)
+                                       skip_postprocessing=True if lang in POSTPROCESSOR_LANGS else False)
 
     # we will wait
     status = client.get_job_details(job.id).status
