@@ -105,6 +105,9 @@ def eafaddsubtier(root, content, tier_name, tier_shortname):
             # if we don't have any content for the line, then ignore the line
             if not body:
                 continue
+            # if our content is literally just the utterance delimiter, continue
+            if body.strip() in [".", "!", "?"]:
+                continue
 
             # append annotation line
             # create two element

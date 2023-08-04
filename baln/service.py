@@ -46,7 +46,8 @@ class BatchalignGunicornService(BaseApplication):
     def __init__(self, app, ip="0.0.0.0", port="8080", workers=5):
         self.options = {"preload_app": True,
                         "bind": f"{ip}:{port}",
-                        "workers": workers}
+                        "workers": workers,
+                        "timeout": 1000000}
         self.application = app
         super().__init__()
 

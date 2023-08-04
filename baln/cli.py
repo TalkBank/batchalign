@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.1"
-NOTES="asks for Rev AI key as an additional component for batchalign service"
+VERSION="0.3.2"
+NOTES="correcting behavior with empty word tiers and with 'cause in English"
 
 #################### OPTIONS ################################
 
