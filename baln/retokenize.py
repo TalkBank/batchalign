@@ -310,6 +310,9 @@ def asr__rev_wav(f, key=None, lang="en"):
     # late import for backwards capatibility
     from rev_ai import apiclient, JobStatus
 
+    if lang == "zh":
+        lang = "cmn"
+
     POSTPROCESSOR_LANGS = ['en', 'es', 'fr', 'en/es']
 
     # create client

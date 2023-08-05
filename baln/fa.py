@@ -84,10 +84,12 @@ def clean_codes(string):
 class G2P_MODEL(enum.Enum):
     en = "english_us_arpa"
     es = "spanish_spain_mfa"
+    zh = "NO_GEN!mandarin_china_mfa" # NO_GEN! prefix used for *dictionaries* not generated dictionaries
 
 class ACOUSTIC_MODEL(enum.Enum):
     en = "english_us_arpa"
     es = "spanish_mfa"
+    zh = "mandarin_mfa"
 
 # default MFA settings
 def make_config_base():
@@ -124,6 +126,14 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
     # get language model name
     acoustic_model = ACOUSTIC_MODEL[lang.lower()].value
     g2p_model = G2P_MODEL[lang.lower()].value
+    no_gen = False
+
+    if len(g2p_model.split("!")) == 1:
+        g2p_model = g2p_model
+    elif g2p_model.split("!")[0].strip() == "NO_GEN":
+        g2p_model = g2p_model.split("!")[1].strip()
+        no_gen = True
+
 
     defaultmodel = lambda x:os.path.join("~","mfa_data",x)
     defaultfolder = os.path.join("~","mfa_data")
@@ -136,7 +146,8 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         manager = ModelManager()
         print("Downloading missing models...")
         # download english models
-        manager.download_model("g2p", g2p_model, True)
+        if not no_gen:
+            manager.download_model("g2p", g2p_model, True)
         manager.download_model("acoustic", acoustic_model, True)
         manager.download_model("dictionary", g2p_model, True)
         # create note file
@@ -154,9 +165,11 @@ def align_directory_mfa(directory, data_dir, model=None, dictionary=None, beam=1
         dictionary = os.path.join(directory, 'dictionary.txt')
 
     # generate dictionary if needed
-    if not os.path.exists(dictionary):
+    if not no_gen and not os.path.exists(dictionary):
         # run mfa
         os.system(f"mfa g2p {directory} {g2p_model} {dictionary} --clean")
+    if no_gen:
+        dictionary = g2p_model
 
     # run alignment
     os.system(f"mfa align {directory} {dictionary} {acoustic_model} {data_dir} --beam {beam} --retry_beam {beam*4} --clean")
