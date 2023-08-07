@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.4"
-NOTES="working MFA model for Chinese, with some poor diarization"
+VERSION="0.3.5"
+NOTES="quick fix for variant lemmas for German"
 
 #################### OPTIONS ################################
 

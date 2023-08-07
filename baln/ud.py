@@ -163,7 +163,15 @@ def handler(word):
     if target != "" and target[0] == "-":
         target = target[1:]
 
-    return f"{'' if not unknown else '0'}{word.upos.lower()}|{target.replace(',', '')}"
+    target = target.replace(',', '')
+
+    # remove attachments
+    if "|" in target:
+        target = target.split("|")[0].strip()
+
+    # clean out alternate spellings
+
+    return f"{'' if not unknown else '0'}{word.upos.lower()}|{target}"
 
 # POS specific handler
 def handler__PRON(word):
