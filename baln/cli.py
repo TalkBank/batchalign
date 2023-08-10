@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.5"
-NOTES="quick fix for variant lemmas for German"
+VERSION="0.3.6"
+NOTES="fixed bug withelan2cha eaf"
 
 #################### OPTIONS ################################
 

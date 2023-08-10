@@ -37,7 +37,9 @@ class BATokenizer(ProcessorVariant):
     OVERRIDE = True
 
     def __init__(self, config):
-        self.__subpipe = stanza.Pipeline(lang=config["lang"], processors='tokenize')
+        self.__subpipe = stanza.Pipeline(lang=config["lang"],
+                                         processors='tokenize',
+                                         download_method=DownloadMethod.REUSE_RESOURCES)
         self.__lang = config["lang"]
 
     def process(self, text):
@@ -607,7 +609,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                    morphodata=sentences)
 
     # convert the prepared eafs back into chat
-    elan2chat(out_dir)
+    elan2chat(out_dir, correct=False)
 
     # and then find all the chat files, removing bullets from them
     for f in globase(out_dir, "*.cha"):

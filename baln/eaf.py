@@ -392,11 +392,12 @@ def chat2elan(directory, skip_bullets=True):
 
 
 # chat2elan a whole path
-def elan2chat(directory, video=False):
+def elan2chat(directory, video=False, correct=True):
     """Convert a folder of CLAN .eaf files to corresponding CHATs
     files:
         directory (string): the string directory in which .elans are in
         [video] (bool): replace @Media tier annotation from audio => video
+        [correct] (bool): whether to correct the output using the +c flag
     Returns:
         None
     """
@@ -406,7 +407,10 @@ def elan2chat(directory, video=False):
     # process each file
     for fl in files:
         # elan2chatit!
-        CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} "
+        if correct:
+            CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} "
+        else:
+            CMD = f"{os.path.join(CLAN_PATH, 'elan2chat ')} {fl} "
         # run!
         os.system(CMD)
     # delete any error logs
