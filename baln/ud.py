@@ -611,7 +611,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     # convert the prepared eafs back into chat
     elan2chat(out_dir, correct=False)
 
-    # and then find all the chat files, removing bullets from them
+    # general final transcript bullet correction
+    # this also removes the @Options: heritage label and corrects for -1
     for f in globase(out_dir, "*.cha"):
         check_media_link(f)
 

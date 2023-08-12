@@ -37,11 +37,21 @@ def check_media_link(f):
     # open the file and strip bullets
     with open(f, 'r') as df:
         new_string = df.read()
+    # remove heritage labels, if needed
+    new_string = new_string.replace("@Options:\theritage", "@Options:\tmulti")
+    # remove bad comment labeling (which in an artifact of media links generated with EAF)
+    new_string = re.sub(r"%:([\w\t ]+)\n%mor:.+?\n%gra:.+?\n", r"@Comment:\1\n", new_string)
+    new_string = re.sub(r"%mor:.+?\n%:([\w\t ]+)\n%gra:.+?\n", r"@Comment:\1\n", new_string)
+    new_string = re.sub(r"%mor:.+?\n%gra:.+?\n%:([\w\t ]+)\n", r"@Comment:\1\n", new_string)
+    new_string = re.sub(r"%:([\w\t ]+?)\n\*", r"@Comment:\1\n*", new_string)
     # check for unlinked media line
     if re.search(r"@Media:	, audio", new_string): # this is the sign of no media line
         # remove media line
         new_string = re.sub(r'@Media.*\n', '', new_string)
         new_string = re.sub(r'\d+_\d+', '', new_string)
+    else:
+        # check for -1, and fix it
+        new_string = re.sub(r'-1_', '0_', new_string)
     # open the file and write content
     with open(f, 'w') as df:
         # write
