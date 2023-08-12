@@ -54,6 +54,7 @@ extern struct tier *defheadtier;
 extern char OverWriteFile;
 
 static char isMFA;
+static char isSkip;
 static TORT *timeOrder;
 static ALLTIERS *RootTiers;
 static HEADERS *RootHeaders;
@@ -72,6 +73,7 @@ void init(char f) {
 		FilterTier = 0;
 		LocalTierSelect = TRUE;
 		isMFA = FALSE;
+		isSkip = FALSE;
 		if (defheadtier->nexttier != NULL)
 			free(defheadtier->nexttier);
 		free(defheadtier);
@@ -91,6 +93,7 @@ void usage() {
 	printf("convert CHAT files to Elan XML files\n");
 	printf("Usage: chat2elan [eS %s] filename(s)\n", mainflgs());
 	puts("+c: The output .eaf file is created for MFA aligner.");
+	puts("+s: Do not interpolate time codes.");
 	puts("+eS: Specify media file name extension.");
 	mainusage(TRUE);
 }
@@ -111,6 +114,10 @@ void getflag(char *f, char *f1, int *i) {
 	switch(*f++) {
 		case 'c':
 			isMFA = TRUE;
+			no_arg_option(f);
+			break;
+		case 's':
+			isSkip = TRUE;
 			no_arg_option(f);
 			break;
 		case 'e':
@@ -243,6 +250,7 @@ static void addTierAnnotation(const char *name, char whatLingType, long antCnt, 
 	long BegNum, EndNum;
 	ALLTIERS *t;
 
+
 	if (name[0] == '*')
 		strcpy(typeRef, "orthography");
 	else {
@@ -252,10 +260,22 @@ static void addTierAnnotation(const char *name, char whatLingType, long antCnt, 
     len = strlen(st);
 	Beg = *BegO;
 	End = *EndO;
+
+    // printf("ONE: (%d, %d) \n", Beg, End);
+
 	if (RootTiers == NULL) {
 		if ((RootTiers=NEW(ALLTIERS)) == NULL) out_of_mem();
 		t = RootTiers;
-	} else {
+	} else if (isSkip == TRUE && (Beg == -1 ||
+                                  End == -1)) {
+        BegNum = add2TR(0);
+        EndNum = add2TR(0);
+		t = RootTiers;
+        t->whatLingType = 1;
+        t->lastTime = End;
+        t->annotation = addAnnotation(t->annotation, antCnt, spAntCnt, BegNum, EndNum, st);
+        return;
+    } else {
 		for (t=RootTiers; 1; t=t->nextTier) {
 		    if (strcmp(t->name, name) == 0 && strcmp(t->typeRef, typeRef) == 0) {
 			    if (Beg < t->lastTime && t->lastTime > -1)
@@ -268,6 +288,7 @@ static void addTierAnnotation(const char *name, char whatLingType, long antCnt, 
 			    	else if (len > 10)
 			    		End = Beg + 200;
 			    }
+                // printf("TWO: (%d, %d) \n", Beg, End);
 				BegNum = add2TR(Beg);
 				EndNum = add2TR(End);
 
