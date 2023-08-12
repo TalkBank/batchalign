@@ -266,31 +266,28 @@ static void addTierAnnotation(const char *name, char whatLingType, long antCnt, 
 	if (RootTiers == NULL) {
 		if ((RootTiers=NEW(ALLTIERS)) == NULL) out_of_mem();
 		t = RootTiers;
-	} else if (isSkip == TRUE && (Beg == -1 ||
-                                  End == -1)) {
-        BegNum = add2TR(0);
-        EndNum = add2TR(0);
-		t = RootTiers;
-        t->whatLingType = 1;
-        t->lastTime = End;
-        t->annotation = addAnnotation(t->annotation, antCnt, spAntCnt, BegNum, EndNum, st);
-        return;
-    } else {
+	} else {
 		for (t=RootTiers; 1; t=t->nextTier) {
 		    if (strcmp(t->name, name) == 0 && strcmp(t->typeRef, typeRef) == 0) {
-			    if (Beg < t->lastTime && t->lastTime > -1)
-			    	Beg = t->lastTime;
-			    if (End <= Beg) {
-			    	if (len < 5)
-			    		End = Beg + 5;
-			    	else if (len >= 5 && len < 10)
-			    		End = Beg + 80;
-			    	else if (len > 10)
-			    		End = Beg + 200;
-			    }
-                // printf("TWO: (%d, %d) \n", Beg, End);
-				BegNum = add2TR(Beg);
-				EndNum = add2TR(End);
+                if (isSkip == TRUE && (Beg == -1 || End == -1)) {
+                    BegNum = add2TR(0);
+                    EndNum = add2TR(0);
+                } else {
+                    if (Beg < t->lastTime && t->lastTime > -1)
+                        Beg = t->lastTime;
+                    if (End <= Beg) {
+                        if (len < 5)
+                            End = Beg + 5;
+                        else if (len >= 5 && len < 10)
+                            End = Beg + 80;
+                        else if (len > 10)
+                            End = Beg + 200;
+                    }
+
+                    // printf("TWO: (%d, %d) \n", Beg, End);
+                    BegNum = add2TR(Beg);
+                    EndNum = add2TR(End);
+                }
 
 				if (name[0] == '%' && whatLingType) {
 					if (Beg >= BegSp && Beg <= EndSp && End >= BegSp && End <= EndSp)

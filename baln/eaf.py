@@ -376,7 +376,10 @@ def chat2elan(directory, skip_bullets=True):
             df.write(cleaned_content)
             
     # chat2elan it!
-    CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +c +e.wav {' '.join(files_cleaned)} "
+    if skip_bullets:
+        CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +c +e.wav {' '.join(files_cleaned)} "
+    else:
+        CMD = f"{os.path.join(CLAN_PATH, 'chat2elan')} +c +s +e.wav {' '.join(files_cleaned)} "
 
     # run!
     os.system(CMD)
@@ -392,12 +395,11 @@ def chat2elan(directory, skip_bullets=True):
 
 
 # chat2elan a whole path
-def elan2chat(directory, video=False, correct=True):
+def elan2chat(directory, video=False):
     """Convert a folder of CLAN .eaf files to corresponding CHATs
     files:
         directory (string): the string directory in which .elans are in
         [video] (bool): replace @Media tier annotation from audio => video
-        [correct] (bool): whether to correct the output using the +c flag
     Returns:
         None
     """
@@ -407,10 +409,7 @@ def elan2chat(directory, video=False, correct=True):
     # process each file
     for fl in files:
         # elan2chatit!
-        if correct:
-            CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} "
-        else:
-            CMD = f"{os.path.join(CLAN_PATH, 'elan2chat ')} {fl} "
+        CMD = f"{os.path.join(CLAN_PATH, 'elan2chat +c ')} {fl} "
         # run!
         os.system(CMD)
     # delete any error logs

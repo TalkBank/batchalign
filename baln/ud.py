@@ -609,7 +609,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                    morphodata=sentences)
 
     # convert the prepared eafs back into chat
-    elan2chat(out_dir, correct=False)
+    elan2chat(out_dir)
 
     # general final transcript bullet correction
     # this also removes the @Options: heritage label and corrects for -1
