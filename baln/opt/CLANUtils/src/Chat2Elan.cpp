@@ -294,6 +294,9 @@ static void addTierAnnotation(const char *name, char whatLingType, long antCnt, 
 						whatLingType = 1;
 					else
 						whatLingType = 2;
+
+                    if (isSkip) // I just give up --- dependent tiers should be DEPENDENT - hjl
+                        whatLingType = 0;
 				}
 			    if (whatLingType && t->whatLingType == 0)
 			    	t->whatLingType = whatLingType;
@@ -630,10 +633,12 @@ void call() {
 							strcat(name, spName);
 							if (Beg < BegSp)
 								Beg = BegSp;
-							if (Beg >= BegSp && Beg <= EndSp && End >= BegSp && End <= EndSp)
-								whatLingType = 1;
-							else
-								whatLingType = 2;
+                            if (!isSkip) {
+                                if (Beg >= BegSp && Beg <= EndSp && End >= BegSp && End <= EndSp) 
+                                    whatLingType = 1;
+                                else
+                                    whatLingType = 2;
+                            }
 						}
 						cAntCnt = antCnt;
 						if (isSpecialCode(spName, templineC, cAntCnt, &antCnt)) {

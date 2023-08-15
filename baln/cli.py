@@ -3,7 +3,7 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.8"
+VERSION="0.3.9"
 NOTES="fixed even more bugs regarding morphotag codegen"
 
 #################### OPTIONS ################################
