@@ -298,17 +298,20 @@ static void addTierAnnotation(const char *name, char whatLingType, long antCnt, 
                     if (isSkip) // I just give up --- dependent tiers should be DEPENDENT - hjl
                         whatLingType = 0;
 				}
-			    if (whatLingType && t->whatLingType == 0)
-			    	t->whatLingType = whatLingType;
-			    else if (whatLingType == 2 && t->whatLingType == 1)
-			    	t->whatLingType = whatLingType;
+			    // if (whatLingType && t->whatLingType == 0)
+			    // else if (whatLingType == 2 && t->whatLingType == 1)
+			    	// t->whatLingType = whatLingType;
 
+                t->whatLingType = whatLingType;
 				t->lastTime = End;
 		    	t->annotation = addAnnotation(t->annotation, antCnt, spAntCnt, BegNum, EndNum, st);
 		    	if (name[0] == '*' && isChangeTime) {
 		    		*BegO = Beg;
 		    		*EndO = End;
 		    	}
+
+                // printf("tier: %s, wlt: %d\n", t->name, whatLingType);
+
 		    	return;
 		    }
 		    if (t->nextTier == NULL)

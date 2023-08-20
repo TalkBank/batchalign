@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.9"
-NOTES="fixed even more bugs regarding morphotag codegen"
+VERSION="0.3.10"
+NOTES="more morphotag elan gen bug fixes"
 
 #################### OPTIONS ################################
 
