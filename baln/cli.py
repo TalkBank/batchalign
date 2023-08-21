@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.10"
-NOTES="more morphotag elan gen bug fixes"
+VERSION="0.3.11"
+NOTES="fixed bug regarding empty utterances"
 
 #################### OPTIONS ################################
 

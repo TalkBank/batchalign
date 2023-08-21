@@ -46,10 +46,15 @@ class BATokenizer(ProcessorVariant):
         # for sentence in document.sentences:
         #     for word in sentence.words:
         #         word.lemma = "cool"
+        if text.strip() == '':
+            text = "."
 
         document = self.__subpipe(text) 
 
-        neural_tokens = [[j.text for j in i.words] for i in document.sentences[0].tokens]
+        try:
+            neural_tokens = [[j.text for j in i.words] for i in document.sentences[0].tokens]
+        except IndexError:
+            breakpoint()
 
         structural_text = text
         structural_text = structural_text.replace("l'  ", "l'")
