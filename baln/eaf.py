@@ -127,7 +127,7 @@ def eafaddsubtier(root, content, tier_name, tier_shortname):
             # update index
             id_indx += 1
 
-def eafalign(root, annotations, alignments):
+def eafalign(root, annotations, alignments=None, bullets=None):
     """inject MFA alignments into EAF (%wor tier)
 
     Attributes:
@@ -142,15 +142,18 @@ def eafalign(root, annotations, alignments):
         Modify root
     """
 
-    # create a lookup dict of xwor tier outputs
-    terms_flattened = list(zip([i[-1] for i in annotations], alignments["terms"]))
-    terms_dict = dict(terms_flattened)
+    if alignments:
+        # create a lookup dict of xwor tier outputs
+        terms_flattened = list(zip([i[-1] for i in annotations], alignments["terms"]))
+        terms_dict = dict(terms_flattened)
 
-    # inject the xwor result as a subtier to the root
-    eafaddsubtier(root, terms_dict, "wor", "xw")
+        # inject the xwor result as a subtier to the root
+        eafaddsubtier(root, terms_dict, "wor", "xw")
 
-    # set alignment back to what the rest of the function would expect
-    alignments = alignments["alignments"]
+        # set alignment back to what the rest of the function would expect
+        alignments = alignments["alignments"]
+    else:
+        alignments = bullets
 
     # Remove the old time slot IDs
     root[1].clear()
@@ -226,7 +229,7 @@ def eafud(root, annotations, morphodata):
     eafaddsubtier(root, morpho_dict, "mor", "mr")
     eafaddsubtier(root, grapho_dict, "gra", "gr")
 
-def eafinject(file_path, output_path, alignments=None, morphodata=None):
+def eafinject(file_path, output_path, alignments=None, morphodata=None, bullets=None):
     """get an unaligned eaf file to be aligned
 
     Attributes:
@@ -279,6 +282,8 @@ def eafinject(file_path, output_path, alignments=None, morphodata=None):
     # if we are injecting the EAF with alignments
     if alignments:
         eafalign(root, annotations, alignments)
+    if bullets:
+        eafalign(root, annotations, bullets=bullets)
     if morphodata:
         eafud(root, annotations, morphodata)
 

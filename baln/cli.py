@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.11"
-NOTES="fixed bug regarding empty utterances"
+VERSION="0.3.12"
+NOTES="bulletize verb to add back bullets"
 
 #################### OPTIONS ################################
 
@@ -101,7 +101,24 @@ def transcribe(ctx, **kwargs):
     if kwargs["align"]:
         do_align(kwargs["in_dir"], kwargs["out_dir"], prealigned=True,
                  clean=kwargs["clean"], aggressive=kwargs["aggressive"])
-    
+
+
+#################### BULLETIZE ################################
+
+@batchalign.command()
+@common_options
+@click.pass_context
+def bulletize(ctx, **kwargs):
+    """create bullets for files that were unlinked"""
+
+    # rebulletizing 
+    from .bulletize import bulletize_path
+
+    # report status
+    click.echo("Performing bulletization...")
+
+    # forced align!
+    bulletize_path(**kwargs)
 
 #################### MORPHOTAG ################################
 
