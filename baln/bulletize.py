@@ -158,10 +158,6 @@ def bulletize_file(audio, chat, elan, out_dir, lang="en", is_video=False, **kwar
                 last_known_timecode += 5
                 end = last_known_timecode
 
-        # this method ususally causes the end to be kinda bad
-        # but only by a smidge. So we just push the end a little
-        end += 4
-
         # either way, we append
         likely_timecodes.append((start, end))
 
