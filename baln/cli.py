@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.12"
-NOTES="bulletize verb to add back bullets"
+VERSION="0.3.13"
+NOTES="transcribe --num_speakers"
 
 #################### OPTIONS ################################
 
@@ -81,6 +81,8 @@ def align(ctx, **kwargs):
 @click.option("-p", "--prompt",
               is_flag=True,
               help="prompt the user for the information regarding the speakers instead of using dummy values", default=False)
+@click.option("-n", "--num_speakers", type=int,
+              help="number of speakers in the language sample", default=None)
 @click.option("--model", type=click.Path(exists=True, file_okay=False),
               help="path to utterance tokenization model")
 def transcribe(ctx, **kwargs):
@@ -95,7 +97,8 @@ def transcribe(ctx, **kwargs):
     print("Performing ASR...")
     retokenize_directory(kwargs["in_dir"], model_path=kwargs["model"],
                          interactive=kwargs["interactive"], lang=kwargs["lang"],
-                         noprompt=(not kwargs["prompt"]))
+                         noprompt=(not kwargs["prompt"]),
+                         speakers=kwargs["num_speakers"])
 
     # now, if we need asr, then run ASR
     if kwargs["align"]:

@@ -299,7 +299,7 @@ def asr__rev_json(f):
     return data
 
 # sent an audio file to ASR, and then process the resulting JSON
-def asr__rev_wav(f, key=None, lang="en"):
+def asr__rev_wav(f, key=None, lang="en", num_speakers=None):
     """Perform ASR on an .wav file and return Rev.AI JSON
 
     Arguments:
@@ -323,7 +323,8 @@ def asr__rev_wav(f, key=None, lang="en"):
     job = client.submit_job_local_file(f,
                                        metadata=f"batchalign_{pathlib.Path(f).stem}",
                                        language=lang,
-                                       skip_postprocessing=True if lang in POSTPROCESSOR_LANGS else False)
+                                       skip_postprocessing=True if lang in POSTPROCESSOR_LANGS else False,
+                                       speakers_count=num_speakers)
 
     # we will wait
     status = client.get_job_details(job.id).status
@@ -372,6 +373,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
 
     if provider == ASRProvider.REV:
         key = kwargs.get("key")
+        num_speakers = kwargs.get("speakers")
         # find key; if non-existant, ask for it.
         if key == None:
             # find keyfile
@@ -392,7 +394,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
             asr = asr__rev_json(infile)
         # if its a .wav file, use the .wav processor
         elif pathlib.Path(infile).suffix == ".wav":
-            asr = asr__rev_wav(infile, key=key, lang=lang)
+            asr = asr__rev_wav(infile, key=key, lang=lang, num_speakers=num_speakers)
 
     # then, process the ASR
     header, main, closing = process_asr_output(asr, pathlib.Path(infile).stem, noprompt=noprompt)
