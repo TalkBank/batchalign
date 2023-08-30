@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.13"
-NOTES="transcribe --num_speakers"
+VERSION="0.3.14"
+NOTES="comma problem fix"
 
 #################### OPTIONS ################################
 

@@ -596,6 +596,10 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             if line_cut[-1] == "'":
                 line_cut = line_cut[:-1]
 
+            line_cut = line_cut.replace(",", " ,")
+            line_cut = line_cut.replace("+ ,", "+,")
+            line_cut = line_cut.replace("  ", " ")
+
             sents = nlp(line_cut).sentences
 
             if len(sents) == 0:
