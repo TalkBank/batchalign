@@ -43,6 +43,7 @@ Where `verb` includes:
 1. `transcribe` - placing only an audio of video file (`.mp3/.mp4/.wav`) in the input directory, perform ASR on the audio, diarizes utterances, identifies some basic conversational features like retracing and filled pauses, and generate word-level alignments
 2. `align` - placing both an audio of video file (`.mp3/.mp4/.wav`) and an *utterance-aligned* CHAT file in the input directory, generate word-level alignments
 3. `morphotag` - placing a CHAT file in the input directory, uses Stanford NLP Stanza to generate morphological and dependency analyses; note that the flag `--lang=[two letter ISO language code]`, like `--lang=en` is needed to tell Stanza what language we are working with
+4. `bulletize` - placing both an audio of video file (`.mp3/.mp4/.wav`) and an *unlinked* CHAT file in the input directory, generate utterance-level alignments through ASR
 
 Follow instructions from
 
