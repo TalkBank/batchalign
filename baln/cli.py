@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.14"
-NOTES="comma problem fix"
+VERSION="0.3.15"
+NOTES="basic whisper support"
 
 #################### OPTIONS ################################
 
@@ -85,6 +85,8 @@ def align(ctx, **kwargs):
               help="number of speakers in the language sample", default=None)
 @click.option("--model", type=click.Path(exists=True, file_okay=False),
               help="path to utterance tokenization model")
+@click.option("--whisper",
+              is_flag=True, default=False, help="Use OpenAI Whisper (ASR) and X-vector (diarization) instead of Rev.AI.")
 def transcribe(ctx, **kwargs):
     """generate and align a CHAT transcript from a media file"""
 
@@ -98,7 +100,8 @@ def transcribe(ctx, **kwargs):
     retokenize_directory(kwargs["in_dir"], model_path=kwargs["model"],
                          interactive=kwargs["interactive"], lang=kwargs["lang"],
                          noprompt=(not kwargs["prompt"]),
-                         speakers=kwargs["num_speakers"])
+                         speakers=kwargs["num_speakers"],
+                         whisper=kwargs["whisper"])
 
     # now, if we need asr, then run ASR
     if kwargs["align"]:

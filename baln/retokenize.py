@@ -48,6 +48,7 @@ from tkinter.scrolledtext import ScrolledText
 # import the tokenization engine
 from .utokengine import UtteranceEngine
 from .utils import fix_transcript
+from .asrengine import ASREngine
 
 # enums for provider
 from enum import Enum
@@ -395,6 +396,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         # if its a .wav file, use the .wav processor
         elif pathlib.Path(infile).suffix == ".wav":
             asr = asr__rev_wav(infile, key=key, lang=lang, num_speakers=num_speakers)
+    elif provider == ASRProvider.WHISPER:
+        whisper = kwargs["whisper"]
+        audio, segments = whisper.load(infile, kwargs.get("num_speakers", 2))
+        asr = whisper(audio.all(), segments)
 
     # then, process the ASR
     header, main, closing = process_asr_output(asr, pathlib.Path(infile).stem, noprompt=noprompt)
@@ -564,6 +569,30 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
     # so, we will convert the input directory to
     # seed an utterance engine to use
     E = UtteranceEngine(os.path.expanduser(model_path))
+
+    if kwargs["whisper"]:
+        language = ""
+        if lang == "en":
+            language = "english"
+        elif lang == "es":
+            language = "spanish"
+        elif lang == "it":
+            language = "italian"
+        elif lang == "de":
+            language = "german"
+        elif lang == "pt":
+            language = "portuguese"
+        else:
+            raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
+
+        engine = ASREngine("openai/whisper-small", language)
+
+        kwargs["whisper"] = engine
+        kwargs["provider"] = ASRProvider.WHISPER
+
+        if not kwargs["num_speakers"]:
+            raise ValueError("For Whisper-based ASR, you must provide a number of speakers with --num_speakers or -n flag.")
+
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
