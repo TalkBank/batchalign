@@ -3,7 +3,7 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.15"
+VERSION="0.3.16"
 NOTES="basic whisper support"
 
 #################### OPTIONS ################################

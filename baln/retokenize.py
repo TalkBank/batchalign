@@ -4,6 +4,7 @@ Parses output from AWS ASR for the front of the pipeline
 """
 
 # import uuid
+from posixpath import isfile
 import uuid
 # os utilities
 import os
@@ -398,7 +399,7 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
             asr = asr__rev_wav(infile, key=key, lang=lang, num_speakers=num_speakers)
     elif provider == ASRProvider.WHISPER:
         whisper = kwargs["whisper"]
-        audio, segments = whisper.load(infile, kwargs.get("num_speakers", 2))
+        audio, segments = whisper.load(infile, kwargs["speakers"])
         asr = whisper(audio.all(), segments)
 
     # then, process the ASR
@@ -590,11 +591,18 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         kwargs["whisper"] = engine
         kwargs["provider"] = ASRProvider.WHISPER
 
-        if not kwargs["num_speakers"]:
+        if not kwargs.get("speakers"):
             raise ValueError("For Whisper-based ASR, you must provide a number of speakers with --num_speakers or -n flag.")
 
     # we will then perform the retokenization
     for f in files:
         # retokenize the file!
         retokenize(f, f.replace(pathlib.Path(f).suffix, ".cha"), E, interactive, lang=lang, noprompt=noprompt, **kwargs)
+
+
+    # remove converted files
+    converted = globase(in_directory, "*_converted*")
+    for i in converted:
+        os.remove(i)
+
 

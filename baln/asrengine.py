@@ -130,9 +130,10 @@ class ASREngine(object):
     def __call__(self, data, segments):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
-                          generate_kwargs = {"temperature": 0.5,
-                                             "repetition_penalty": 1.5,
-                                             "forced_decoder_ids": self.__decoder_ids})["chunks"]
+                          generate_kwargs = {"temperature": 0.75,
+                                             # "repetition_penalty": 1.3,
+                                             "forced_decoder_ids": self.__decoder_ids})
+        words = words["chunks"]
 
         # we now perform the sweep line algorithm to align the
         # segment timestamps against the words
@@ -140,7 +141,7 @@ class ASREngine(object):
 
         for word in words:
             groups.append({
-                "type": "word",
+                "type": "text",
                 "start": word["timestamp"][0],
                 "end": word["timestamp"][1],
                 "payload": word["text"]
@@ -167,12 +168,12 @@ class ASREngine(object):
         while len(groups) > 0:
             element = groups.pop(0)
 
-            if element["type"] == "word":
+            if element["type"] == "text":
                 current_turn.append({
-                    "type": "word",
+                    "type": "text",
                     "ts": element["start"],
                     "end_ts": element["end"],
-                    "value": element["payload"],
+                    "value": element["payload"].strip(),
                 })
             elif element["type"] == "segment" and current_speaker != element["payload"]:
                 turns.append({
