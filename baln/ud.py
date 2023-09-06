@@ -349,6 +349,8 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "qual'":
             auxiliaries.append(token.id[-1])
+        elif lang=="fr" and token.text.strip() == "c'":
+            auxiliaries.append(token.id[-1])
 
     # because we pop from it
     special_forms = special_forms.copy()
@@ -599,6 +601,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace(",", " ,")
             line_cut = line_cut.replace("+ ,", "+,")
             line_cut = line_cut.replace("  ", " ")
+            line_cut = line_cut.replace("c'est", "c' est")
 
             sents = nlp(line_cut).sentences
 
