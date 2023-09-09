@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.17"
-NOTES="patch for c'est"
+VERSION="0.3.18"
+NOTES="double comma, xmor, and charlm models for Stanza french"
 
 #################### OPTIONS ################################
 

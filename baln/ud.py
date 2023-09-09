@@ -39,7 +39,7 @@ class BATokenizer(ProcessorVariant):
     def __init__(self, config):
         self.__subpipe = stanza.Pipeline(lang=config["lang"],
                                          processors='tokenize',
-                                         download_method=DownloadMethod.REUSE_RESOURCES)
+                                         package={"tokenize": "combined"})
         self.__lang = config["lang"]
 
     def process(self, text):
@@ -258,8 +258,11 @@ def handler__actual_PUNCT(word):
         return "cm|cm"
     elif word.lemma in ['.', '!', '?']:
         return word.lemma
-    elif word.text in ['„', '‡']:
+    elif word.text in '‡':
         return "end|end"
+    elif word.text in '„':
+        return "end|end"
+
     # all other cases return None
     # to skip
 
@@ -516,10 +519,9 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     nlp = stanza.Pipeline(lang,
                           processors={"tokenize": "ba",
-                                      "pos": "default",
-                                      "lemma": "default",
-                                      "depparse": "default"},
-                          download_method=DownloadMethod.REUSE_RESOURCES,
+                                      "pos": "combined" if lang != "fr" else "combined_charlm",
+                                      "lemma": "combined" if lang != "fr"  else "combined_charlm",
+                                      "depparse": "combined" if lang != "fr"  else "combined_charlm"},
                           tokenize_no_ssplit=True)
 
     # create label and elan files

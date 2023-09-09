@@ -84,7 +84,7 @@ def eafaddsubtier(root, content, tier_name, tier_shortname):
         content_tier.set("PARENT_REF", tier_id)
 
         # we delete all previous content/wor tiers
-        if tier_name in tier_id:
+        if tier_name in tier_id and tier_id[0] != "x":
             root.remove(tier)
             continue
 
