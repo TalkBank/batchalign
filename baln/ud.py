@@ -469,8 +469,22 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
                           # add a deliminator
         mor_str = mor_str + " " + delimiter
 
+
     mor_str = mor_str.replace("<UNK>", "")
     gra_str = gra_str.replace("<UNK>", "")
+
+    # empty utterances fix
+    if mor_str.strip() in ["+//.", "+//?", "+//!"]:
+        mor_str=None
+
+    if mor_str == None:
+        mor_str = ""
+    if gra_str == None:
+        gra_str = ""
+
+    if mor_str.strip() == "" or gra_str.strip() == "" or mor_str.strip()==".":
+        mor_str = ""
+        gra_str = ""
 
     return (mor_str, gra_str)
 
@@ -558,7 +572,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             # so we split it out
             ending = line.split(" ")[-1]
             line_cut = line[:-len(ending)].strip()
-            ending = ending.replace("+//", "")
+            # ending = ending.replace("+//", "")
 
             # if we don't have anything in line cut, just take the original
             # this is compensating for things that are missing ending decimeters
@@ -601,7 +615,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             # Norwegian apostrophe fix
             if line_cut[-1] == "'":
                 line_cut = line_cut[:-1]
-
+                
             line_cut = line_cut.replace(",", " ,")
             line_cut = line_cut.replace("+ ,", "+,")
             line_cut = line_cut.replace("  ", " ")

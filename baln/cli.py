@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.23"
-NOTES="reverting stanza codebase"
+VERSION="0.3.24"
+NOTES="smaller patches"
 
 #################### OPTIONS ################################
 
