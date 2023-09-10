@@ -39,7 +39,7 @@ class BATokenizer(ProcessorVariant):
     def __init__(self, config):
         self.__subpipe = stanza.Pipeline(lang=config["lang"],
                                          processors='tokenize',
-                                         package={"tokenize": "combined"})
+                                         package={"tokenize": "default"})
         self.__lang = config["lang"]
 
     def process(self, text):
@@ -519,9 +519,9 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     nlp = stanza.Pipeline(lang,
                           processors={"tokenize": "ba",
-                                      "pos": "combined" if lang != "fr" else "combined_charlm",
-                                      "lemma": "combined" if lang != "fr"  else "combined_charlm",
-                                      "depparse": "combined" if lang != "fr"  else "combined_charlm"},
+                                      "pos": "default",
+                                      "lemma": "default",
+                                      "depparse": "default"},
                           tokenize_no_ssplit=True)
 
     # create label and elan files
@@ -558,6 +558,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             # so we split it out
             ending = line.split(" ")[-1]
             line_cut = line[:-len(ending)].strip()
+            ending = ending.replace("+//", "")
 
             # if we don't have anything in line cut, just take the original
             # this is compensating for things that are missing ending decimeters
@@ -582,6 +583,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace(")", "")
             line_cut = line_cut.replace("+^", "")
             line_cut = line_cut.replace("_", "")
+            line_cut = line_cut.replace("+//", "")
 
             # xbxxx is a sepecial xxx-class token to mark
             # special form markers, used for processing later
