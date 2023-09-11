@@ -38,8 +38,7 @@ class BATokenizer(ProcessorVariant):
 
     def __init__(self, config):
         self.__subpipe = stanza.Pipeline(lang=config["lang"],
-                                         processors='tokenize',
-                                         package={"tokenize": "default"})
+                                         processors='tokenize')
         self.__lang = config["lang"]
 
     def process(self, text):
@@ -352,7 +351,17 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "qual'":
             auxiliaries.append(token.id[-1])
-        elif lang=="fr" and token.text.strip() == "c'":
+        elif lang=="fr" and token.text.strip() == "qu'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="fr" and token.text.strip() == "jusqu'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="fr" and token.text.strip() == "au":
+            auxiliaries.append(token.id[0])
+        elif lang=="fr" and token.text.strip() == "aux":
+            auxiliaries.append(token.id[0])
+        elif lang=="fr" and token.text.strip() == "du":
+            auxiliaries.append(token.id[0])
+        elif lang=="fr" and len(token.text.strip()) == 2 and token.text.strip()[-1] == "'":
             auxiliaries.append(token.id[-1])
 
     # because we pop from it
@@ -532,7 +541,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     print("Starting Stanza...")
 
     nlp = stanza.Pipeline(lang,
-                          processors={"tokenize": "ba",
+                          processors={"tokenize": "default",
                                       "pos": "default",
                                       "lemma": "default",
                                       "depparse": "default"},
@@ -602,11 +611,11 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             # xbxxx is a sepecial xxx-class token to mark
             # special form markers, used for processing later
             # down the line
-            special_forms = re.findall(r"\w+@\w+", line_cut)
+            special_forms = re.findall(r"\w+@[\w\:]+", line_cut)
             special_forms_cleaned = []
             for form in special_forms:
                 line_cut = line_cut.replace(form, "xbxxx")
-                special_forms_cleaned.append(re.sub(r"@\w+", "", form).strip())
+                special_forms_cleaned.append(re.sub(r"@[\w\:]+", "", form).strip())
 
             # if line cut is still nothing, we get very angry
             if line_cut == "":
@@ -620,8 +629,10 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+ ,", "+,")
             line_cut = line_cut.replace("  ", " ")
             line_cut = line_cut.replace("c'est", "c' est")
+            line_cut = line_cut.replace("d'", "d' ")
 
             sents = nlp(line_cut).sentences
+            # breakpoint()
 
             if len(sents) == 0:
                 sents = ["."]
