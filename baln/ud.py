@@ -355,11 +355,11 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "jusqu'":
             auxiliaries.append(token.id[-1])
+        elif lang=="fr" and token.text.strip() == "aujourd":
+            auxiliaries.append(token.id[0]+1)
         elif lang=="fr" and token.text.strip() == "au":
             auxiliaries.append(token.id[0])
         elif lang=="fr" and token.text.strip() == "aux":
-            auxiliaries.append(token.id[0])
-        elif lang=="fr" and token.text.strip() == "du":
             auxiliaries.append(token.id[0])
         elif lang=="fr" and len(token.text.strip()) == 2 and token.text.strip()[-1] == "'":
             auxiliaries.append(token.id[-1])
@@ -636,10 +636,15 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             if len(sents) == 0:
                 sents = ["."]
-            else:
+
+            try:
                 sentences.append(
                     # we want to treat the entire thing as one large sentence
                     parse_sentence(sents[0], ending, special_forms_cleaned, lang)
+                )
+            except IndexError:
+                sentences.append(
+                    ("", "")
                 )
 
         # inject into EAF

@@ -3,7 +3,7 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.25"
+VERSION="0.3.26"
 NOTES="smaller clitic patches"
 
 #################### OPTIONS ################################
