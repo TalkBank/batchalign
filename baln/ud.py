@@ -262,9 +262,6 @@ def handler__actual_PUNCT(word):
     elif word.text in '„':
         return "end|end"
 
-    # all other cases return None
-    # to skip
-
 def handler__PUNCT(word):
     # no idea why SYM and PUNCT returns punctuation
     # or sometimes straight up words, but  so it goes
@@ -274,9 +271,9 @@ def handler__PUNCT(word):
     elif word.text in ['„', '‡']:
         return handler__actual_PUNCT(word)
     # otherwise, if its a word, return the word
-    elif re.match(r"^\w+$", word.text): # we match text here because .text is the ultumate content
+    elif re.match(r"^[\w-]+$", word.text): # we match text here because .text is the ultumate content
                                         # instead of the lemma, which maybe entirely weird
-        return handler(word)
+        return "x|{word.text}"
 
 # Register handlers
 HANDLERS = {
@@ -504,7 +501,7 @@ def clean_sentence(sent):
         sent (string): 
     """
 
-    remove = ["+,", "++", "+\"", "_"]
+    remove = ["+,", "++", "+\""]
 
     sent = sent
 
@@ -600,12 +597,13 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             if line_cut == "":
                 line_cut = ending
 
+
+            line_cut = line_cut.replace("_", "-")
             line_cut = line_cut.replace("+<", "")
             line_cut = line_cut.replace("+/", "")
             line_cut = line_cut.replace("(", "")
             line_cut = line_cut.replace(")", "")
             line_cut = line_cut.replace("+^", "")
-            line_cut = line_cut.replace("_", "")
             line_cut = line_cut.replace("+//", "")
 
             # xbxxx is a sepecial xxx-class token to mark
@@ -631,8 +629,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("c'est", "c' est")
             line_cut = line_cut.replace("d'", "d' ")
 
-            sents = nlp(line_cut).sentences
-            # breakpoint()
+            sents = nlp(line_cut.strip()).sentences
 
             if len(sents) == 0:
                 sents = ["."]

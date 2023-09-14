@@ -49,7 +49,6 @@ from tkinter.scrolledtext import ScrolledText
 # import the tokenization engine
 from .utokengine import UtteranceEngine
 from .utils import fix_transcript
-from .asrengine import ASREngine
 
 # enums for provider
 from enum import Enum
@@ -420,7 +419,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         # we will now use UtteranceEngine to redo
         # utterance tokenization
         # chunk the passage into utterances
-        chunked_passage = utterance_engine(passage)
+        if lang == "en":
+            chunked_passage = utterance_engine(passage)
+        else:
+            chunked_passage = [i.replace("...", ".") for i in sent_tokenize(passage)]
         # remove the end delimiters (again!) because
         # all we case about here are the split utterances
         # we will add "." later
@@ -586,6 +588,7 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         else:
             raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
 
+        from .asrengine import ASREngine
         engine = ASREngine("openai/whisper-small", language)
 
         kwargs["whisper"] = engine

@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.3.26" %}
+{% set version = "0.3.27" %}
 
 package:
   name: {{ name }}
@@ -30,6 +30,7 @@ requirements:
     - pgvector-python 0.1.6
     - montreal-forced-aligner 2.1.7
     - pytorch
+    - torchaudio
     - transformers 4.32.*
     - scikit-learn 1.2.2
     - hdbscan 0.8.29

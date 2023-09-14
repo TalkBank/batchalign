@@ -122,7 +122,11 @@ class ASREngine(object):
 
         # transpose and mean
         resampled = torch.mean(audio_arr.transpose(0,1), dim=1)
-        segments = self.__diar.diarize(f, num_speakers=num_speakers)
+
+        if num_speakers == 1:
+            segments = None
+        else:
+            segments = self.__diar.diarize(f, num_speakers=num_speakers)
 
         # and return the audio file
         return ASRAudioFile(f, resampled, self.sample_rate), segments
@@ -147,14 +151,21 @@ class ASREngine(object):
                 "payload": word["text"]
             })
 
-        for segment in segments:
+        if segments:
+            for segment in segments:
+                groups.append({
+                    "type": "segment",
+                    "start": segment["start"],
+                    "end": segment["end"],
+                    "payload": segment["label"]
+                })
+        else:
             groups.append({
                 "type": "segment",
-                "start": segment["start"],
-                "end": segment["end"],
-                "payload": segment["label"]
+                "start": groups[0]["start"],
+                "end": groups[-1]["end"],
+                "payload": 0
             })
-
 
         # sorting the output to perform sweep
         groups = list(sorted(groups, key=lambda x:x["start"]))
