@@ -169,6 +169,10 @@ def handler(word):
     if target != "" and target[0] == "-":
         target = target[1:]
 
+    # if we have a dash marker in the end, we remove the extra dash
+    if target != "" and target[-1] == "-":
+        target = target[:-1]
+
     target = target.replace(',', '')
 
     # remove attachments
@@ -325,7 +329,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
     # locations of elements with -ce, -être, -là
     # needs to be joined
     auxiliaries = []
-
 
     # TODO jank 2O(n) parse!
     # get mwts
@@ -574,11 +577,18 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
         # perform analysis
         sentences = []
         for line in tqdm(labels):
-            # every legal utterance will have an ending delimiter
-            # so we split it out
-            ending = line.split(" ")[-1]
-            line_cut = line[:-len(ending)].strip()
-            # ending = ending.replace("+//", "")
+            line = re.sub(r'\d+_\d+', '', line).strip()
+            line = re.sub(r'•\d+_\d+•', '', line).strip()
+
+            if re.findall("\w", line):
+                ending = "."
+                line_cut = line
+            else:
+                # every legal utterance will have an ending delimiter
+                # so we split it out
+                ending = line.split(" ")[-1]
+                line_cut = line[:-len(ending)].strip()
+                # ending = ending.replace("+//", "")
 
             # if we don't have anything in line cut, just take the original
             # this is compensating for things that are missing ending decimeters
@@ -596,7 +606,6 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             if line_cut == "":
                 line_cut = ending
-
 
             line_cut = line_cut.replace("_", "-")
             line_cut = line_cut.replace("+<", "")
@@ -632,14 +641,15 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             sents = nlp(line_cut.strip()).sentences
 
             if len(sents) == 0:
-                sents = ["."]
+                sentences.append(("", ""))
 
             try:
                 sentences.append(
                     # we want to treat the entire thing as one large sentence
                     parse_sentence(sents[0], ending, special_forms_cleaned, lang)
                 )
-            except IndexError:
+            except Exception as e:
+                print(f"\n\nUtterance '{line}' failed parsing, skipping...\n")
                 sentences.append(
                     ("", "")
                 )

@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.27"
-NOTES="utterance tokenization ond UD patches"
+VERSION="0.3.28"
+NOTES="more UD fixes"
 
 #################### OPTIONS ################################
 
