@@ -580,13 +580,14 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line = re.sub(r'\d+_\d+', '', line).strip()
             line = re.sub(r'•\d+_\d+•', '', line).strip()
 
-            if re.findall("\w", line):
+            # every legal utterance will have an ending delimiter
+            # so we split it out
+            ending = line.split(" ")[-1]
+
+            if re.findall("\w", ending):
                 ending = "."
                 line_cut = line
             else:
-                # every legal utterance will have an ending delimiter
-                # so we split it out
-                ending = line.split(" ")[-1]
                 line_cut = line[:-len(ending)].strip()
                 # ending = ending.replace("+//", "")
 
