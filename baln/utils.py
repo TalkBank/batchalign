@@ -52,6 +52,15 @@ def check_media_link(f):
     else:
         # check for -1, and fix it
         new_string = re.sub(r'-1_', '0_', new_string)
+        new_string = re.sub(r'0_199', '', new_string)
+        new_string = re.sub(r'0_79', '', new_string)
+        new_string = re.sub(r'0_4', '', new_string)
+
+        new_string = re.sub(r'•-1_', '•0_', new_string)
+        new_string = re.sub(r'•0_199•', '', new_string)
+        new_string = re.sub(r'•0_79•', '', new_string)
+        new_string = re.sub(r'•0_4•', '', new_string)
+
     # open the file and write content
     with open(f, 'w') as df:
         # write
