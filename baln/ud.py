@@ -277,7 +277,7 @@ def handler__PUNCT(word):
     # otherwise, if its a word, return the word
     elif re.match(r"^[\w-]+$", word.text): # we match text here because .text is the ultumate content
                                         # instead of the lemma, which maybe entirely weird
-        return "x|{word.text}"
+        return f"x|{word.text}"
 
 # Register handlers
 HANDLERS = {
@@ -357,8 +357,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "aujourd":
             auxiliaries.append(token.id[0]+1)
-        elif lang=="fr" and token.text.strip() == "au":
-            auxiliaries.append(token.id[0])
         elif lang=="fr" and token.text.strip() == "aux":
             auxiliaries.append(token.id[0])
         elif lang=="fr" and len(token.text.strip()) == 2 and token.text.strip()[-1] == "'":
