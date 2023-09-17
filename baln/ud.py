@@ -180,6 +180,7 @@ def handler(word):
         target = target.split("|")[0].strip()
 
     # clean out alternate spellings
+    target = target.replace("_", "")
 
     return f"{'' if not unknown else '0'}{word.upos.lower()}|{target}"
 
@@ -345,6 +346,8 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
 
         if token.text.strip() == "l'":
             clitics.append(token.id[0])
+        elif token.text.strip()[0] == "_":
+            auxiliaries.append(token.id[0]-1)
         elif lang=="it" and token.text.strip()[-3:] == "ll'":
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "gliel'":
@@ -582,6 +585,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             # so we split it out
             ending = line.split(" ")[-1]
 
+
             if re.findall("\w", ending):
                 ending = "."
                 line_cut = line
@@ -606,7 +610,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             if line_cut == "":
                 line_cut = ending
 
-            line_cut = line_cut.replace("_", "-")
+            # line_cut = line_cut.replace("_", "-")
             line_cut = line_cut.replace("+<", "")
             line_cut = line_cut.replace("+/", "")
             line_cut = line_cut.replace("(", "")
@@ -625,7 +629,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             # if line cut is still nothing, we get very angry
             if line_cut == "":
-                line_cut = ending
+                line_cut = '.'
 
             # Norwegian apostrophe fix
             if line_cut[-1] == "'":
@@ -636,6 +640,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("  ", " ")
             line_cut = line_cut.replace("c'est", "c' est")
             line_cut = line_cut.replace("d'", "d' ")
+
+            # breakpoint()
 
             sents = nlp(line_cut.strip()).sentences
 
