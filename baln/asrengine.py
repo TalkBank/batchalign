@@ -81,8 +81,8 @@ class ASREngine(object):
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
-            chunk_length_s=30,
-            stride_length_s=(3, 3),
+            chunk_length_s=15,
+            stride_length_s=(4, 4),
             device=DEVICE,
             return_timestamps="word",
         )
@@ -134,9 +134,9 @@ class ASREngine(object):
     def __call__(self, data, segments):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
-                          generate_kwargs = {"temperature": 0.75,
+                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids})  #"temperature": 0.75,
                                              # "repetition_penalty": 1.3,
-                                             "forced_decoder_ids": self.__decoder_ids})
+                                             # })
         words = words["chunks"]
 
         # we now perform the sweep line algorithm to align the

@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.32"
-NOTES="bump whisper model size"
+VERSION="0.3.33"
+NOTES="more Whisper command argument improvements"
 
 #################### OPTIONS ################################
 
