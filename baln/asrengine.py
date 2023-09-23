@@ -1,6 +1,10 @@
 from sklearn.utils.validation import _num_samples
 from torchaudio import transforms as T
 from torchaudio import load
+from pyAudioAnalysis.audioSegmentation import speaker_diarization
+import numpy as np 
+
+
 
 from transformers import pipeline
 
@@ -10,7 +14,6 @@ from collections import defaultdict
 
 import torch
 from transformers import WhisperProcessor
-from simple_diarizer.diarizer import Diarizer
 
 from nltk import sent_tokenize
 
@@ -81,7 +84,7 @@ class ASREngine(object):
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
-            chunk_length_s=15,
+            chunk_length_s=30,
             stride_length_s=(4, 4),
             device=DEVICE,
             return_timestamps="word",
@@ -90,9 +93,6 @@ class ASREngine(object):
 
         # force decoder IDs to create language
         self.__decoder_ids = processor.get_decoder_prompt_ids(language=language, task="transcribe")
-
-        # diarizer
-        self.__diar = Diarizer(embed_model='xvec', cluster_method='sc')
 
         # save the target sample rate
         self.sample_rate = target_sample_rate
@@ -123,19 +123,22 @@ class ASREngine(object):
         # transpose and mean
         resampled = torch.mean(audio_arr.transpose(0,1), dim=1)
 
+        # perform diarization
         if num_speakers == 1:
-            segments = None
+            dia_cls = None
         else:
-            segments = self.__diar.diarize(f, num_speakers=num_speakers)
+            print("Diarizing...")
+            dia_cls = speaker_diarization(f, num_speakers, mid_step=0.1, lda_dim=5)[0]
+            print("Done Diarizing")
 
         # and return the audio file
-        return ASRAudioFile(f, resampled, self.sample_rate), segments
+        return ASRAudioFile(f, resampled, self.sample_rate), dia_cls
 
     def __call__(self, data, segments):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
-                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids})  #"temperature": 0.75,
-                                             # "repetition_penalty": 1.3,
+                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,  #"temperature": 0.75,
+                                             "repetition_penalty": 1.1})
                                              # })
         words = words["chunks"]
 
@@ -151,14 +154,22 @@ class ASREngine(object):
                 "payload": word["text"]
             })
 
-        if segments:
-            for segment in segments:
-                groups.append({
-                    "type": "segment",
-                    "start": segment["start"],
-                    "end": segment["end"],
-                    "payload": segment["label"]
-                })
+        if segments is not None:
+            secs = np.array(range(len(segments))) * 0.5 + 0.1 / 2.0
+            cur_start = 0
+            cur_spk = segments[0]
+
+            for indx, i in zip(secs, segments):
+                if i != cur_spk:
+                    # results is by 0.1 second steps
+                    groups.append({
+                        "type": "segment",
+                        "start": cur_start/10,
+                        "end": indx/10,
+                        "payload": cur_spk
+                    })
+                    cur_start = indx
+                    cur_spk = i
         else:
             groups.append({
                 "type": "segment",
@@ -166,6 +177,7 @@ class ASREngine(object):
                 "end": groups[-1]["end"],
                 "payload": 0
             })
+
 
         # sorting the output to perform sweep
         groups = list(sorted(groups, key=lambda x:x["start"]))
@@ -183,7 +195,7 @@ class ASREngine(object):
                 current_turn.append({
                     "type": "text",
                     "ts": element["start"],
-                    "end_ts": element["end"],
+                    "end_ts": element["end"] if element["end"] else element["start"]+1,
                     "value": element["payload"].strip(),
                 })
             elif element["type"] == "segment" and current_speaker != element["payload"]:
@@ -194,19 +206,50 @@ class ASREngine(object):
                 current_speaker = element["payload"],
                 current_turn = []
 
-        turns.append({
-            "elements": current_turn,
-            "speaker": current_speaker
-        })
+        try:
+            turns.append({
+                "elements": current_turn,
+                "speaker": current_speaker[0]
+            })
+        except:
+            turns.append({
+                "elements": current_turn,
+                "speaker": current_speaker
+            })
+
 
         return {
             "monologues": turns
         }
 
 
-# e = ASREngine(PRETRAINED, "english")
-# audio, segments = e.load(FILE, 2)
-# result = e(audio.all(), segments)
-# words = raw["chunks"]
+# mid_step = 0.1
+# dia_cls = raw_dia[0]
+
+# # create the segments
+# groups = [] 
+# cur_start = 0
+# cur_spk = dia_cls[0]
+
+# for indx, i in zip(secs, dia_cls):
+#     if i != cur_spk:
+#         # results is by 0.1 second steps
+#         groups.append({
+#             "type": "segment",
+#             "start": cur_start/10,
+#             "end": indx/10,
+#             "payload": cur_spk
+#         })
+#         cur_start = indx
+#         cur_spk = i
+
+# groups
+
+# raw_dia[:1000]
+
+# # e = ASREngine(PRETRAINED, "english")
+# # audio, segments = e.load(FILE, 2)
+# # result = e(audio.all(), segments)
+# # words = raw["chunks"]
 
 
