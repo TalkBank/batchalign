@@ -84,8 +84,8 @@ class ASREngine(object):
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
-            chunk_length_s=30,
-            stride_length_s=(4, 4),
+            chunk_length_s=20,
+            stride_length_s=5,
             device=DEVICE,
             return_timestamps="word",
         )
@@ -135,24 +135,9 @@ class ASREngine(object):
         return ASRAudioFile(f, resampled, self.sample_rate), dia_cls
 
     def __call__(self, data, segments):
-        words = self.pipe(data.cpu().numpy(),
-                          batch_size=8, 
-                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,  #"temperature": 0.75,
-                                             "repetition_penalty": 1.1})
-                                             # })
-        words = words["chunks"]
-
         # we now perform the sweep line algorithm to align the
         # segment timestamps against the words
         groups = []
-
-        for word in words:
-            groups.append({
-                "type": "text",
-                "start": word["timestamp"][0],
-                "end": word["timestamp"][1],
-                "payload": word["text"]
-            })
 
         if segments is not None:
             secs = np.array(range(len(segments))) * 0.5 + 0.1 / 2.0
@@ -166,7 +151,7 @@ class ASREngine(object):
                         "type": "segment",
                         "start": cur_start/10,
                         "end": indx/10,
-                        "payload": cur_spk
+                        "payload": int(cur_spk)
                     })
                     cur_start = indx
                     cur_spk = i
@@ -178,6 +163,26 @@ class ASREngine(object):
                 "payload": 0
             })
 
+        words = self.pipe(data.cpu().numpy(),
+                          batch_size=8, 
+                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,
+                                             "repetition_penalty": 1.05,
+                                             })
+                                             # "do_sample": False,
+                                             # "temperature": 0.2})
+        # breakpoint()
+                                             # "temperature": 0,
+  #"temperature": 0.75,
+                                             # })
+        words = words["chunks"]
+
+        for word in words:
+            groups.append({
+                "type": "text",
+                "start": word["timestamp"][0],
+                "end": word["timestamp"][1],
+                "payload": word["text"]
+            })
 
         # sorting the output to perform sweep
         groups = list(sorted(groups, key=lambda x:x["start"]))
@@ -201,22 +206,15 @@ class ASREngine(object):
             elif element["type"] == "segment" and current_speaker != element["payload"]:
                 turns.append({
                     "elements": current_turn,
-                    "speaker": current_speaker
+                    "speaker": current_speaker[0] if type(current_speaker) == tuple else current_speaker
                 })
                 current_speaker = element["payload"],
                 current_turn = []
 
-        try:
-            turns.append({
-                "elements": current_turn,
-                "speaker": current_speaker[0]
-            })
-        except:
-            turns.append({
-                "elements": current_turn,
-                "speaker": current_speaker
-            })
-
+        turns.append({
+            "elements": current_turn,
+            "speaker": current_speaker[0] if type(current_speaker) == tuple else current_speaker
+        })
 
         return {
             "monologues": turns

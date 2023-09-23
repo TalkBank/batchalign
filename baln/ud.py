@@ -173,7 +173,11 @@ def handler(word):
     if target != "" and target[-1] == "-":
         target = target[:-1]
 
+    # replace double dashes
+    target = target.replace("--", "-")
+
     target = target.replace(',', '')
+    target = target.replace('\'', '')
 
     # remove attachments
     if "|" in target:
@@ -360,6 +364,8 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "aujourd":
             auxiliaries.append(token.id[0]+1)
+        elif lang=="fr" and token.text.strip() == "aujourd'":
+            auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "aux":
             auxiliaries.append(token.id[0])
         elif lang=="fr" and len(token.text.strip()) == 2 and token.text.strip()[-1] == "'":

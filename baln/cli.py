@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.34"
-NOTES="whisper clustering and command improvemnets"
+VERSION="0.3.35"
+NOTES="whisper and UD improvemnets"
 
 #################### OPTIONS ################################
 
