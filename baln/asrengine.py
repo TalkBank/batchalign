@@ -84,8 +84,8 @@ class ASREngine(object):
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
-            chunk_length_s=20,
-            stride_length_s=5,
+            chunk_length_s=30,
+            stride_length_s=3,
             device=DEVICE,
             return_timestamps="word",
         )
@@ -166,10 +166,11 @@ class ASREngine(object):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
                           generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,
-                                             "repetition_penalty": 1.05,
+                                             "repetition_penalty": 1.05
+                                             # "do_sample": True,
+                                             # "temperature": 0.1
+                                             # })
                                              })
-                                             # "do_sample": False,
-                                             # "temperature": 0.2})
         # breakpoint()
                                              # "temperature": 0,
   #"temperature": 0.75,

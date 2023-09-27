@@ -591,7 +591,7 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
             raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
 
         from .asrengine import ASREngine
-        engine = ASREngine("openai/whisper-medium", language)
+        engine = ASREngine("openai/whisper-large-v2", language)
 
         kwargs["whisper"] = engine
         kwargs["provider"] = ASRProvider.WHISPER

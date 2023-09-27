@@ -18,7 +18,7 @@ def process_file(file, output):
     
     print("Loading model...")
     # load the input model
-    model = whisper.load_model("medium")
+    model = whisper.load_model("large-v2")
 
     print("Perfroming transcription...")
     # perform transcription
