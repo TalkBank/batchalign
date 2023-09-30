@@ -24,9 +24,10 @@ The quick start instructions for the Docker + Web setup is available separately 
 The `batchalign` package is available though the `talkbank` channel on Anaconda. It requires dependencies on `conda-forge` as well as `rev_ai` from `pip`. Hence, to quickly setup batchalign:
 
 ```bash
+conda install mamba -c conda-forge
 conda create -n batchalign
 conda activate batchalign
-conda install batchalign -c talkbank -c conda-forge
+mamba install batchalign -c talkbank -c conda-forge
 pip install rev_ai
 ```
 
