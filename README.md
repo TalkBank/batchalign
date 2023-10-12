@@ -12,7 +12,7 @@ Note that, as Batchalign depends on specific platform-specific C programs in the
 There are three main interfaces to using Batchalign:
 
 1. **Docker + Web User Interface**: simple to setup, easy to use, covers most basic functionality
-2. **Anaconda Based CLI Program**: covers all options and functionalities of Batchalign, requires extensive Terminal use
+2. **Anaconda Based Command Line Interface (CLI)**: covers all options and functionalities of Batchalign, requires extensive Terminal use
 3. **Python API**: used to embed Batchalign in other programs
 
 Select the flavour which you would like to use, and proceed with the relevant section of instructions below.
@@ -61,6 +61,6 @@ batchalign [verb] --help
 to learn more about other options.
 
 ## Programmatic
-Coming soon. The package is called `baln`. After following the instructions from the "Anaconda" setup section above, one can import APIs that perform the same actions as the CLI tool along some even more advanced custom analysis.
+Coming soon. The package is called `baln`. After following the instructions from the "Anaconda" setup section above, one can import APIs that perform the same actions as the Command Line Interface (CLI) tool along some even more advanced custom analysis.
 
 
