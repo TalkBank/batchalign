@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.38"
-NOTES="bigger whisper model"
+VERSION="0.3.39"
+NOTES="italian l' patches"
 
 #################### OPTIONS ################################
 

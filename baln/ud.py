@@ -521,6 +521,18 @@ def clean_sentence(sent):
 
     return sent
 
+def tokenizer_processor(tokenized, lang):
+    if lang == "it":
+        res = []
+        for i in tokenized:
+            # italian taggs l' as MWT, we patch that
+            if type(i) == tuple and i[0]=="l'" and i[1] == True:
+                res.append("l'")
+            else:
+                res.append(i)
+        return res
+    else:
+        return tokenized
 
 def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggressive=None):
     """Batch morphosyntactic analysis tools using Stanza
@@ -552,7 +564,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                                       "pos": "default",
                                       "lemma": "default",
                                       "depparse": "default"},
-                          tokenize_no_ssplit=True)
+                          tokenize_no_ssplit=True,
+                          tokenize_postprocessor=lambda x:[tokenizer_processor(i, lang) for i in x])
 
     # create label and elan files
     chat2transcript(in_dir, True)
@@ -590,7 +603,6 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             # every legal utterance will have an ending delimiter
             # so we split it out
             ending = line.split(" ")[-1]
-
 
             if re.findall("\w", ending):
                 ending = "."

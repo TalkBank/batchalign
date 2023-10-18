@@ -166,7 +166,7 @@ class ASREngine(object):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
                           generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,
-                                             "repetition_penalty": 1.05
+                                             "repetition_penalty": 1.01
                                              # "do_sample": True,
                                              # "temperature": 0.1
                                              # })
