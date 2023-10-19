@@ -30,92 +30,6 @@ from .dp import *
 globase = lambda path, statement: glob.glob(os.path.join(path, statement))
 repath_file = lambda file_path, new_dir: os.path.join(new_dir, pathlib.Path(file_path).name)
 
-# Register tokenizer processor variant, and fix tokenization for specific forms
-@register_processor_variant("tokenize", "ba")
-class BATokenizer(ProcessorVariant):
-
-    OVERRIDE = True
-
-    def __init__(self, config):
-        self.__subpipe = stanza.Pipeline(lang=config["lang"],
-                                         processors='tokenize')
-        self.__lang = config["lang"]
-
-    def process(self, text):
-        # for sentence in document.sentences:
-        #     for word in sentence.words:
-        #         word.lemma = "cool"
-        if text.strip() == '':
-            text = "."
-
-        document = self.__subpipe(text) 
-
-        try:
-            neural_tokens = [[j.text for j in i.words] for i in document.sentences[0].tokens]
-        except IndexError:
-            breakpoint()
-
-        structural_text = text
-        structural_text = structural_text.replace("l'  ", "l'")
-        structural_text = structural_text.replace("l'", "l' ")
-        structural_text = structural_text.replace("nell'", "nell' ")
-        structural_text = structural_text.replace("all'", "all' ")
-        structural_text = structural_text.replace("dall'", "dall' ")
-        structural_tokens = [i for i in structural_text.split(" ")
-                             if i != ""]
-
-        aligned = list(zip(structural_tokens, neural_tokens))
-
-        # this should be in the format of
-        # [ (structural_token: [semantic, tokens]), ...]
-
-        # we now perform language specific post-processing
-        aligned = self.__tok_reprocess(aligned)
-
-        # assemble stanza-compatible final output
-        # taking care to treat multi-word tokens the way Stanza
-        # expects; run a mwt through stanza to see
-        # how they want it
-        final_tokens = []
-        current_token_index = 1
-        for text, tokens in aligned:
-            final_tokens.append({
-                "id": (current_token_index,
-                       current_token_index+len(tokens)-1)
-                if len(tokens) > 1 else (current_token_index, ),
-                "text": text})
-            current_token_index = current_token_index+len(tokens)
-
-        try:
-            reconstructed = Document([final_tokens], text)
-        except:
-            breakpoint()
-        return reconstructed
-
-    def __tok_reprocess(self, aligned):
-        if self.__lang == "it":
-            return self.__tok_reprocess__it(aligned)
-
-        # if no processor is registered, just return the
-        # original sequence
-        return aligned
-
-    def __tok_reprocess__it(self, aligned):
-
-        new = []
-
-        for key, value in aligned:
-            fixed = value
-            if key == "dai":
-                fixed = ["dai"]
-            elif key == "dài":
-                fixed = ["dài"]
-            elif key == "aòe":
-                fixed = ["aòe"]
-
-            new.append((key, fixed))
-
-        return new
         
 
 # one liner to parse features
@@ -175,9 +89,12 @@ def handler(word):
 
     # replace double dashes
     target = target.replace("--", "-")
+    target = target.replace("<unk>", "")
+    target = target.replace("<SOS>", "")
 
     target = target.replace(',', '')
     target = target.replace('\'', '')
+    target = target.replace('~', '')
 
     # remove attachments
     if "|" in target:
@@ -352,9 +269,13 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             clitics.append(token.id[0])
         elif token.text.strip()[0] == "_":
             auxiliaries.append(token.id[0]-1)
+        elif token.text.strip()[0] == "~":
+            auxiliaries.append(token.id[0]-1)
         elif lang=="it" and token.text.strip()[-3:] == "ll'":
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "gliel'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="it" and token.text.strip() == "d'":
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "qual'":
             auxiliaries.append(token.id[-1])
@@ -362,11 +283,17 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "jusqu'":
             auxiliaries.append(token.id[-1])
+        elif lang=="fr" and token.text.strip() == "puisqu'":
+            auxiliaries.append(token.id[-1])
+        elif lang=="fr" and token.text.strip() == "quelqu'":
+            auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "aujourd":
             auxiliaries.append(token.id[0]+1)
         elif lang=="fr" and token.text.strip() == "aujourd'":
             auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "aux":
+            auxiliaries.append(token.id[0])
+        elif lang=="fr" and token.text.strip() == "au" and type(token.id) == tuple:
             auxiliaries.append(token.id[0])
         elif lang=="fr" and len(token.text.strip()) == 2 and token.text.strip()[-1] == "'":
             auxiliaries.append(token.id[-1])
@@ -521,18 +448,38 @@ def clean_sentence(sent):
 
     return sent
 
+def matches(i, word):
+    return (type(i) == tuple and i[0] == word) or (i == word)
+
+def front_matches(i, word):
+    return (type(i) == tuple and i[:len(word)] == word) or (i[:len(word)] == word)
+
+def conform(i):
+    return i[0] if type(i) == tuple else i
+
 def tokenizer_processor(tokenized, lang):
-    if lang == "it":
-        res = []
-        for i in tokenized:
-            # italian taggs l' as MWT, we patch that
-            if type(i) == tuple and i[0]=="l'" and i[1] == True:
-                res.append("l'")
-            else:
-                res.append(i)
-        return res
-    else:
-        return tokenized
+    res = []
+    indx = 0
+    while indx < len(tokenized):
+        i = tokenized[indx]
+        # italian taggs l' as MWT, we patch that
+        if lang == "it" and type(i) == tuple and i[0]=="l'" and i[1] == True:
+            res.append("l'")
+        # italian breaks up lei into le, i, we patch that
+        elif lang == "it" and matches(i, "i") and matches(res[-1], "le"):
+            res.pop(-1)
+            res.append("lei")
+        elif lang == "pt" and matches(i, "d'água"):
+            res.append(("d'água", True))
+        elif lang == "fr" and matches(i, "aujourd'hui"):
+            res.append("aujourd'hui")
+        elif lang == "fr" and matches(i, "aujourd'"):
+            res.append("aujourd'hui")
+            indx += 1
+        else:
+            res.append(i)
+        indx += 1
+    return res
 
 def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggressive=None):
     """Batch morphosyntactic analysis tools using Stanza
@@ -657,7 +604,6 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+ ,", "+,")
             line_cut = line_cut.replace("  ", " ")
             line_cut = line_cut.replace("c'est", "c' est")
-            line_cut = line_cut.replace("d'", "d' ")
 
             # breakpoint()
 
