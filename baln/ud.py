@@ -269,6 +269,9 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             clitics.append(token.id[0])
         elif token.text.strip()[0] == "_":
             auxiliaries.append(token.id[0]-1)
+            # if its a _l', we have one more thing to check
+            if lang=="fr" and token.text.strip() == "_l'":
+                auxiliaries.append(token.id[0])
         elif token.text.strip()[0] == "~":
             auxiliaries.append(token.id[0]-1)
         elif lang=="it" and token.text.strip()[-3:] == "ll'":
