@@ -61,6 +61,11 @@ def check_media_link(f):
         new_string = re.sub(r'•0_79•', '', new_string)
         new_string = re.sub(r'•0_4•', '', new_string)
 
+        if re.search(r"@Media:	\w+, ?(audio)|(video)", new_string) and ("" not in new_string) and ("•" not in new_string): # this is the sign of no actual media line
+            new_string = re.sub(r"@Media:	(\w+), audio", r"@Media:	\1, audio, unlinked", new_string)
+            new_string = re.sub(r"@Media:	(\w+), video", r"@Media:	\1, video, unlinked", new_string)
+
+
     # open the file and write content
     with open(f, 'w') as df:
         # write

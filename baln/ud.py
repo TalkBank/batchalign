@@ -1,5 +1,6 @@
 # system utils
 import glob, os, re
+from itertools import groupby
 
 # pathing tools
 from pathlib import Path
@@ -255,7 +256,6 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
     # TODO jank 2O(n) parse!
     # get mwts
     for indx, token in enumerate(sentence.tokens):
-
         if token.text[0]=="-":
 
             # we have to subtract 1 becasue $ goes to the
@@ -265,9 +265,9 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
         if len(token.id) > 1:
             mwts.append(token.id)
 
-        if token.text.strip() == "l'":
-            clitics.append(token.id[0])
-        elif token.text.strip()[0] == "_":
+        # if token.text.strip() == "l'":
+            # clitics.append(token.id[0])
+        if token.text.strip()[0] == "_":
             auxiliaries.append(token.id[0]-1)
             # if its a _l', we have one more thing to check
             if lang=="fr" and token.text.strip() == "_l'":
@@ -282,8 +282,8 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "qual'":
             auxiliaries.append(token.id[-1])
-        elif lang=="fr" and token.text.strip() == "qu'":
-            auxiliaries.append(token.id[-1])
+        # elif lang=="fr" and token.text.strip() == "qu'":
+            # auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "jusqu'":
             auxiliaries.append(token.id[-1])
         elif lang=="fr" and token.text.strip() == "puisqu'":
@@ -460,8 +460,55 @@ def front_matches(i, word):
 def conform(i):
     return i[0] if type(i) == tuple else i
 
-def tokenizer_processor(tokenized, lang):
+def tokenizer_processor(tokenized, lang, sent):
     res = []
+    # align the input sentence and the tokenization results
+    payloads = []
+    try: 
+        split_passage = word_tokenize(sent)
+    except LookupError:
+        # we are missing punkt
+        nltk.download('punkt')
+        # perform tokenization
+        split_passage = word_tokenize(sent)
+    # create alignment backplates, where the split_passage
+    # is reference and the tokenized is ptarget
+    targets = []
+    refs = []
+    for indx, i in enumerate(tokenized):
+        for char in conform(i):
+                targets.append(PayloadTarget(char, indx))
+    for indx, i in enumerate(split_passage):
+        for char in i:
+            refs.append(ReferenceTarget(char, indx))
+
+    # create groups such that if multiple of the tokenized result
+    # belongs to the same group (i.e. orthographically
+    # the same unit), we combine it into one
+    groups = []
+    alignments = groupby(align(targets, refs), lambda x:x.reference_payload)
+    for key, grp in alignments:
+        group = []
+        for elem in grp:
+            group.append(elem.payload)
+        groups.append(list(sorted(set(group))))
+
+    # create new tokenizations, marking MWTs
+    seen = []
+    new_toks = []
+    for i in groups:
+        i = list(filter(lambda x:x not in seen, i))
+        if len(i) == 1:
+            new_toks.append(tokenized[i[0]])
+        elif len(i) == 0:
+            continue
+        else:
+            # we combine all the tokens and mark as MWT
+            new_toks.append(("".join([conform(tokenized[j]) for j in i]), False))
+        seen += i
+
+    tokenized = new_toks
+
     indx = 0
     while indx < len(tokenized):
         i = tokenized[indx]
@@ -469,7 +516,7 @@ def tokenizer_processor(tokenized, lang):
         if lang == "it" and type(i) == tuple and i[0]=="l'" and i[1] == True:
             res.append("l'")
         # italian breaks up lei into le, i, we patch that
-        elif lang == "it" and matches(i, "i") and matches(res[-1], "le"):
+        elif lang == "it" and matches(i, "i") and len(res) != 0 and matches(res[-1], "le"):
             res.pop(-1)
             res.append("lei")
         elif lang == "pt" and matches(i, "d'água"):
@@ -479,9 +526,12 @@ def tokenizer_processor(tokenized, lang):
         elif lang == "fr" and matches(i, "aujourd'"):
             res.append("aujourd'hui")
             indx += 1
+        elif lang == "fr" and matches(i, "au"):
+            res.append((conform(i), True))
         else:
             res.append(i)
         indx += 1
+
     return res
 
 def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggressive=None):
@@ -508,6 +558,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
         os.mkdir(DATA_DIR)
 
     print("Starting Stanza...")
+    inputs = []
 
     nlp = stanza.Pipeline(lang,
                           processors={"tokenize": "default",
@@ -515,7 +566,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                                       "lemma": "default",
                                       "depparse": "default"},
                           tokenize_no_ssplit=True,
-                          tokenize_postprocessor=lambda x:[tokenizer_processor(i, lang) for i in x])
+                          tokenize_postprocessor=lambda x:[tokenizer_processor(i, lang, inputs[-1]) for i in x])
 
     # create label and elan files
     chat2transcript(in_dir, True)
@@ -610,12 +661,13 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             # breakpoint()
 
-            sents = nlp(line_cut.strip()).sentences
-
-            if len(sents) == 0:
-                sentences.append(("", ""))
-
             try:
+                inputs.append(line_cut)
+                sents = nlp(line_cut.strip()).sentences
+
+                if len(sents) == 0:
+                    sentences.append(("", ""))
+
                 sentences.append(
                     # we want to treat the entire thing as one large sentence
                     parse_sentence(sents[0], ending, special_forms_cleaned, lang)
