@@ -76,7 +76,7 @@ def __serialize_arr(src, tgt):
 
     return src_serialized, tgt_serialized
 
-def __dp(payload, reference):
+def __dp(payload, reference, t):
     """Performs bottom-up dynamic programming alignment
 
     Parameters
@@ -85,6 +85,8 @@ def __dp(payload, reference):
         The payload-type source sequence to align.
     reference: List[ReferenceTarget]
         The reference-type target sequence to align.
+    t : Bool
+        Whether to use TQDM.
 
     Returns
     -------
@@ -92,6 +94,9 @@ def __dp(payload, reference):
         The Levistein edit distance, as well as the actual
         edited sequence expressed by "Extra" vs. "Match"
     """
+
+    from tqdm import tqdm
+    tqdm = tqdm if t else (lambda x,total="":x)
 
     # bottom-up DP table:
     # every ROW represents a new element in REFERENCE
@@ -199,16 +204,17 @@ def __dp(payload, reference):
 
 
 def align(source_payload_sequence,
-          target_reference_sequence):
+          target_reference_sequence,
+          tqdm=True):
     """Align two sequences
     """
 
     if (len(source_payload_sequence) > 0 and
         type(source_payload_sequence[0]) == PayloadTarget):
-        return __dp(source_payload_sequence, target_reference_sequence)
+        return __dp(source_payload_sequence, target_reference_sequence, tqdm)
     else:
         return __dp(*__serialize_arr(source_payload_sequence,
-                                    target_reference_sequence))
+                                     target_reference_sequence), tqdm)
 
 # align([1,2,3,4,4,5,5,5], [1,1,3,4,4,12,5,5,18])
 

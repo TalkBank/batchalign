@@ -198,7 +198,7 @@ def handler__PUNCT(word):
     elif word.text in ['„', '‡']:
         return handler__actual_PUNCT(word)
     # otherwise, if its a word, return the word
-    elif re.match(r"^[\w-]+$", word.text): # we match text here because .text is the ultumate content
+    elif re.match(r"^['\w-]+$", word.text): # we match text here because .text is the ultumate content
                                         # instead of the lemma, which maybe entirely weird
         return f"x|{word.text}"
 
@@ -280,6 +280,9 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             auxiliaries.append(token.id[-1])
         elif lang=="it" and token.text.strip() == "d'":
             auxiliaries.append(token.id[-1])
+        elif lang=="it" and (token.text.strip() == "c’" or token.text.strip() == "c'"):
+            auxiliaries.append(token.id[-1])
+
         elif lang=="it" and token.text.strip() == "qual'":
             auxiliaries.append(token.id[-1])
         # elif lang=="fr" and token.text.strip() == "qu'":
@@ -486,7 +489,7 @@ def tokenizer_processor(tokenized, lang, sent):
     # belongs to the same group (i.e. orthographically
     # the same unit), we combine it into one
     groups = []
-    alignments = groupby(align(targets, refs), lambda x:x.reference_payload)
+    alignments = groupby(align(targets, refs, tqdm=False), lambda x:x.reference_payload)
     for key, grp in alignments:
         group = []
         for elem in grp:
@@ -673,7 +676,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                     parse_sentence(sents[0], ending, special_forms_cleaned, lang)
                 )
             except Exception as e:
-                print(f"\n\nUtterance '{line}' failed parsing, skipping...\n")
+                print(f"\n\nUtterance '{line}' failed parsing because '{e}', skipping...\n")
                 sentences.append(
                     ("", "")
                 )

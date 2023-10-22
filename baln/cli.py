@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.42"
-NOTES="french patches part 3"
+VERSION="0.3.43"
+NOTES="minor italian fixes"
 
 #################### OPTIONS ################################
 
