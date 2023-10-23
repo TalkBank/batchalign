@@ -322,9 +322,9 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             actual_indicies.append(root) # TODO janky but if anybody refers to a skipped
                                          # word they are root now.
         # normal parsing
-        elif mor_word:
+        elif mor_word or "xbxxx" in word.text.strip():
             # specivl forms: recall the special form marker is xbxxx
-            if word.text.strip() == "xbxxx":
+            if "xbxxx" in word.text.strip():
                 form = special_forms.pop(0)
                 mor.append(f"x|{form.strip()}")
                 special_form_ids.append(word.id)
@@ -467,13 +467,7 @@ def tokenizer_processor(tokenized, lang, sent):
     res = []
     # align the input sentence and the tokenization results
     payloads = []
-    try: 
-        split_passage = word_tokenize(sent)
-    except LookupError:
-        # we are missing punkt
-        nltk.download('punkt')
-        # perform tokenization
-        split_passage = word_tokenize(sent)
+    split_passage = sent.split(" ")
     # create alignment backplates, where the split_passage
     # is reference and the tokenized is ptarget
     targets = []
@@ -639,6 +633,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace(")", "")
             line_cut = line_cut.replace("+^", "")
             line_cut = line_cut.replace("+//", "")
+            line_cut = line_cut.replace("+...", "")
+            line_cut = line_cut.replace("_", "")
 
             # xbxxx is a sepecial xxx-class token to mark
             # special form markers, used for processing later
@@ -661,8 +657,6 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+ ,", "+,")
             line_cut = line_cut.replace("  ", " ")
             line_cut = line_cut.replace("c'est", "c' est")
-
-            # breakpoint()
 
             try:
                 inputs.append(line_cut)
