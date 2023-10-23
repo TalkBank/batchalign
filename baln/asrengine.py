@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 import torch
-from transformers import WhisperProcessor
+from transformers import WhisperProcessor, WhisperTokenizer
 
 from nltk import sent_tokenize
 
@@ -80,16 +80,17 @@ class ASREngine(object):
     >>> engine(file.chunk(7000, 13000)) # transcribes 7000th ms to 13000th ms
     """
 
-    def __init__(self, model, language="english", target_sample_rate=16000):
+    def __init__(self, model, base="openai/whisper-large-v2", language="english", target_sample_rate=16000):
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
+            tokenizer=WhisperTokenizer.from_pretrained(base),
             chunk_length_s=30,
             stride_length_s=3,
             device=DEVICE,
             return_timestamps="word",
         )
-        processor = WhisperProcessor.from_pretrained(model)
+        processor = WhisperProcessor.from_pretrained(base)
 
         # force decoder IDs to create language
         self.__decoder_ids = processor.get_decoder_prompt_ids(language=language, task="transcribe")
@@ -158,8 +159,8 @@ class ASREngine(object):
         else:
             groups.append({
                 "type": "segment",
-                "start": groups[0]["start"],
-                "end": groups[-1]["end"],
+                "start": 0,
+                "end": len(data)/self.sample_rate,
                 "payload": 0
             })
 

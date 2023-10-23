@@ -419,10 +419,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         # we will now use UtteranceEngine to redo
         # utterance tokenization
         # chunk the passage into utterances
-        # if lang == "en":
-            # chunked_passage = utterance_engine(passage)
-        # else:
-        chunked_passage = [i.replace("...", ".") for i in sent_tokenize(passage)]
+        if lang == "en":
+            chunked_passage = utterance_engine(passage)
+        else:
+            chunked_passage = [i.replace("...", ".") for i in sent_tokenize(passage)]
         # remove the end delimiters (again!) because
         # all we case about here are the split utterances
         # we will add "." later
@@ -575,8 +575,10 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
 
     if kwargs["whisper"]:
         language = ""
+        model = None
         if lang == "en":
             language = "english"
+            model = "talkbank/CHATWhisper-en-large-v1"
         elif lang == "es":
             language = "spanish"
         elif lang == "it":
@@ -590,8 +592,11 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
         else:
             raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
 
+        if model == None:
+            model = "openai/whisper-large-v2"
+
         from .asrengine import ASREngine
-        engine = ASREngine("openai/whisper-large-v2", language)
+        engine = ASREngine(model, language=language)
 
         kwargs["whisper"] = engine
         kwargs["provider"] = ASRProvider.WHISPER
