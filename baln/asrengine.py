@@ -21,9 +21,12 @@ from nltk import sent_tokenize
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 # PYTORCH_ENABLE_MPS_FALLBACK=1
 # pretrained model path
-# PRETRAINED = "openai/whisper-small"
-# FILE = "./data/test.wav"
-# FILE = "../talkbank-alignment/broken2/input/53.wav"
+# # PRETRAINED = "openai/whisper-small"
+# PRETRAINED = "talkbank/CHATWhisper-en-large-v1"
+# # PRETRAINED = "openai/whisper-large-v2"
+# # FILE = "./data/test.wav"
+# FILE = "../talkbank-alignment/testing_playground_2/input/test.wav"
+# # FILE = "../talkbank-alignment/broken2/input/53.wav"
 
 @dataclass
 class ASRAudioFile:
@@ -93,7 +96,9 @@ class ASREngine(object):
         processor = WhisperProcessor.from_pretrained(base)
 
         # force decoder IDs to create language
-        self.__decoder_ids = processor.get_decoder_prompt_ids(language=language, task="transcribe")
+        self.__decoder_ids = processor.get_decoder_prompt_ids(language=language,
+                                                              task="transcribe")
+        self.__prompt_ids = processor.get_prompt_ids("um hello.")
 
         # save the target sample rate
         self.sample_rate = target_sample_rate
@@ -166,17 +171,23 @@ class ASREngine(object):
 
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
-                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,
-                                             "repetition_penalty": 1.01
+                          generate_kwargs = {
+                              "forced_decoder_ids": self.__decoder_ids,
+                              "repetition_penalty": 1.01,
+                              "prompt_ids": self.__prompt_ids
+                          })
                                              # "do_sample": True,
                                              # "temperature": 0.1
                                              # })
-                                             })
-        # breakpoint()
                                              # "temperature": 0,
   #"temperature": 0.75,
                                              # })
-        words = words["chunks"]
+        # to filter out the two word prompt
+        words = words["chunks"][2:]
+
+        # filter out the elements in the prompt, which has timestamp (0,0)
+        # words = list(filter(lambda x:x["timestamp"] != (0.0, 0.0), words))
+
 
         for word in words:
             groups.append({
@@ -218,38 +229,6 @@ class ASREngine(object):
             "speaker": current_speaker[0] if type(current_speaker) == tuple else current_speaker
         })
 
-        return {
-            "monologues": turns
-        }
-
-
-# mid_step = 0.1
-# dia_cls = raw_dia[0]
-
-# # create the segments
-# groups = [] 
-# cur_start = 0
-# cur_spk = dia_cls[0]
-
-# for indx, i in zip(secs, dia_cls):
-#     if i != cur_spk:
-#         # results is by 0.1 second steps
-#         groups.append({
-#             "type": "segment",
-#             "start": cur_start/10,
-#             "end": indx/10,
-#             "payload": cur_spk
-#         })
-#         cur_start = indx
-#         cur_spk = i
-
-# groups
-
-# raw_dia[:1000]
-
-# # e = ASREngine(PRETRAINED, "english")
-# # audio, segments = e.load(FILE, 2)
-# # result = e(audio.all(), segments)
-# # words = raw["chunks"]
+        return ({"monologues": turns})
 
 

@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.45"
-NOTES="releasing new whisper"
+VERSION="0.3.46"
+NOTES="catalan bugs"
 
 #################### OPTIONS ################################
 

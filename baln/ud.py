@@ -96,6 +96,8 @@ def handler(word):
     target = target.replace(',', '')
     target = target.replace('\'', '')
     target = target.replace('~', '')
+    target = target.replace('/100', '')
+    target = target.replace('/r', '')
 
     # remove attachments
     if "|" in target:
