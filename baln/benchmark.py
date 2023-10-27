@@ -214,7 +214,7 @@ def calculate_wer(asr, transcript):
     return wer, diff
 
 def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.path.join("~","mfa_data","model"),
-                        lang="en", beam=10, align=True, clean=True, noise=None):
+                        lang="en", beam=10, align=True, clean=True, noise=None, **kwargs):
     """Calculate WER benchmarks from a directory.
 
     Attributes:
@@ -313,6 +313,35 @@ def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.pa
     # seed an utterance engine to use
     Engine = UtteranceEngine(os.path.expanduser(model_path))
 
+    if kwargs["whisper"]:
+        language = ""
+        model = None
+        if lang == "en":
+            language = "english"
+            model = "talkbank/CHATWhisper-en-large-v1"
+        elif lang == "es":
+            language = "spanish"
+        elif lang == "it":
+            language = "italian"
+        elif lang == "de":
+            language = "german"
+        elif lang == "pt":
+            language = "portuguese"
+        elif lang == "fr":
+            language = "french"
+        else:
+            raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
+
+        if model == None:
+            model = "openai/whisper-large-v2"
+
+        from .asrengine import ASREngine
+        engine = ASREngine(model, language=language)
+
+        kwargs["whisper"] = engine
+        kwargs["provider"] = ASRProvider.WHISPER
+        kwargs["speakers"] = 1
+
     # for each output results, we will go through and also ASR it
     asr_words = []
     signal_power = []
@@ -322,7 +351,7 @@ def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.pa
             signal_power.append(log_power(repath_file(path, in_dir).replace('.cha', '.wav')))
         # ASR!
         asr, header, main, closing = retokenize(repath_file(path, in_dir).replace('.cha', '.wav'), path, Engine,
-                                                False, lang=lang, noprompt=True)
+                                                False, lang=lang, noprompt=True, **kwargs)
         asr_words.append([j for i in main for j in i[1]])
 
     transcript_words = []

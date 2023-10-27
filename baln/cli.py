@@ -3,8 +3,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.46"
-NOTES="catalan bugs"
+VERSION="0.3.47"
+NOTES="whisper benchmark"
 
 #################### OPTIONS ################################
 
@@ -151,6 +151,8 @@ def morphotag(ctx, **kwargs):
               help="path to utterance tokenization model")
 @click.option("--noise", type=click.Path(exists=True, file_okay=True, dir_okay=False),
               help="optional noise profile directory")
+@click.option("--whisper",
+              is_flag=True, default=False, help="Use OpenAI Whisper (ASR) and X-vector (diarization) instead of Rev.AI.")
 def benchmark(ctx, **kwargs):
     """benchmark ASR performance on an existing CHAT file"""
 
@@ -159,7 +161,8 @@ def benchmark(ctx, **kwargs):
 
     benchmark_directory(kwargs["in_dir"], kwargs["out_dir"],
                         model_path=kwargs["model"], lang=kwargs["lang"],
-                        beam=kwargs["beam"], clean=kwargs["clean"], noise=kwargs["noise"])
+                        beam=kwargs["beam"], clean=kwargs["clean"], noise=kwargs["noise"],
+                        whisper=kwargs["whisper"])
 
 #################### FEATURIZE ################################
 
