@@ -1,10 +1,11 @@
+import multiprocessing
 import click
 import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.47"
-NOTES="whisper benchmark"
+VERSION="0.3.48"
+NOTES="multi-lingual UD"
 
 #################### OPTIONS ################################
 
@@ -129,7 +130,16 @@ def bulletize(ctx, **kwargs):
 #################### MORPHOTAG ################################
 
 @batchalign.command()
-@common_options
+@click.argument("in_dir", 
+                type=click.Path(exists=True, file_okay=False))
+@click.argument("out_dir", 
+                type=click.Path(exists=True, file_okay=False))
+@click.option("--clean/--skipclean", help="sweep stray files from input/output directory to data",
+              default=True)
+@click.option("-l", "--lang", help="sample language(s) in two-letter ISO 639-1 code",
+              default=["en"],
+              multiple=True)
+
 @click.pass_context
 def morphotag(ctx, **kwargs):
     """perform morphosyntactic analysis on a CHAT file"""

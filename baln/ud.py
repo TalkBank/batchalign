@@ -19,6 +19,8 @@ from stanza.pipeline.processor import ProcessorVariant, register_processor_varia
 # the loading bar
 from tqdm import tqdm
 
+from bdb import BdbQuit
+
 from nltk import word_tokenize
 from collections import defaultdict
 
@@ -512,20 +514,20 @@ def tokenizer_processor(tokenized, lang, sent):
     while indx < len(tokenized):
         i = tokenized[indx]
         # italian taggs l' as MWT, we patch that
-        if lang == "it" and type(i) == tuple and i[0]=="l'" and i[1] == True:
+        if ("it" in lang) and type(i) == tuple and i[0]=="l'" and i[1] == True:
             res.append("l'")
         # italian breaks up lei into le, i, we patch that
-        elif lang == "it" and matches(i, "i") and len(res) != 0 and matches(res[-1], "le"):
+        elif ("it" in lang) and matches(i, "i") and len(res) != 0 and matches(res[-1], "le"):
             res.pop(-1)
             res.append("lei")
-        elif lang == "pt" and matches(i, "d'água"):
+        elif ("pt" in lang) and matches(i, "d'água"):
             res.append(("d'água", True))
-        elif lang == "fr" and matches(i, "aujourd'hui"):
+        elif ("fr" in lang) and matches(i, "aujourd'hui"):
             res.append("aujourd'hui")
-        elif lang == "fr" and matches(i, "aujourd'"):
+        elif ("fr" in lang) and matches(i, "aujourd'"):
             res.append("aujourd'hui")
             indx += 1
-        elif lang == "fr" and matches(i, "au"):
+        elif ("fr" in lang) and matches(i, "au"):
             res.append((conform(i), True))
         else:
             res.append(i)
@@ -559,13 +561,20 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
     print("Starting Stanza...")
     inputs = []
 
-    nlp = stanza.Pipeline(lang,
-                          processors={"tokenize": "default",
-                                      "pos": "default",
-                                      "lemma": "default",
-                                      "depparse": "default"},
-                          tokenize_no_ssplit=True,
-                          tokenize_postprocessor=lambda x:[tokenizer_processor(i, lang, inputs[-1]) for i in x])
+    config = {"processors": {"tokenize": "default",
+                             "pos": "default",
+                             "lemma": "default",
+                             "depparse": "default"},
+              "tokenize_no_ssplit": True,
+              "tokenize_postprocessor": lambda x:[tokenizer_processor(i, lang, inputs[-1])
+                                                            for i in x]}
+    configs = {}
+    for l in lang:
+        configs[l] = config.copy()
+
+    nlp = stanza.MultilingualPipeline(
+        lang_configs = configs,
+        lang_id_config = {"langid_lang_subset": lang})
 
     # create label and elan files
     chat2transcript(in_dir, True)
@@ -673,6 +682,10 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                 )
             except Exception as e:
                 print(f"\n\nUtterance '{line}' failed parsing because '{e}', skipping...\n")
+
+                if isinstance(e, BdbQuit):
+                    raise KeyboardInterrupt()
+
                 sentences.append(
                     ("", "")
                 )
