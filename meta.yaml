@@ -1,5 +1,5 @@
 {% set name = "batchalign" %}
-{% set version = "0.3.48" %}
+{% set version = "0.3.49" %}
 
 package:
   name: {{ name }}

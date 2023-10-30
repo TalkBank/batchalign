@@ -114,11 +114,16 @@ def handler(word):
 def handler__PRON(word):
     # get the features
     feats = parse_feats(word)
+    person = str(feats.get("Person", 1))
+
+    if person == "0":
+        person = '4'
+
     # parse
     return (handler(word)+"-"+
             feats.get("PronType", "Int")+"-"+
             feats.get("Case", "Acc").replace(",", "")+"-"+
-            feats.get("Number", "S")[0]+str(feats.get("Person", 1)))
+            feats.get("Number", "S")[0]+person)
 
 def handler__DET(word):
     # get the features
@@ -138,6 +143,9 @@ def handler__ADJ(word):
     case = feats.get("Case", "").replace(",", "")
     number = feats.get("Number", "S")[0]
     person = str(feats.get("Person", 1))
+    if person == "0":
+        person = '4'
+        
     return handler(word)+stringify_feats(deg, case, number, person)
 
 def handler__NOUN(word):
@@ -175,7 +183,11 @@ def handler__VERB(word):
     # append tense
     aspect = feats.get("Aspect", "")
     mood = feats.get("Mood", "")
-    person = feats.get("Person", "")
+    person = str(feats.get("Person", ""))
+
+    if person == "0":
+        person = '4'
+        
     tense = feats.get("Tense", "")
     polarity = feats.get("Polarity", "")
     polite = feats.get("Polite", "")
@@ -326,7 +338,13 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
             actual_indicies.append(root) # TODO janky but if anybody refers to a skipped
                                          # word they are root now.
         # normal parsing
-        elif mor_word or "xbxxx" in word.text.strip():
+        elif mor_word or word.text.strip() in ["xbxxx", '‡', '„']:
+            if word.text.strip() == '‡':
+                mor_word = "cm|begin"
+            elif word.text.strip() == '„':
+                mor_word = "cm|end"
+            
+
             # specivl forms: recall the special form marker is xbxxx
             if "xbxxx" in word.text.strip():
                 form = special_forms.pop(0)
@@ -334,6 +352,7 @@ def parse_sentence(sentence, delimiter=".", special_forms=[], lang="$nospecial$"
                 special_form_ids.append(word.id)
             else:
                 mor.append(mor_word)
+
             # +1 because we are 1-indexed
             # and .head is also 1-indexed already
             deprel = word.deprel.upper()

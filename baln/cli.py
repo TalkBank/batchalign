@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.48"
-NOTES="multi-lingual UD"
+VERSION="0.3.49"
+NOTES="comma and spaces"
 
 #################### OPTIONS ################################
 
