@@ -8,6 +8,7 @@ from pathlib import Path
 # UD tools
 import stanza
 
+from stanza.utils.conll import CoNLL
 from stanza import Document
 from stanza.models.common.doc import Token
 from stanza.pipeline.core import CONSTITUENCY
@@ -23,6 +24,8 @@ from bdb import BdbQuit
 
 from nltk import word_tokenize
 from collections import defaultdict
+
+from stanza.utils.conll import CoNLL
 
 # out utiltiies
 from .utils import *
@@ -607,7 +610,9 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
         # get file names
         label_file = f.replace(".cha", ".lab")
         elan_file = f.replace(".cha", ".eaf")
+        conell_file = f.replace(".cha", ".conllu")
         elan_target = repath_file(elan_file, out_dir)
+        conell_target = repath_file(conell_file, out_dir)
 
         # open label file
         with open(label_file, 'r') as df:
@@ -624,6 +629,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
         # perform analysis
         sentences = []
+        data = []
         for line in tqdm(labels):
             line = re.sub(r'\d+_\d+', '', line).strip()
             line = re.sub(r'•\d+_\d+•', '', line).strip()
@@ -690,7 +696,9 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
             try:
                 inputs.append(line_cut)
-                sents = nlp(line_cut.strip()).sentences
+                doc = nlp(line_cut.strip())
+                sents = doc.sentences
+                data += doc.to_dict()
 
                 if len(sents) == 0:
                     sentences.append(("", ""))
@@ -715,6 +723,12 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
         eafinject(elan_file, elan_target,
                    alignments=None,
                    morphodata=sentences)
+
+        # convert the processed data back into a single document
+        doc = Document(data)
+        # write to conell
+        CoNLL.write_doc2conll(doc, conell_target)
+
 
     # convert the prepared eafs back into chat
     elan2chat(out_dir)
