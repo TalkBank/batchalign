@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.50"
-NOTES="write CONELL files"
+VERSION="0.3.51"
+NOTES="catalan whisper"
 
 #################### OPTIONS ################################
 
