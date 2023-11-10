@@ -483,6 +483,9 @@ def clean_sentence(sent):
 def matches(i, word):
     return (type(i) == tuple and i[0] == word) or (i == word)
 
+def matches_in(i, fragment):
+    return (type(i) == tuple and fragment in i[0]) or (fragment in i)
+
 def front_matches(i, word):
     return (type(i) == tuple and i[:len(word)] == word) or (i[:len(word)] == word)
 
@@ -551,6 +554,8 @@ def tokenizer_processor(tokenized, lang, sent):
             indx += 1
         elif ("fr" in lang) and matches(i, "au"):
             res.append((conform(i), True))
+        elif ("en" in lang) and matches_in(i, "'"):
+            res.append((conform(i), True))
         else:
             res.append(i)
         indx += 1
@@ -585,6 +590,7 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     config = {"processors": {"tokenize": "default",
                              "pos": "default",
+                             "mwt": "gum" if ("en" in lang) else "default",
                              "lemma": "default",
                              "depparse": "default"},
               "tokenize_no_ssplit": True,

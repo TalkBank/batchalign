@@ -89,15 +89,14 @@ class ASREngine(object):
             model=model,
             tokenizer=WhisperTokenizer.from_pretrained(base),
             chunk_length_s=30,
-            stride_length_s=3,
+            stride_length_s=5,
             device=DEVICE,
             return_timestamps="word",
         )
         processor = WhisperProcessor.from_pretrained(base)
 
         # force decoder IDs to create language
-        self.__decoder_ids = processor.get_decoder_prompt_ids(language=language,
-                                                              task="transcribe")
+        self.lang = language
         self.__prompt_ids = processor.get_prompt_ids("um hello.")
 
         # save the target sample rate
@@ -170,11 +169,12 @@ class ASREngine(object):
             })
 
         words = self.pipe(data.cpu().numpy(),
-                          batch_size=8, 
+                          batch_size=10, 
                           generate_kwargs = {
-                              "forced_decoder_ids": self.__decoder_ids,
-                              "repetition_penalty": 1.01,
-                              "prompt_ids": self.__prompt_ids
+                              "repetition_penalty": 1.03,
+                              "prompt_ids": self.__prompt_ids,
+                              "task": "transcribe",
+                              "language": self.lang
                           })
                                              # "do_sample": True,
                                              # "temperature": 0.1
