@@ -227,10 +227,8 @@ def bulletize_path(in_dir, out_dir, data_dir="data", lang="en",
         cleanup(in_dir, out_dir, data_dir)
 
     print("Rebulletize Done!")
-    print("WARNING: the @Media tier is not set as the file wasn't")
-    print("linked before. You should go and set the @Media tier now")
-    print("before running any other CLAN/Batchalign operations.")
-                       
+    print("NOTE: the @Media tier is not nessesarily set as the file wasn't")
+    print("linked before. You should go and check @Media tier now.")
 
 # audio = "../../talkbank-alignment/bulletize/input/per60.wav"
 # chat = "../../talkbank-alignment/bulletize/input/per60.cha"

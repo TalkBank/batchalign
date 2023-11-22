@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 import torch
-from transformers import WhisperProcessor, WhisperTokenizer
+from transformers import WhisperProcessor, WhisperTokenizer, GenerationConfig
 
 from nltk import sent_tokenize
 
@@ -94,6 +94,8 @@ class ASREngine(object):
             return_timestamps="word",
         )
         processor = WhisperProcessor.from_pretrained(base)
+        self.__config = GenerationConfig.from_pretrained(base)
+        self.__config.no_repeat_ngram_size = 3
 
         # force decoder IDs to create language
         self.lang = language
@@ -172,6 +174,7 @@ class ASREngine(object):
                           batch_size=10, 
                           generate_kwargs = {
                               "repetition_penalty": 1.03,
+                              "generation_config": self.__config,
                               "prompt_ids": self.__prompt_ids,
                               "task": "transcribe",
                               "language": self.lang

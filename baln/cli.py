@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.52"
-NOTES="MWTs for English"
+VERSION="0.3.53"
+NOTES="dutch bulletize and align"
 
 #################### OPTIONS ################################
 

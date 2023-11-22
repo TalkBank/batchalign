@@ -84,12 +84,14 @@ def clean_codes(string):
 class G2P_MODEL(enum.Enum):
     en = "english_us_arpa"
     es = "spanish_spain_mfa"
+    nl = "NO_GEN!dutch_cv"
     zh = "NO_GEN!mandarin_china_mfa" # NO_GEN! prefix used for *dictionaries* not generated dictionaries
 
 class ACOUSTIC_MODEL(enum.Enum):
     en = "english_us_arpa"
     es = "spanish_mfa"
     zh = "mandarin_mfa"
+    nl = "dutch_cv"
 
 # default MFA settings
 def make_config_base():
