@@ -519,12 +519,16 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
         # replace sentence
         sentence = " ".join(sentence_bulleted).strip()
 
+        # while len(sentence.strip()) > 0 and sentence.strip()[0] == "+":
+            # setence = sentence[1:]
+
         ### Final Santy Checks and Shape Conformations ###
         # if you can insert proper logic, do so. If not, use
         # this area as the last-ditch preprocessing step to
         # make spontaneous final transcript adjustments happen
         
         # remove extra delimiters, as a final sanity check
+        sentence = re.sub(r"(\+ ?)+(.*)", r"\2", sentence)
         sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("_ ","_")
         sentence = sentence.replace("- ","-")
