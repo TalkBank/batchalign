@@ -111,6 +111,10 @@ def handler(word):
     # clean out alternate spellings
     target = target.replace("_", "")
 
+    # door zogen fix
+    if target == "door zogen":
+        target = word.text
+
     return f"{'' if not unknown else '0'}{word.upos.lower()}|{target}"
 
 # POS specific handler
@@ -217,6 +221,8 @@ def handler__PUNCT(word):
     elif word.text in ['„', '‡']:
         return handler__actual_PUNCT(word)
     # otherwise, if its a word, return the word
+    elif word.text == "da":
+        return "noun|da"
     elif re.match(r"^['\w-]+$", word.text): # we match text here because .text is the ultumate content
                                         # instead of the lemma, which maybe entirely weird
         return f"x|{word.text}"
@@ -556,6 +562,8 @@ def tokenizer_processor(tokenized, lang, sent):
             res.append((conform(i), True))
         elif ("en" in lang) and matches_in(i, "'"):
             res.append((conform(i), True))
+        elif ("nl" in lang) and conform(i).endswith("'s"):
+            res.append((conform(i), False))
         else:
             res.append(i)
         indx += 1
@@ -716,10 +724,12 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
                 if len(sents) == 0:
                     sentences.append(("", ""))
 
+
                 sentences.append(
                     # we want to treat the entire thing as one large sentence
                     parse_sentence(sents[0], ending, special_forms_cleaned, lang)
                 )
+                # breakpoint()
             except Exception as e:
                 print(f"\n\nUtterance '{line}' failed parsing because '{e}', skipping...\n")
 

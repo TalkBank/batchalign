@@ -528,7 +528,7 @@ def transcript_word_alignment(elan, alignments, alignment_form="long", aggressiv
         # make spontaneous final transcript adjustments happen
         
         # remove extra delimiters, as a final sanity check
-        sentence = re.sub(r"(\+ ?)+(.*)", r"\2", sentence)
+        sentence = re.sub(r"^(\+ ?)+(.*)", r"\2", sentence)
         sentence = sentence.replace("+ ","+")
         sentence = sentence.replace("_ ","_")
         sentence = sentence.replace("- ","-")
