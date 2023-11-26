@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.54"
-NOTES="fixes for plus signs"
+VERSION="0.3.55"
+NOTES="fixes for Chinese"
 
 #################### OPTIONS ################################
 

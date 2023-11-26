@@ -590,13 +590,17 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
 
     config = {"processors": {"tokenize": "default",
                              "pos": "default",
-                             "mwt": "gum" if ("en" in lang) else "default",
                              "lemma": "default",
                              "depparse": "default"},
-              "tokenize_no_ssplit": True,
-              "tokenize_postprocessor": lambda x:[tokenizer_processor(i, lang, inputs[-1])
-                                                            for i in x]}
+              "tokenize_no_ssplit": True}
     configs = {}
+
+    if "en" in lang:
+        config["processors"]["mwt"] = "gum"
+    elif "zh-hans" not in lang:
+        config["processors"]["mwt"] = "default"
+        config["tokenize_postprocessor"] = lambda x:[tokenizer_processor(i, lang, inputs[-1]) for i in x]
+
     for l in lang:
         configs[l] = config.copy()
 
@@ -699,6 +703,9 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
             line_cut = line_cut.replace("+ ,", "+,")
             line_cut = line_cut.replace("  ", " ")
             line_cut = line_cut.replace("c'est", "c' est")
+
+            if "zh-hans" in lang:
+                line_cut = line_cut.replace(" ", "")
 
             try:
                 inputs.append(line_cut)
