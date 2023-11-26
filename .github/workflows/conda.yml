@@ -64,7 +64,7 @@ jobs:
           name: Windows batchalign
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
       - name: Install anaconda client
-        run: mamba install anaconda-client -c conda-forge
+        run: mamba install anaconda-client defusedxml=0.7.0 -c conda-forge
       - name: Authenticate (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }} 
         env:
