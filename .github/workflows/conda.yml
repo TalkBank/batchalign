@@ -63,3 +63,29 @@ jobs:
         with:
           name: Windows batchalign
           path: C:\Miniconda3\conda-bld\win-64\*.tar.bz2
+      - name: Install anaconda client
+        run: mamba install anaconda-client -c anaconda
+      - name: Authenticate (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        env:
+            ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
+            ANACONDA_PASSPHRASE: ${{ secrets.ANACONDA_PASSPHRASE }}
+        run: conda run anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
+      - name: Authenticate (macOS)
+        if: ${{ matrix.os == 'macos-latest' }} 
+        env:
+            ANACONDA_USERNAME: ${{ secrets.ANACONDA_USERNAME }}
+            ANACONDA_PASSPHRASE: ${{ secrets.ANACONDA_PASSPHRASE }}
+        run: conda run anaconda login --username "$ANACONDA_USERNAME" --password "$ANACONDA_PASSPHRASE"
+      - name: Authenticate (Windows)
+        if: ${{ matrix.os == 'windows-latest' }} 
+        run: conda run anaconda login --username "${{ secrets.ANACONDA_USERNAME }}" --password "${{ secrets.ANACONDA_PASSPHRASE }}"
+      - name: Publish build (macOS)
+        if: ${{ matrix.os == 'macos-latest' }} 
+        run: conda run anaconda upload -u talkbank /Users/runner/miniconda3/conda-bld/osx-64/*.tar.bz2
+      - name: Publish build (Windows)
+        if: ${{ matrix.os == 'windows-latest' }} 
+        run: conda run anaconda upload -u talkbank C:\Miniconda3\conda-bld\win-64\*.tar.bz2
+      - name: Publish build (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        run: conda run anaconda upload -u talkbank /usr/share/miniconda3/conda-bld/linux-64/*.tar.bz2
