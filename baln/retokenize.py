@@ -419,10 +419,10 @@ def retokenize(infile, outfile, utterance_engine, interactive=False, provider=AS
         # we will now use UtteranceEngine to redo
         # utterance tokenization
         # chunk the passage into utterances
-        # if lang == "en":
-            # chunked_passage = utterance_engine(passage)
-        # else:
-        chunked_passage = [i.replace("...", ".") for i in sent_tokenize(passage)]
+        if lang == "en":
+            chunked_passage = utterance_engine(passage)
+        else:
+            chunked_passage = [i.replace("...", ".") for i in sent_tokenize(passage)]
         # remove the end delimiters (again!) because
         # all we case about here are the split utterances
         # we will add "." later

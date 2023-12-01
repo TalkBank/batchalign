@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.56"
-NOTES="prevent extra plus signs and dutch ud"
+VERSION="0.3.57"
+NOTES="enabling old utterance model"
 
 #################### OPTIONS ################################
 

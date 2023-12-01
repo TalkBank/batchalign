@@ -95,7 +95,7 @@ class ASREngine(object):
         )
         processor = WhisperProcessor.from_pretrained(base)
         self.__config = GenerationConfig.from_pretrained(base)
-        self.__config.no_repeat_ngram_size = 3
+        self.__config.no_repeat_ngram_size = 5
 
         # force decoder IDs to create language
         self.lang = language
@@ -173,7 +173,7 @@ class ASREngine(object):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=10, 
                           generate_kwargs = {
-                              "repetition_penalty": 1.03,
+                              "repetition_penalty": 1.01,
                               "generation_config": self.__config,
                               "prompt_ids": self.__prompt_ids,
                               "task": "transcribe",
