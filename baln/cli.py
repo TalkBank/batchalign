@@ -4,7 +4,7 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.57"
+VERSION="0.3.58"
 NOTES="enabling old utterance model"
 
 #################### OPTIONS ################################
@@ -57,6 +57,10 @@ def batchalign(ctx):
               help="actually invoke MFA or just run Batchalign operations", default=True)
 @click.option("--prealigned/--scratch",
               help="process CHAT file that is already utterance aligned", default=True)
+@click.option("--model", type=click.Path(exists=True, file_okay=False, dir_okay=True),
+              help="the dictionary for forced alignment", default=None)
+@click.option("--dictionary", type=click.Path(exists=True, file_okay=True, dir_okay=False),
+              help="the acoustic model for forced alignment", default=None)
 def align(ctx, **kwargs):
     """align a CHAT transcript against a media file"""
 
