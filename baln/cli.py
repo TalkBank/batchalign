@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.58"
-NOTES="enabling old utterance model"
+VERSION="0.3.59"
+NOTES="fixing various UD casings"
 
 #################### OPTIONS ################################
 

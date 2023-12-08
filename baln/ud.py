@@ -127,10 +127,10 @@ def handler__PRON(word):
         person = '4'
 
     # parse
-    return (handler(word)+"-"+
-            feats.get("PronType", "Int")+"-"+
-            feats.get("Case", "Acc").replace(",", "")+"-"+
-            feats.get("Number", "S")[0]+person)
+    return (handler(word)+
+            stringify_feats(feats.get("PronType", "Int"),
+                            feats.get("Case","").replace(",", ""),
+                            feats.get("Number", "")[:1]+person))
 
 def handler__DET(word):
     # get the features
@@ -138,8 +138,15 @@ def handler__DET(word):
         feats = parse_feats(word)
     except AttributeError:
         return handler(word)
+
+    # get gender and numer
+    gender_str = "&"+feats.get("Gender", "").replace(",", "")
+
+    # clear defaults
+    if gender_str == "&Com,Neut" or gender_str == "&Com" or gender_str=="&": gender_str=""
+
     # parse
-    return (handler(word)+"-"+
+    return (handler(word)+gender_str+"-"+
             feats.get("Definite", "Def") + stringify_feats(feats.get("PronType", "")))
 
 def handler__ADJ(word):
