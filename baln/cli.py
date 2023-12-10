@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.59"
-NOTES="fixing various UD casings"
+VERSION="0.3.60"
+NOTES="don't output conll unless directed"
 
 #################### OPTIONS ################################
 
@@ -143,6 +143,8 @@ def bulletize(ctx, **kwargs):
 @click.option("-l", "--lang", help="sample language(s) in two-letter ISO 639-1 code",
               default=["en"],
               multiple=True)
+@click.option("--conll/--skipconll", help="output conll files?",
+              default=False)
 
 @click.pass_context
 def morphotag(ctx, **kwargs):

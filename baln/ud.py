@@ -577,7 +577,7 @@ def tokenizer_processor(tokenized, lang, sent):
 
     return res
 
-def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggressive=None):
+def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggressive=None, conll=False):
     """Batch morphosyntactic analysis tools using Stanza
 
     Arguments:
@@ -757,7 +757,8 @@ def morphanalyze(in_dir, out_dir, data_dir="data", lang="en", clean=True, aggres
         # convert the processed data back into a single document
         doc = Document(data)
         # write to conell
-        CoNLL.write_doc2conll(doc, conell_target)
+        if conll:
+            CoNLL.write_doc2conll(doc, conell_target)
 
 
     # convert the prepared eafs back into chat
