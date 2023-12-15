@@ -591,6 +591,8 @@ def retokenize_directory(in_directory, model_path=os.path.join("~","mfa_data","m
             language = "french"
         elif lang == "ca":
             language = "catalan"
+        elif lang == "nl":
+            language = "dutch"
         else:
             raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
 

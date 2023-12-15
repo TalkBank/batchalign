@@ -329,6 +329,8 @@ def benchmark_directory(in_dir, out_dir, data_directory="data", model_path=os.pa
             language = "portuguese"
         elif lang == "fr":
             language = "french"
+        elif lang == "nl":
+            language = "dutch"
         else:
             raise ValueError(f"Batchalign does not recognize the language code you provided; however, there's a good chance that it just hasn't been added to be recogonized and is actually supported by Whisper. Please reach out. Language code supplied: {lang}")
 
