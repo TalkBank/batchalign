@@ -4,8 +4,8 @@ import functools
 
 from multiprocessing import Process, freeze_support
 
-VERSION="0.3.61"
-NOTES="dutch whisper"
+VERSION="0.3.62"
+NOTES="dutch whisper, bug fix"
 
 #################### OPTIONS ################################
 

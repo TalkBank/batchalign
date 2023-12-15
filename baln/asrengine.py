@@ -89,17 +89,17 @@ class ASREngine(object):
             model=model,
             tokenizer=WhisperTokenizer.from_pretrained(base),
             chunk_length_s=30,
-            stride_length_s=5,
+            stride_length_s=3,
             device=DEVICE,
             return_timestamps="word",
         )
         processor = WhisperProcessor.from_pretrained(base)
         self.__config = GenerationConfig.from_pretrained(base)
-        self.__config.no_repeat_ngram_size = 5
+        self.__config.no_repeat_ngram_size = 2
 
         # force decoder IDs to create language
         self.lang = language
-        self.__prompt_ids = processor.get_prompt_ids("um hello.")
+        self.__prompt_ids = processor.get_prompt_ids("um.")
 
         # save the target sample rate
         self.sample_rate = target_sample_rate
@@ -173,7 +173,7 @@ class ASREngine(object):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=10, 
                           generate_kwargs = {
-                              "repetition_penalty": 1.01,
+                              "repetition_penalty": 1.02,
                               "generation_config": self.__config,
                               "prompt_ids": self.__prompt_ids,
                               "task": "transcribe",
@@ -186,7 +186,7 @@ class ASREngine(object):
   #"temperature": 0.75,
                                              # })
         # to filter out the two word prompt
-        words = words["chunks"][2:]
+        words = words["chunks"][1:]
 
         # filter out the elements in the prompt, which has timestamp (0,0)
         # words = list(filter(lambda x:x["timestamp"] != (0.0, 0.0), words))
