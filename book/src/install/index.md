@@ -1,8 +1,8 @@
 # Install Batchalign
 
 **Status:** Current
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-07
 
-See the [Batchalign installation guide](../batchalign/user-guide/installation.md)
-for the bootstrap installers, package extras, supported platforms, and source
-development setup.
+Install Batchalign with the command for your operating system in the
+[repository README](https://github.com/TalkBank/batchalign#install-batchalign),
+then continue with the [Batchalign Quick Start](../batchalign/user-guide/quick-start.md).

@@ -388,7 +388,7 @@ POS categories use lowercased UPOS tags:
 | UPOS | CHAT POS | Suffix features |
 |------|----------|-----------------|
 | NOUN | `noun\|` | Gender, Number, Case, Ger |
-| VERB/AUX | `verb\|`/`aux\|` | VerbForm, Tense, Person, -irr |
+| VERB/AUX | `verb\|`/`aux\|` | VerbForm, Tense, Person, `-Irr` |
 | PRON | `pron\|` | PronType, Case, Reflex, Number, Person |
 | DET | `det\|` | Gender, Definite, PronType |
 | ADJ | `adj\|` | Degree, Case |

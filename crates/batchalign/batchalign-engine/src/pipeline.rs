@@ -622,7 +622,7 @@ mod dispatch_window_tests {
         let release = Arc::new(Semaphore::new(0));
         let future_started = started.clone();
         let future_release = release.clone();
-        let futures = (0..100).map(move |index| {
+        let futures = (0..160).map(move |index| {
             let started = future_started.clone();
             let release = future_release.clone();
             async move {
@@ -637,7 +637,7 @@ mod dispatch_window_tests {
         });
 
         let collector = tokio::spawn(collect_with_dispatch_window(futures, DEFAULT_WORKERS));
-        for _ in 0..100 {
+        for _ in 0..160 {
             if started.load(Ordering::SeqCst) == DEFAULT_WORKERS {
                 break;
             }
@@ -645,10 +645,10 @@ mod dispatch_window_tests {
         }
 
         assert_eq!(started.load(Ordering::SeqCst), DEFAULT_WORKERS);
-        release.add_permits(100);
+        release.add_permits(160);
         assert_eq!(
             collector.await.expect("collector task succeeds"),
-            (0..100).collect::<Vec<_>>()
+            (0..160).collect::<Vec<_>>()
         );
     }
 

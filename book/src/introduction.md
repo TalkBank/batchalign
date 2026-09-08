@@ -1,7 +1,7 @@
 # Batchalign
 
 **Status:** Current
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-07
 
 [Batchalign](https://github.com/TalkBank/batchalign) is TalkBank's audio and
 language-processing toolkit for CHAT transcripts. It supports transcription,
@@ -16,8 +16,7 @@ provided by the version-pinned
 
 ## Start here
 
-- New users: [Installation](batchalign/user-guide/installation.md) and
-  [Quick Start](batchalign/user-guide/quick-start.md)
+- New users: [Batchalign Quick Start](batchalign/user-guide/quick-start.md)
 - Existing Batchalign users: [Migration Guide](batchalign/migration/index.md)
 - Contributors: [Building & Development](batchalign/developer/building.md) and
   [Testing](batchalign/developer/testing.md)

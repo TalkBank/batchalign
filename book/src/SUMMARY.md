@@ -1,7 +1,7 @@
 # Summary
 
 **Status:** Current
-**Last updated:** 2026-06-01 01:05 PDT
+**Last updated:** 2026-09-07
 
 [Introduction](introduction.md)
 [Install](install/index.md)
@@ -22,9 +22,8 @@
 - [BA2 CLI Reference (Baseline)](batchalign/migration/ba2-cli-reference.md)
 - [Debugging and Tracing](batchalign/migration/debugging-and-tracing.md)
 
-# Batchalign3 — User Guide
+# Batchalign — User Guide
 
-- [Installation](batchalign/user-guide/installation.md)
 - [Model Downloads and Caching](batchalign/user-guide/model-downloads.md)
 - [Batchalign Desktop (Experimental)](batchalign/user-guide/desktop-app.md)
 - [Web Dashboard](batchalign/user-guide/dashboard.md)
@@ -53,7 +52,7 @@
 - [Doctor: Diagnostics and Config Validation](batchalign/user-guide/doctor.md)
 - [Troubleshooting](batchalign/user-guide/troubleshooting.md)
 
-# Batchalign3 — Architecture
+# Batchalign — Architecture
 
 - [Python–Rust Boundary](architecture/python-rust-boundary/python-rust-boundary.md)
 - [Dispatch and Execution](architecture/runtime/dispatch.md)

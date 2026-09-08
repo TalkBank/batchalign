@@ -175,6 +175,25 @@ def test_english_present_agreement_tracks_realized_surface() -> None:
     )
 
 
+def test_english_irregular_past_feature_uses_canonical_casing() -> None:
+    sent = _sentence(
+        [
+            (
+                "went",
+                "go",
+                "VERB",
+                "Mood=Ind|Number=Sing|Person=3|Tense=Past|VerbForm=Fin",
+                0,
+                "root",
+            ),
+        ]
+    )
+
+    assert _mor_str(render.parse_sentence(sent, ".", [], "en"), ".") == (
+        "verb|go-Fin-Ind-Past-S3-Irr ."
+    )
+
+
 def test_code_switched_root_keeps_root_relation():
     sent = _sentence(
         [
@@ -778,6 +797,36 @@ def test_invalid_stanza_fields_preserve_surface_and_record_repairs():
     repaired_fields = {anomaly.field for anomaly in analysis.anomalies}
     assert repaired_fields == {"lemma", "upos", "head", "deprel"}
     assert all(anomaly.text == "hello" for anomaly in analysis.anomalies)
+
+
+def test_truncated_iobj_relation_is_repaired_before_serialization():
+    sent = _sentence(
+        [
+            ("dare", "dare", "VERB", "VerbForm=Fin", 0, "root"),
+            ("mi", "mi", "PRON", "Person=1|PronType=Prs", 1, "iob"),
+        ]
+    )
+
+    analysis = render.parse_sentence(sent, ".", [], "it")
+
+    assert _gra_str(analysis) == "1|0|ROOT 2|1|IOBJ 3|1|PUNCT"
+    assert [anomaly.field for anomaly in analysis.anomalies] == ["deprel"]
+    assert analysis.anomalies[0].original == "iob"
+    assert analysis.anomalies[0].replacement == "iobj"
+
+
+def test_unknown_dependency_relation_falls_back_to_dep():
+    sent = _sentence(
+        [
+            ("dare", "dare", "VERB", "VerbForm=Fin", 0, "root"),
+            ("mi", "mi", "PRON", "Person=1|PronType=Prs", 1, "not-a-ud-rel"),
+        ]
+    )
+
+    analysis = render.parse_sentence(sent, ".", [], "it")
+
+    assert _gra_str(analysis) == "1|0|ROOT 2|1|DEP 3|1|PUNCT"
+    assert [anomaly.field for anomaly in analysis.anomalies] == ["deprel"]
 
 
 def test_missing_lemma_preserves_surface_without_changing_valid_analysis():

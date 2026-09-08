@@ -102,7 +102,7 @@ def register(app: typer.Typer) -> None:
                     stanza_backend=ba.StanzaBackend(retokenize=retokenize),
                     workers=opts.workers,
                 )
-                inputs, root = collect_chat_inputs(folder)
+                inputs, root = collect_chat_inputs(folder, group_by_language=True)
 
                 if clear_existing and inputs:
                     # Stage stripped copies in a temp dir; rewrite each input's

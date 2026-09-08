@@ -1,7 +1,7 @@
 # Batchalign
 
 **Status:** Current
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-07
 
 This repository contains [Batchalign](https://github.com/TalkBank/batchalign):
 the audio and ML pipeline for producing and enriching CHAT transcripts. It
@@ -17,7 +17,7 @@ On macOS or Linux:
 curl -LsSf https://raw.githubusercontent.com/TalkBank/batchalign/main/bootstrap/bootstrap.sh | sh
 ```
 
-On Windows, from PowerShell or Command Prompt:
+On Windows, from PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/TalkBank/batchalign/main/bootstrap/bootstrap.ps1 | iex"
@@ -26,6 +26,9 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/Tal
 The bootstrapper installs [uv](https://docs.astral.sh/uv/getting-started/installation/)
 when needed, then installs or upgrades `batchalign[all]` on Python 3.11 with
 prerelease versions enabled.
+
+Next, follow the [Quick Start](book/src/batchalign/user-guide/quick-start.md).
+If anything is confusing, see the [Batchalign documentation](book/src/batchalign/introduction.md).
 
 The CHAT parser, typed model, transformations, and grammar come from the
 version-pinned [TalkBank Chatter repository](https://github.com/TalkBank/chatter).
@@ -54,9 +57,6 @@ The main source areas are:
 - `apps/batchalign/` — desktop application
 - `resources/test_fixtures/` — integration and parity fixtures
 - `scripts/parity/` — bounded pre/post parity tooling
-
-See [the Batchalign documentation](book/src/batchalign/introduction.md) for
-usage and architecture.
 
 ## License
 

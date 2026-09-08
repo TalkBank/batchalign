@@ -42,16 +42,47 @@ def _root_for(folder: Path) -> Path:
     return folder.absolute() if folder.is_dir() else folder.parent.absolute()
 
 
-def collect_chat_inputs(folder: Path) -> tuple[list[Any], Path]:
+def collect_chat_inputs(
+    folder: Path, *, group_by_language: bool = False
+) -> tuple[list[Any], Path]:
     """Walk `folder` for CHAT files; return (inputs, root).
 
     Each input carries its absolute path as `source_id` so outcomes can
-    be written back next to their source.
+    be written back next to their source. Morphosyntax callers may group
+    files by their `@Languages` value so the bounded Stanza pipeline cache
+    does not repeatedly evict and reload models in a mixed-language corpus.
     """
     from batchalign.inputs import chat_from_path
 
-    inputs = [chat_from_path(p, source_id=str(p)) for p in _walk(folder, CHAT_EXTENSIONS)]
+    paths = _walk(folder, CHAT_EXTENSIONS)
+    if group_by_language:
+        paths.sort(key=_chat_language_sort_key)
+    inputs = [chat_from_path(p, source_id=str(p)) for p in paths]
     return inputs, _root_for(folder)
+
+
+def _chat_language_sort_key(path: Path) -> tuple[str, int, str]:
+    """Group CHAT paths by their raw language-set header, largest first."""
+    language_set = ""
+    try:
+        with path.open("r", encoding="utf-8") as source:
+            for line in source:
+                if line.startswith("@Languages:"):
+                    language_set = " ".join(
+                        sorted(
+                            part.strip().casefold()
+                            for part in line[11:].split(",")
+                            if part.strip()
+                        )
+                    )
+                    break
+                if line.startswith("*"):
+                    break
+    except (OSError, UnicodeError):
+        # Parsing will report the actual source error later. Keep discovery
+        # total and place unreadable/headerless files in one stable group.
+        pass
+    return language_set, -path.stat().st_size, str(path)
 
 
 def collect_ai_inputs(folder: Path, *, instruction: str) -> tuple[list[Any], Path]:

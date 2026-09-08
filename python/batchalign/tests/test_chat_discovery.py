@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import typer
 
-from batchalign.cli._common import CHAT_EXTENSIONS, _walk
+from batchalign.cli._common import CHAT_EXTENSIONS, _walk, collect_chat_inputs
 from batchalign.cli.align import _infer_lang
 
 
@@ -36,4 +36,29 @@ def test_batch_discovery_schedules_largest_inputs_first(tmp_path: Path) -> None:
         "z-large.cha",
         "m-medium.cha",
         "a-small.cha",
+    ]
+
+
+def test_morphotag_discovery_groups_language_sets_without_losing_size_order(
+    tmp_path: Path,
+) -> None:
+    fixtures = [
+        ("large-english.cha", "eng", "one two three"),
+        ("italian.cha", "ita", "uno"),
+        ("small-english.cha", "eng", "one"),
+        ("bilingual.cha", "spa, eng", "uno dos"),
+    ]
+    for name, languages, words in fixtures:
+        (tmp_path / name).write_text(
+            f"@UTF8\n@Languages:\t{languages}\n*CHI:\t{words} .\n",
+            encoding="utf-8",
+        )
+
+    inputs, _ = collect_chat_inputs(tmp_path, group_by_language=True)
+
+    assert [Path(item.path).name for item in inputs] == [
+        "large-english.cha",
+        "small-english.cha",
+        "bilingual.cha",
+        "italian.cha",
     ]

@@ -1,7 +1,7 @@
 # Introduction
 
 **Status:** Current
-**Last updated:** 2026-04-29 10:24 EDT
+**Last updated:** 2026-09-07
 
 **Batchalign** is a toolkit for language sample analysis (LSA) from
 the [TalkBank](https://talkbank.org/) project.  It processes conversation
@@ -9,21 +9,13 @@ audio files and their transcripts in CHAT format, providing automatic speech
 recognition, forced alignment, morphosyntactic analysis, translation,
 utterance segmentation, and audio feature extraction.
 
-The standalone `batchalign3` binary (written in Rust) provides the CLI and
-an HTTP server for offloading work to a central machine.  Python ML workers
-(Stanza, Whisper, etc.) handle inference and are managed automatically by
-the server.
+The `batchalign` command provides the supported CLI. Python ML workers
+(Stanza, Whisper, etc.) handle inference and are managed automatically. An
+HTTP server can offload work to a central machine.
 
-`batchalign3` is the supported public **Batchalign** surface today. It is a
-**public preview** product line with wheels for Windows, macOS, and Linux. The
-separate **Batchalign Desktop** shell in `apps/batchalign/dashboard-desktop/` is still
-experimental and should not be described as the supported first-time-user entry
-point. For current platform details, see [Platform Support](reference/platform-support.md)
-and the repo-root `book/src/operations/release-contract.md`.
-
-The canonical public install path for this preview line is
-`uv tool install batchalign3`. Repo-hosted `.command` / `.bat` helper scripts
-wrap that same flow; they are not a separate signed installer channel.
+Install Batchalign with the one-line command for your operating system in the
+[repository README](https://github.com/TalkBank/batchalign#install-batchalign),
+then continue directly to the [Quick Start](user-guide/quick-start.md).
 
 ## Who is Batchalign for?
 
@@ -64,7 +56,7 @@ This book is organized into six sections:
    release to the current version, anchored to the January 9, 2026 baseline
    `84ad500...` and, where needed, the February 9, 2026 released BA2 master
    point `e8f8bfa...`.
-2. **User Guide** -- Installation, quick start, CLI reference, Python API,
+2. **User Guide** -- Quick start, CLI reference, Python API,
    server setup, and troubleshooting.
 3. **Architecture** -- How the pipeline, engine, dispatch, caching, and
    validation systems work internally.
@@ -75,11 +67,11 @@ This book is organized into six sections:
 6. **Design Decisions** -- ADRs and accepted design notes on the implemented Rust
    control plane, correctness work, and server orchestration.
 
-If you are a new user, start with [Installation](user-guide/installation.md)
-and [Quick Start](user-guide/quick-start.md). If you are migrating from
+If you are a new user, start with [Quick Start](user-guide/quick-start.md).
+If you are migrating from
 a previous version, start with [Migration Guide](migration/index.md).
 There is no public Python API — the supported integration path from
-Python is `subprocess`-into-`batchalign3`. See
+Python is `subprocess`-into-`batchalign`. See
 [No Python API](user-guide/python-api.md) for the full statement.
 
 ## Acknowledgments

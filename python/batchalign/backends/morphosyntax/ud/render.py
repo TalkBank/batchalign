@@ -133,6 +133,51 @@ _UD_POS = {
     "X",
 }
 
+# Universal Dependencies v2 relation heads. Language-specific subtypes such as
+# ``nmod:poss`` are valid when their head is in this set. Stanza output is
+# validated here, before it crosses the worker protocol into the typed CHAT
+# writer, because an unknown relation would otherwise abort the whole file at
+# pre-serialization validation.
+_UD_DEPRELS = {
+    "acl",
+    "advcl",
+    "advmod",
+    "amod",
+    "appos",
+    "aux",
+    "case",
+    "cc",
+    "ccomp",
+    "clf",
+    "compound",
+    "conj",
+    "cop",
+    "csubj",
+    "dep",
+    "det",
+    "discourse",
+    "dislocated",
+    "expl",
+    "fixed",
+    "flat",
+    "goeswith",
+    "iobj",
+    "list",
+    "mark",
+    "nmod",
+    "nsubj",
+    "nummod",
+    "obj",
+    "obl",
+    "orphan",
+    "parataxis",
+    "punct",
+    "reparandum",
+    "root",
+    "vocative",
+    "xcomp",
+}
+
 
 def _anomaly(
     sink: list[AnalysisAnomaly],
@@ -227,11 +272,23 @@ def _normalize_words(
 
         raw_deprel = getattr(word, "deprel", None)
         deprel = raw_deprel if isinstance(raw_deprel, str) else ""
-        deprel_invalid = not deprel or (deprel.startswith("<") and deprel.endswith(">"))
+        normalized_deprel = deprel.casefold()
+        deprel_head = normalized_deprel.partition(":")[0]
+        truncated_iobj = normalized_deprel == "iob"
+        deprel_invalid = (
+            not deprel
+            or (deprel.startswith("<") and deprel.endswith(">"))
+            or (deprel_head not in _UD_DEPRELS and not truncated_iobj)
+        )
         expected_root = head == 0
-        joint_invariant_invalid = (deprel.lower() == "root") != expected_root
-        if deprel_invalid or joint_invariant_invalid:
-            replacement = "root" if expected_root else "dep"
+        joint_invariant_invalid = (normalized_deprel == "root") != expected_root
+        if deprel_invalid or joint_invariant_invalid or truncated_iobj:
+            if expected_root:
+                replacement = "root"
+            elif truncated_iobj:
+                replacement = "iobj"
+            else:
+                replacement = "dep"
             _anomaly(
                 anomalies,
                 index,
@@ -239,7 +296,7 @@ def _normalize_words(
                 "deprel",
                 raw_deprel,
                 replacement,
-                "missing/sentinel relation or head/root invariant violation",
+                "missing, truncated, or non-UD relation; or head/root invariant violation",
             )
             deprel = replacement
 
@@ -1048,7 +1105,7 @@ def handler__VERB(word: Any, lang: str | None = None) -> tuple[str, str, list[st
         from .en.irr import is_irregular
 
         is_irr = is_irregular(word.lemma, word.text)
-    irr = "irr" if is_irr else ""
+    irr = "Irr" if is_irr else ""
 
     pos, lemma = handler(word, lang)
     if "sconj" in pos:

@@ -76,10 +76,10 @@ The value is lowercased: `True` → `true`.
 The full verb suffix format (shared across all languages):
 
 ```text
--VerbForm-Aspect-Mood-Tense-Polarity-Polite-HebBinyan-HebExistential-NumberPerson-irr
+-VerbForm-Aspect-Mood-Tense-Polarity-Polite-HebBinyan-HebExistential-NumberPerson-Irr
 ```
 
-Hebrew-specific features slot into their dedicated positions. The `-irr`
+Hebrew-specific features slot into their dedicated positions. The `-Irr`
 suffix (English irregular verbs) is **not applied** to Hebrew — it is
 gated to English only.
 
