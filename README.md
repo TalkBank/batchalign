@@ -20,12 +20,12 @@ curl -LsSf https://raw.githubusercontent.com/TalkBank/batchalign/main/bootstrap/
 On Windows, from PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/TalkBank/batchalign/main/bootstrap/bootstrap.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Expression ((Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/TalkBank/batchalign/main/bootstrap/bootstrap.ps1').Content)"
 ```
 
 The bootstrapper installs [uv](https://docs.astral.sh/uv/getting-started/installation/)
 when needed, then installs or upgrades `batchalign[all]` on Python 3.11 with
-prerelease versions enabled.
+prerelease versions enabled. The installer requires Batchalign 0.10 or newer.
 
 Next, follow the [Quick Start](book/src/batchalign/user-guide/quick-start.md).
 If anything is confusing, see the [Batchalign documentation](book/src/batchalign/introduction.md).

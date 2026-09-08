@@ -15,12 +15,18 @@ if ! command -v uv >/dev/null 2>&1; then
     exit 1
 fi
 
-if uv tool list --show-extras | grep -Eq '^batchalign v.*\[extras: ([^]]*, )?all(, [^]]*)?\]'; then
+batchalign_requirement='batchalign[all]>=0.10'
+installed_tools=$(uv tool list) || {
+    echo "Unable to inspect installed uv tools." >&2
+    exit 1
+}
+
+if printf '%s\n' "$installed_tools" | grep -Eq '^batchalign v[^[:space:]]+'; then
     echo "Upgrading batchalign[all]..."
-    uv tool install --upgrade --python=3.11 --prerelease=allow 'batchalign[all]'
+    uv tool install --upgrade --python=3.11 --prerelease=allow "$batchalign_requirement"
 else
     echo "Installing batchalign[all]..."
-    uv tool install --python=3.11 --prerelease=allow 'batchalign[all]'
+    uv tool install --python=3.11 --prerelease=allow "$batchalign_requirement"
 fi
 
 echo "Batchalign is ready."

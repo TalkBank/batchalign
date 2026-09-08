@@ -2,7 +2,13 @@ $ErrorActionPreference = "Stop"
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     Write-Host "Installing uv..."
-    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+    $uvInstaller = (
+        Invoke-WebRequest -UseBasicParsing https://astral.sh/uv/install.ps1
+    ).Content
+    if ([string]::IsNullOrWhiteSpace($uvInstaller)) {
+        throw "The uv installer download was empty."
+    }
+    Invoke-Expression $uvInstaller
     $env:Path = "$env:USERPROFILE\.local\bin;$env:USERPROFILE\.cargo\bin;$env:Path"
 }
 
@@ -13,18 +19,19 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     )
 }
 
-$batchalignPattern = '^batchalign v.*\[extras: ([^]]*, )?all(, [^]]*)?\]'
-$batchalignTool = uv tool list --show-extras | Select-String $batchalignPattern
+$batchalignRequirement = 'batchalign[all]>=0.10'
+$installedTools = uv tool list
 if ($LASTEXITCODE -ne 0) {
     throw "Unable to inspect installed uv tools."
 }
 
+$batchalignTool = $installedTools | Select-String '^batchalign v\S+'
 if ($batchalignTool) {
     Write-Host "Upgrading batchalign[all]..."
-    uv tool install --upgrade --python=3.11 --prerelease=allow 'batchalign[all]'
+    uv tool install --upgrade --python=3.11 --prerelease=allow $batchalignRequirement
 } else {
     Write-Host "Installing batchalign[all]..."
-    uv tool install --python=3.11 --prerelease=allow 'batchalign[all]'
+    uv tool install --python=3.11 --prerelease=allow $batchalignRequirement
 }
 
 if ($LASTEXITCODE -ne 0) {
