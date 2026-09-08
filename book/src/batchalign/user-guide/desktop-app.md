@@ -13,8 +13,8 @@ repository are:
 - **Batchalign Desktop** (`apps/batchalign/dashboard-desktop/`) — Batchalign processing UI
 - **Chatter Desktop** (`apps/chatter/chatter-gui/`) — CHAT validation-only GUI
 
-For supported end-user workflows today, install and run **`batchalign3`** via
-the canonical CLI path in [Installation](installation.md). Treat this chapter as
+For supported end-user workflows today, install and run **`batchalign`** via
+the canonical CLI path in the [repository README](https://github.com/TalkBank/batchalign#install-batchalign). Treat this chapter as
 orientation for the in-repo desktop shell, not as the primary installation path
 for first-time users.
 
@@ -30,8 +30,8 @@ for first-time users.
 
 ## Getting started
 
-1. **Install Batchalign** — follow the [Installation](installation.md) guide.
-   The desktop app needs `batchalign3` on your PATH.
+1. **Install Batchalign** — follow the command in the [repository README](https://github.com/TalkBank/batchalign#install-batchalign).
+   The desktop app needs `batchalign` on your PATH.
 
 2. **Launch the shell from source** — run `npm run dev` from
    `apps/batchalign/dashboard-desktop/`.
