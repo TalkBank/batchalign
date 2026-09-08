@@ -2,6 +2,7 @@
 // workers · cancel|reveal". Pure derivation from the active batch in the
 // store.
 
+import { useEffect, useState } from "react";
 import { useStore } from "../store";
 import Stat from "./Stat";
 
@@ -21,14 +22,23 @@ function fmtHMS(ms: number): string {
 export default function JobsHeader() {
   const { activeBatchId, batches } = useStore();
   const batch = activeBatchId ? batches[activeBatchId] : null;
+  const [now, setNow] = useState(Date.now);
+
+  useEffect(() => {
+    if (batch?.state !== "running") return;
+
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [batch?.id, batch?.state, batch?.startedAt]);
+
   if (!batch) return null;
 
   const total = batch.fileOrder.length;
-  const done = batch.fileOrder.filter(
-    (id) => batch.files[id].status === "done",
-  ).length;
-  const running = batch.fileOrder.filter(
-    (id) => batch.files[id].status === "running",
+  const completed = batch.fileOrder.filter(
+    (id) =>
+      batch.files[id].status === "done" ||
+      batch.files[id].status === "failed",
   ).length;
   const isDone = batch.state === "done";
   const isFailed = batch.state === "failed";
@@ -43,7 +53,7 @@ export default function JobsHeader() {
 
   const elapsed =
     batch.startedAt != null
-      ? fmtHMS((batch.finishedAt ?? Date.now()) - batch.startedAt)
+      ? fmtHMS((batch.finishedAt ?? now) - batch.startedAt)
       : "—";
 
   return (
@@ -75,7 +85,7 @@ export default function JobsHeader() {
               lineHeight: 1.1,
             }}
           >
-            <span className="ba-num">{isDone ? done : running}</span>
+            <span className="ba-num">{completed}</span>
             <span style={{ color: "var(--fg-muted)" }}> of </span>
             <span className="ba-num">{total}</span>
             <span style={{ color: "var(--fg-muted)" }}> {verb}</span>
@@ -83,8 +93,7 @@ export default function JobsHeader() {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-        {!isDone && <Stat label="elapsed" value={elapsed} mono />}
-        {isDone && <Stat label="elapsed" value={elapsed} mono />}
+        <Stat label="elapsed" value={elapsed} mono />
         {isRunning ? (
           <button className="ba-btn ba-btn--sm">cancel batch</button>
         ) : isDone ? (
