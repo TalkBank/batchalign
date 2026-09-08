@@ -9,7 +9,7 @@ import threading
 from rich.console import Console
 from textual.widgets import DataTable, Static
 
-from batchalign.cli.tui.dashboard import BatchalignDashboard, TaskSnapshot
+from batchalign.cli.tui.dashboard import BatchalignDashboard, Dashboard, TaskSnapshot
 from batchalign.cli.tui.task import Task, TaskState
 
 
@@ -86,6 +86,15 @@ def test_elapsed_clock_advances_without_progress_events():
             await pilot.pause()
             running_before = app.snapshots[0].elapsed
             terminal_before = app.snapshots[1].elapsed
+            table = app.query_one("#files", DataTable)
+            updated_cells: list[tuple[str, str]] = []
+            original_update_cell = table.update_cell
+
+            def record_update(row_key, column_key, value, **kwargs):
+                updated_cells.append((str(row_key), str(column_key)))
+                return original_update_cell(row_key, column_key, value, **kwargs)
+
+            table.update_cell = record_update
 
             # Simulate a quiet two-second encode stage and trigger the same
             # callback the dashboard's 100 ms interval invokes.
@@ -96,13 +105,38 @@ def test_elapsed_clock_advances_without_progress_events():
             assert running_before is not None
             assert app.snapshots[0].elapsed >= running_before + 2.0
             assert app.snapshots[1].elapsed == terminal_before
-            table = app.query_one("#files", DataTable)
             assert table.get_cell("/data/a.wav", "elapsed") == (
                 f"{app.snapshots[0].elapsed:.1f}s"
             )
+            assert updated_cells == [("/data/a.wav", "elapsed")]
             app.exit()
 
     asyncio.run(exercise())
+
+
+def test_worker_updates_are_coalesced_before_rendering():
+    tasks = [Task(source_id=str(index), label=f"{index}.cha") for index in range(160)]
+    tasks[0].start()
+    dashboard = Dashboard(command="morphotag", params={}, output=None, tasks=tasks)
+    dashboard._running = True
+    dashboard._ready.set()
+
+    for completed in range(100):
+        tasks[0].update(completed, 100)
+        dashboard.update(tasks[0])
+
+    update = dashboard._take_update()
+    assert update is not None
+    snapshots, finished = update
+    assert snapshots[0].completed == 99
+    assert not finished
+    assert dashboard._take_update() is None
+
+    dashboard.finish(tasks)
+    dashboard.update(tasks[0])
+    final = dashboard._take_update()
+    assert final is not None
+    assert final[1]
 
 
 def test_dashboard_filters_navigates_and_responds_to_resize():
@@ -186,7 +220,7 @@ def test_dashboard_applies_live_updates_and_preserves_selection():
             updated[0] = TaskSnapshot(
                 "/data/a.wav", "a.wav", TaskState.OK, "asr", None, None, 3.0, None
             )
-            app.apply_snapshots(updated)
+            app.apply_updates([updated[0]])
             await pilot.pause()
 
             assert app.selected_source_id == selected
@@ -235,7 +269,7 @@ def test_live_progress_does_not_recenter_the_users_viewport():
                 2.0,
                 None,
             )
-            app.apply_snapshots(updated)
+            app.apply_updates(updated)
             await pilot.pause()
 
             assert table.scroll_offset == before

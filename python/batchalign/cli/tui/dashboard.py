@@ -1,9 +1,9 @@
 """Responsive Textual dashboard used by the interactive CLI.
 
 The processing engine is synchronous and may call progress callbacks from
-worker threads.  It therefore never touches Textual widgets directly:
-``Dashboard`` turns mutable :class:`Task` objects into immutable snapshots and
-posts those snapshots to the Textual event loop.
+worker threads. It therefore never touches Textual widgets directly:
+``Dashboard`` turns mutable :class:`Task` objects into immutable snapshots,
+and the Textual event loop drains the newest snapshots on its own timer.
 """
 
 from __future__ import annotations
@@ -213,6 +213,8 @@ class BatchalignDashboard(App[None]):
         snapshots: Sequence[TaskSnapshot],
         ready: threading.Event | None = None,
         request_cancel: Callable[[], None] | None = None,
+        poll_updates: Callable[[], tuple[list[TaskSnapshot], bool] | None]
+        | None = None,
     ) -> None:
         super().__init__()
         self.command = command
@@ -223,10 +225,12 @@ class BatchalignDashboard(App[None]):
         self.detail_visible = True
         self._external_ready_event = ready
         self._request_cancel = request_cancel
+        self._poll_updates = poll_updates
         self._finished = False
         self._cancel_requested = False
         self._content_ready = False
         self._last_elapsed_refresh = monotonic()
+        self._rendered_rows: dict[str, tuple[str, str, str, str, str]] = {}
 
     def compose(self) -> ComposeResult:
         destination = "in place" if self.output is None else str(self.output)
@@ -276,7 +280,7 @@ class BatchalignDashboard(App[None]):
         # Progress callbacks can be minutes apart while a backend is decoding,
         # encoding, or waiting on an external service. Keep elapsed time live
         # independently of those callbacks; terminal snapshots remain fixed.
-        self.set_interval(0.1, self._refresh_elapsed)
+        self.set_interval(0.1, self._refresh_dashboard)
         # ``on_mount`` runs before Textual's first completed paint. Releasing
         # the pipeline worker here lets Python-heavy lazy backend setup seize
         # the GIL while the alternate screen is still blank (often leaving a
@@ -310,17 +314,28 @@ class BatchalignDashboard(App[None]):
                 "[bold #fbbf24]Ctrl+C[/] cancel"
             )
 
-    def apply_snapshots(
-        self, snapshots: Sequence[TaskSnapshot], finished: bool = False
+    def apply_updates(
+        self, updates: Sequence[TaskSnapshot], finished: bool = False
     ) -> None:
-        """Apply an update inside the Textual event loop."""
+        """Merge coalesced worker updates inside the Textual event loop."""
         selected = self.selected_source_id
-        self.snapshots = list(snapshots)
+        changed = {snapshot.source_id: snapshot for snapshot in updates}
+        self.snapshots = [
+            changed.get(snapshot.source_id, snapshot) for snapshot in self.snapshots
+        ]
         self._last_elapsed_refresh = monotonic()
-        self._finished = finished
+        self._finished = self._finished or finished
         self._render_all(selected)
         if finished:
             self.set_timer(1.25, self.exit)
+
+    def _refresh_dashboard(self) -> None:
+        """Apply the latest worker snapshot and advance running clocks."""
+        if self._poll_updates is not None:
+            update = self._poll_updates()
+            if update is not None:
+                self.apply_updates(*update)
+        self._refresh_elapsed()
 
     def _refresh_elapsed(self) -> None:
         """Advance running clocks even when the pipeline emits no events."""
@@ -427,19 +442,28 @@ class BatchalignDashboard(App[None]):
         # clearing the table resets it to the selected/processing row.
         if current_ids == visible_ids:
             for task in visible:
-                for column, value in zip(
-                    ("status", "file", "stage", "progress", "elapsed"),
-                    self._row_values(task),
-                ):
-                    table.update_cell(
-                        task.source_id, column, value, update_width=True
+                values = self._row_values(task)
+                previous = self._rendered_rows.get(task.source_id)
+                for index, (column, value) in enumerate(
+                    zip(
+                        ("status", "file", "stage", "progress", "elapsed"),
+                        values,
                     )
+                ):
+                    if previous is None or previous[index] != value:
+                        table.update_cell(
+                            task.source_id, column, value, update_width=True
+                        )
+                self._rendered_rows[task.source_id] = values
             return
 
         scroll_x, scroll_y = table.scroll_offset
         table.clear(columns=False)
+        self._rendered_rows.clear()
         for task in visible:
-            table.add_row(*self._row_values(task), key=task.source_id)
+            values = self._row_values(task)
+            table.add_row(*values, key=task.source_id)
+            self._rendered_rows[task.source_id] = values
         if selected is not None:
             for index, task in enumerate(visible):
                 if task.source_id == selected:
@@ -572,6 +596,9 @@ class Dashboard:
         tasks: Iterable[Task],
         request_cancel: Callable[[], None] | None = None,
     ) -> None:
+        self._updates_lock = threading.Lock()
+        self._pending_snapshots: dict[str, TaskSnapshot] = {}
+        self._pending_finished = False
         self._ready = threading.Event()
         self._app = BatchalignDashboard(
             command=command,
@@ -580,6 +607,7 @@ class Dashboard:
             snapshots=[TaskSnapshot.from_task(task) for task in tasks],
             ready=self._ready,
             request_cancel=request_cancel,
+            poll_updates=self._take_update,
         )
         self._running = False
         self._abort_before_start = threading.Event()
@@ -592,14 +620,33 @@ class Dashboard:
         pipeline callable is ready.
         """
 
-    def update(self, tasks: Iterable[Task], *, finished: bool = False) -> None:
+    def update(self, task: Task) -> None:
+        """Publish one changed task without waiting for the UI thread."""
+        if not self._running or not self._ready.is_set():
+            return
+        with self._updates_lock:
+            self._pending_snapshots[task.source_id] = TaskSnapshot.from_task(task)
+
+    def finish(self, tasks: Iterable[Task]) -> None:
+        """Publish the terminal task states and request dashboard closure."""
         snapshots = [TaskSnapshot.from_task(task) for task in tasks]
         if not self._running or not self._ready.is_set():
             return
-        try:
-            self._app.call_from_thread(self._app.apply_snapshots, snapshots, finished)
-        except RuntimeError:
-            pass
+        with self._updates_lock:
+            self._pending_snapshots.update(
+                (snapshot.source_id, snapshot) for snapshot in snapshots
+            )
+            self._pending_finished = True
+
+    def _take_update(self) -> tuple[list[TaskSnapshot], bool] | None:
+        """Drain the newest coalesced worker update from the UI thread."""
+        with self._updates_lock:
+            if not self._pending_snapshots and not self._pending_finished:
+                return None
+            update = (list(self._pending_snapshots.values()), self._pending_finished)
+            self._pending_snapshots.clear()
+            self._pending_finished = False
+            return update
 
     def run_while(
         self,
@@ -622,7 +669,7 @@ class Dashboard:
                 if on_error is not None:
                     on_error(exc)
             finally:
-                self.update(tasks, finished=True)
+                self.finish(tasks)
 
         pipeline_thread = threading.Thread(
             target=work,
@@ -648,7 +695,7 @@ class Dashboard:
         # Normal interactive runs are already closed by ``run_while``.
         # This only matters for setup failures before the pipeline starts.
         if self._running:
-            self.update(tasks, finished=True)
+            self.finish(tasks)
 
 
 __all__ = ["BatchalignDashboard", "Dashboard", "TaskSnapshot"]

@@ -639,7 +639,7 @@ class Interface:
             return
 
         if self._dashboard is not None:
-            self._dashboard.update(self._tasks.values())
+            self._dashboard.update(task)
 
     # ----- plain renderer -------------------------------------------------
 
