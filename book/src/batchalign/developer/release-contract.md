@@ -3,7 +3,8 @@
 | Surface | Source of truth |
 |---|---|
 | Python distribution name, version, dependencies, scripts | `python/pyproject.toml` (`batchalign`) |
-| Rust workspace version and dependencies | Root `Cargo.toml` |
+| Rust workspace version | Root `Cargo.toml` |
+| Rust dependencies and features | Each crate's `Cargo.toml` |
 | Native wheel matrix | `.github/workflows/publish-pypi.yml` |
 | Installed wheel smoke checks | `.github/workflows/bazel-wheels.yml` |
 | Desktop bundle | `apps/batchalign/batchalign-gui/` and its Bazel targets |

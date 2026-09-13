@@ -22,6 +22,11 @@ instances to `Pipeline`; backend constructors hold model-specific settings.
 writing step. See the outcome type and serialization methods in
 `crates/batchalign/batchalign-engine/src/py_outcome.rs` when integrating output.
 
+The ordinary return-value path prepares inputs and retains outcomes for the
+returned list. File concurrency alone therefore does not bound total memory for
+a large API call. The CLI uses the callback path to convert inputs within its
+dispatch window and write completed outcomes without retaining the full result set.
+
 ## Cache policy
 
 Recipes forward pipeline options such as `cache`:

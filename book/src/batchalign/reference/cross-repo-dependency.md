@@ -1,6 +1,8 @@
 # Cross-Repository Compatibility Contract
 
-Use the current workspace dependency declarations rather than the former sibling-checkout contract.
+The core declares versioned Git dependencies on TalkBank model, parser, and
+transform crates in `crates/batchalign/batchalign-core/Cargo.toml`. These are not
+the former sibling-checkout path dependencies.
 
 See [Batchalign source map](../developer/rust-workspace-map.md) for the current documentation.
 

@@ -30,6 +30,8 @@ Stanza groups a received batch by language configuration. A mixed-language batch
 may produce several smaller model calls. The CLI orders morphotag files by
 language header, then by descending file size within a group, to improve locality.
 One sufficiently large file can fill a batch without additional file concurrency.
+A multilingual pipeline configuration can contain models for several languages;
+the two-entry LRU is not a limit of two individual model objects.
 
 ## What the bounds do—and do not—mean
 

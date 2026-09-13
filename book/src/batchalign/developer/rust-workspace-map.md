@@ -15,6 +15,8 @@
 The Python package imports the extension as `batchalign._core`. Typed protocol
 schemas come from the Rust core; Bazel generates the Python wire types.
 TalkBank parser, model, and transform crates supply the CHAT representation
-used by the core. Check workspace `Cargo.toml` for their exact dependency sources.
+used by the core. Their Git revision and version constraints are declared in
+`crates/batchalign/batchalign-core/Cargo.toml`; the root manifest does not
+centralize dependencies in a `[workspace.dependencies]` table.
 
 For execution flow, see [How a processing command runs](../architecture/command-lifecycles.md).
