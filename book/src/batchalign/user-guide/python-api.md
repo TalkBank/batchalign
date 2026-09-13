@@ -1,68 +1,61 @@
-# No Python API
+# Python API reference
 
-**Status:** Current
-**Last updated:** 2026-05-01 22:47 EDT
+The `batchalign` Python package exposes a Rust-backed `Pipeline`, task and input
+types, backend classes, and recipe functions. The CLI uses this API too.
 
-Batchalign3 does not have a public Python API. Python lives inside the
-package as a worker-side ML inference layer — strictly an internal
-implementation detail of the Rust runtime. As of 2026-05, only Rev.AI
-ASR is Rust-owned (driven directly from the server); every other ASR
-engine, plus all morphosyntactic / segmentation / translation / coref
-pipelines, runs through a Python worker. The long-term direction is to
-keep narrowing the Python layer as Rust gains coverage of more ML
-pieces, but no Whisper-in-Rust path is shipping today.
-
-## The CLI is the entry point
-
-All processing is done through the `batchalign3` command-line tool:
-
-```bash
-batchalign3 transcribe input/ -o output/ --lang eng
-# morphotag has no --lang — per-file @Languages: header drives routing
-batchalign3 morphotag input/ -o output/
-batchalign3 align input/ -o output/ --lang eng
-```
-
-For programmatic use from Python, call the CLI as a subprocess:
+## Run a recipe
 
 ```python
-import subprocess
+import batchalign as ba
+from batchalign.inputs import chat_from_path
 
-subprocess.run(
-    [
-        "batchalign3", "morphotag",
-        "input/", "-o", "output/",
-        "--lang", "eng",
-    ],
-    check=True,
+pipeline = ba.recipes.morphotag(
+    stanza_backend=ba.StanzaBackend(),
+    workers=4,
+)
+results = pipeline.run([chat_from_path("sample.cha")])
+```
+
+`workers` limits concurrent files. A recipe supplies a task sequence and backend
+instances to `Pipeline`; backend constructors hold model-specific settings.
+`pipeline.run()` returns outcomes. It does not perform the CLI's output-file
+writing step. See the outcome type and serialization methods in
+`crates/batchalign/batchalign-engine/src/py_outcome.rs` when integrating output.
+
+## Cache policy
+
+Recipes forward pipeline options such as `cache`:
+
+```python
+pipeline = ba.recipes.morphotag(
+    stanza_backend=ba.StanzaBackend(),
+    cache=ba.CacheSpec.bypass(),
+    workers=1,
 )
 ```
 
-Anything else — importing `batchalign.*` modules, calling
-`batchalign_core.*` symbols, depending on `batchalign.providers`,
-`batchalign.worker.*`, or any Python class or function — is unsupported
-and will break without notice. There is no compatibility surface to
-build against.
+| Policy | Reads saved results | Writes new results |
+|---|---|---|
+| `ba.CachePolicy.Use` (default) | Yes | Yes |
+| `ba.CachePolicy.Bypass` / `ba.CacheSpec.bypass()` | No | No |
+| `ba.CachePolicy.Refresh` / `ba.CacheSpec.refresh()` | No | Yes |
 
-## If you used the BA2 Python API
+To use a separate database:
 
-The following BA2 Python entry points were removed during the BA3
-rewrite. The CLI is the replacement for all of them:
+```python
+cache = ba.CacheSpec(path="/path/to/cache.lmdb", policy=ba.CachePolicy.Use)
+```
 
-| BA2 Python entry point | Replacement |
-| --- | --- |
-| `BatchalignPipeline` | `batchalign3 <command>` |
-| `WhisperEngine`, `RevAIEngine`, etc. | `batchalign3 transcribe --asr-engine <name>` |
-| `CHATFile`, `Document`, `ParsedChat` | the `chatter` CLI in talkbank-tools (`chatter to-json`, `chatter validate`, etc.) |
-| `run_pipeline()`, `LocalProviderInvoker`, `PipelineOperation` | `batchalign3 <command>` |
-| `compute_wer()` | `batchalign3 compare` |
-| `batchalign.compat` | none — its purpose was to bridge BA2 callers; rewrite around the CLI |
+The CLI's cache-management commands target the default path returned by
+`ba.default_cache_path()`. They do not discover custom API cache paths.
 
-If you have BA2 Python integration code, port it to subprocess calls
-into `batchalign3`. The CLI's output format is the long-term stable
-contract.
+## API source
 
-## See also
+- `python/batchalign/__init__.py`: exported types and lazy imports.
+- `python/batchalign/recipes.py`: standard task compositions.
+- `python/batchalign/inputs.py`: file-based input constructors.
+- `python/batchalign/backends/`: backend constructors and interfaces.
+- `crates/batchalign/batchalign-engine/src/pipeline.rs`: pipeline constructor and execution.
 
-- [CLI Reference](cli-reference.md)
-- [Migration: User Workflow](../migration/user-migration.md)
+The old BA2 `BatchalignPipeline` and document model are not interchangeable with
+this API. Use the current types when migrating integrations.

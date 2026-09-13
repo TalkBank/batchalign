@@ -1,103 +1,71 @@
-# Caching
+# How result caching works
 
-**Status:** Current
-**Last updated:** 2026-04-27 10:28 EDT
+Batchalign saves backend results so repeated processing can reuse completed
+computations. This includes text analysis: morphosyntax, utterance segmentation,
+and translation use the same result cache as audio inference.
 
-## What gets cached
+## Results and models are separate
 
-Batchalign caches **only audio-task results**:
+The result cache stores individual task outputs in an **LMDB database**. Model
+files downloaded by Stanza, Hugging Face, or other libraries live in those
+libraries' own download locations. Clearing result entries does not remove model
+files. Loaded models also occupy memory for the lifetime of their Python objects;
+a result-cache hit and a model already loaded in memory are different kinds of reuse.
 
-| Analysis | Cached? |
-|----------|---------|
-| Forced alignment word timings (`align`) | Yes |
-| ASR results for utterance timing recovery (`align`'s UTR pre-pass) | Yes |
-| Media conversion (`.mp4`/`.m4a` → `.wav`) | Yes |
-| Morphosyntax (`morphotag`) | **No** — always recomputed |
-| Utterance segmentation (`utseg`) | **No** — always recomputed |
-| Translation (`translate`) | **No** — always recomputed |
-| Coreference (`coref`) | **No** — always recomputed |
-| Speaker diarization | No |
+The engine checks for a cached result before sending a request to a backend.
+A hit avoids that inference request. Input discovery, CHAT parsing, preprocessing,
+output assembly, and file writing still happen. Some backends initialize before
+cache lookup, so even a fully cached run can have startup costs.
 
-The text-NLP cache that previously covered `morphotag`, `utseg`, and
-`translate` was **removed** after a benchmark on a 15,748-file corpus
-showed it was about 25× slower than just re-inferring (6–16% hit rate;
-2,500 ms SQLite lookup beat ~100 ms inference savings). See the
-architecture page on Caching for the detailed reasoning.
+## What is reused
 
-In practice: a re-run of `morphotag` on the same corpus takes the
-same time as the first run. A re-run of `align` on the same audio
-is much faster — that's where the cache pays for itself.
+| Pipeline work | Default behavior |
+|---|---|
+| Morphosyntax (`morphotag`) | Cache backend results per utterance |
+| Utterance segmentation (`utseg`) | Cache backend results |
+| Translation (`translate`) and AI editing (`ai`) | Cache backend results |
+| ASR (`transcribe`), timing recovery, forced alignment (`align`) | Cache backend results |
+| Speaker inference (`diarize` or transcription with diarization) | Cache backend results |
+| Media conversion (`convert`) | The default conversion recipe bypasses the result cache |
+| CHAT parsing, tier assembly, output writing | Performed by the pipeline; not saved as finished output files in this cache |
 
-## What invalidates the cache
+The cache is shared across pipeline instances and processes at the same path.
+LMDB allows concurrent readers and serializes write transactions.
 
-| What changed | What re-runs | What stays cached |
-|---|---|---|
-| Edited the transcript words | FA (per-group cache key includes text) | UTR ASR (only depends on audio) |
-| Re-recorded or replaced the audio | FA, UTR ASR | (n/a — audio is the cache key) |
-| Changed the language code | UTR ASR (key includes lang) | (other corpora's entries) |
-| Upgraded batchalign (new ASR engine version) | Stale entries auto-invalidated | Entries from unchanged engines |
+## When a result stops matching
 
-Cache keys are content-addressed: they hash the actual input (audio
-identity, time spans, words, engine version). Changing any input
-component produces a different key, so stale results are never
-returned. Engine version strings are stored alongside each entry, so
-upgrading a model (e.g., a new ASR release) automatically invalidates
-old results without manual intervention.
+A cache key combines the compiled build identity, task, backend name, and the
+input fields selected by that task's `CacheKey` implementation. For example,
+morphosyntax includes text, tokens, language, and retokenization mode. Routing
+identifiers such as source file ID and utterance number do not participate, so
+identical content in different files can share an entry.
 
-## How to force fresh results
+Changing a key component causes a miss. The build identity normally comes from
+the compiled Git SHA, with the Rust package version as a fallback. A package
+upgrade can therefore leave older entries on disk while no longer reading them.
 
-Use the `--override-media-cache` global flag:
+This does **not** fingerprint arbitrary downloaded model files or every remote
+provider update. If a provider or model changes without changing the backend
+identity or input, use a refresh policy in the Python API or clear the result
+cache before processing again.
 
-```bash
-batchalign3 --override-media-cache align corpus/ -o output/
-```
+## Storage and limits
 
-This skips all cache lookups, forcing every audio span through fresh
-inference. New results are still stored in the cache for future runs.
+Run `batchalign cache path` to see the location for your installation. Defaults:
 
-Use this when you suspect cached results are wrong, or after manually
-updating model files outside of a normal batchalign upgrade.
+| Platform | Result-cache directory |
+|---|---|
+| macOS | `~/Library/Caches/batchalign/cache.lmdb/` |
+| Linux | `$XDG_CACHE_HOME/batchalign/cache.lmdb/`, or `~/.cache/batchalign/cache.lmdb/` |
+| Windows | `%LOCALAPPDATA%\batchalign\cache.lmdb\` |
 
-## Where the caches are stored
+The directory contains `data.mdb` and `lock.mdb`. The current engine sets a
+16 GiB maximum LMDB map size. This is a virtual address-space limit, **not** a
+16 GiB resident-memory allocation or an automatic eviction policy. Cache writes
+are best effort; a full database can prevent new results from being saved.
 
-| Cache | macOS default | Linux default |
-|---|---|---|
-| Analysis cache DB | `~/Library/Caches/batchalign3/cache.db` | `~/.cache/batchalign3/cache.db` |
-| Media conversion cache | `~/Library/Application Support/batchalign3/media_cache/` | `~/.local/share/batchalign3/media_cache/` |
+For commands to inspect or clear entries, see [Manage the result cache](cache-management.md).
+For custom paths and read/write policies, see [Python API](python-api.md#cache-policy).
 
-The analysis cache is a single SQLite database file. The media cache
-stores converted WAV artifacts for inputs such as `.mp4` and `.m4a`.
-
-For isolated runs or testing, you can relocate them with environment
-variables:
-
-```bash
-export BATCHALIGN_ANALYSIS_CACHE_DIR=/tmp/ba-analysis-cache
-export BATCHALIGN_MEDIA_CACHE_DIR=/tmp/ba-media-cache
-```
-
-## How to clear the cache
-
-Use the built-in cache command:
-
-```bash
-batchalign3 cache stats          # See cache size and entry count
-batchalign3 cache clear --yes    # Clear the cache
-```
-
-`cache stats` and `cache clear` operate on both the analysis cache and
-the media conversion cache.
-
-Or delete the `cache.db` file and/or the media-cache directory directly.
-
-To selectively refresh without clearing everything, use
-`--override-media-cache` on specific runs instead — old entries for
-other corpora remain available.
-
-## Old text-NLP cache entries
-
-If you used batchalign before the text-NLP cache was removed, your
-`cache.db` may still contain old `morphosyntax_v*`, `utseg_v*`, and
-`translate_v*` rows. Those are dead weight — they're never read
-anymore. Run `batchalign3 cache clear --yes` (or `rm -f
-~/Library/Caches/batchalign3/cache.db*`) to reclaim the disk space.
+Implementation: `crates/batchalign/batchalign-engine/src/cache.rs`,
+`batcher.rs`, the core `proto/` input types, and `python/batchalign/recipes.py`.

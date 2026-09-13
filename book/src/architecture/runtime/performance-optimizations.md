@@ -173,4 +173,4 @@ The Batchalign daemon binds the TCP port immediately, with `/health`
 available, but **no Python process** runs until the first job
 arrives. The daemon starts in < 1 second and uses zero memory at
 idle. Memory guards only fire when actual work is requested. See
-[Batchalign Workers — Memory Check Flow](batchalign-workers.md#memory-check-flow).
+[Batchalign Workers — Memory Check Flow](batchalign-workers.md).

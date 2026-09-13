@@ -1,361 +1,193 @@
-# CLI Reference
+# CLI reference
 
-**Status:** Current
-**Last updated:** 2026-05-11 09:55 EDT
+The `batchalign` and `batchalign3` entrypoints run the same CLI.
+Options below are checked against `python/batchalign/cli/` for version 0.10.1.
+Run `batchalign COMMAND --help` for the help shipped with your installation.
 
-This page documents the current public `batchalign3` CLI surface. For anything
-you are scripting against, confirm with `batchalign3 <command> --help`.
-
-For detailed input/output patterns and mutation behavior per command, see
-[Command I/O Parity](../reference/command-io.md).
-
-## Command shape
-
-```bash
-batchalign3 [GLOBAL OPTIONS] COMMAND [COMMAND OPTIONS] [PATHS...]
+```text
+batchalign [GLOBAL OPTIONS] COMMAND [COMMAND OPTIONS] [PATHS...]
 ```
-
-Global options go before the command name.
 
 ## Global options
 
-| Option | Meaning |
-| --- | --- |
-| `-v`, `-vv`, `-vvv` | Increase verbosity |
-| `--parallel N` | Maximum number of input files processed concurrently (default: 8; minimum: 1). |
-| `--force-cpu` | Disable MPS/CUDA and force CPU-only models |
-| `--server URL` | Remote server URL. Env fallback: `BATCHALIGN_SERVER` |
-| `--override-media-cache` | Bypass the media analysis cache (audio tasks only; text NLP tasks are not cached at all) |
-| `--override-media-cache-tasks TASKS` | Bypass cache only for specific audio tasks (comma-separated: `forced_alignment`, `utr_asr`) |
-| `--batch-window N` | Files per batch window for text NLP commands (default: 25) |
-| `--debug-dir PATH` | Directory for pipeline debug artifacts (CHAT/JSON fixtures for offline replay). Env fallback: `BATCHALIGN_DEBUG_DIR` |
-| `--memory-tier {small,medium,large,fleet}` | Override the auto-detected memory tier (forces worker bootstrap and memory budgets for that tier regardless of actual system RAM) |
-| `--timeout SECONDS` | Inference timeout for audio tasks (default: 1800 = 30 min) |
-| `--tui` / `--no-tui` | Toggle full-screen TUI for server-backed jobs (`DirectHost` local runs stay on terminal progress bars) |
-| `--open-dashboard` / `--no-open-dashboard` | Toggle browser auto-open for submitted server job pages (macOS only, interactive TTY only) |
-| `--engine-overrides JSON` | Select built-in alternative engines with a flat `{string:string}` JSON object; invalid JSON is rejected |
-| `--sequential` | Process files one at a time with a single worker. No memory gate, no server. Ideal for small jobs on laptops |
-| `--no-server` | Skip auto-detection of a local server; force direct in-process execution |
+| Option | Default | Meaning |
+|---|---|---|
+| `--parallel N` | 8 | Maximum concurrent input files; minimum 1 |
+| `-v`, `--verbose` | Off | Increase verbosity; repeat for more detail |
+| `-q`, `--quiet` | Off | Suppress routine output and interactive credential prompts |
+| `--plain` | Automatic | Use the non-live renderer |
+| `--ansi` | Automatic | Force live rendering; `--plain` takes precedence if both are supplied |
+| `--help` | | Show help |
 
-BA2 compatibility flags (`--memlog`, `--mem-guard`, `--adaptive-workers`,
-`--pool`, `--shared-models`, etc.) have been removed. If your scripts use them,
-remove them.
+Global options go before the command. Device, model, and engine options belong
+to their individual commands.
 
-## Sequential mode
+## Input selection
 
-`--sequential` gives you the simplest possible execution path — similar to
-batchalign2's direct mode. One worker per task type, files processed one at a
-time, no concurrency infrastructure:
+Processing commands accept one or more paths, or `-i/--input-list/--file-list FILE`.
+Directories are scanned recursively. CHAT commands accept `.cha` and `.chat`;
+media discovery accepts `.wav`, `.mp3`, `.m4a`, `.flac`, `.ogg`, `.mp4`, `.mov`,
+and `.m4v`. Actual decoding support depends on the media backend.
 
 ```bash
-batchalign3 morphotag corpus/ -o output/ --sequential
+batchalign morphotag first.cha second.cha -o tagged/
+batchalign transcribe -i recordings.txt -o transcripts/ --lang eng
 ```
 
-**What it does:**
-- Forces `--parallel 1` and `--no-server`
-- Disables the memory gate (no cross-process coordination)
-- Keeps the worker alive for the entire run (no idle timeout kills)
-- Preserves the utterance cache (repeated runs benefit from cached results)
+A list is a UTF-8 text file containing one path per line. Blank lines and lines
+whose first non-space character is `#` are ignored. List entries are resolved
+relative to the list's directory. Positional paths are relative to the command's
+working directory. Paths are deduplicated after resolving them; a repeated entry
+is processed once. Whitespace around list entries is trimmed.
 
-**When to use it:**
-- Processing a handful of files on a laptop
-- Debugging pipeline issues (predictable, single-threaded execution)
-- Environments where memory auto-tuning is unwanted
+`-o/--out DIR` selects an output directory. Relative subdirectories are mirrored
+from the common input root. Without it, CHAT transformation commands write beside
+or over their input as described below. See [Command I/O](../reference/command-io.md).
 
-**When NOT to use it:**
-- Large corpus runs (50+ files) — the default parallel mode is 3-5× faster
-- Fleet machines with warm workers — use the server instead
+## Commands
 
-`--sequential` is incompatible with `--server` (mutually exclusive).
+| Command | Purpose |
+|---|---|
+| `transcribe` | Recording to CHAT transcript |
+| `align` | Forced alignment of CHAT against audio |
+| `morphotag` | Add `%mor` and `%gra` |
+| `utseg` | Revise utterance segmentation |
+| `translate` | Add translation tiers |
+| `compare` | Compare CHAT against `.gold.cha` references |
+| `convert` | Convert media to WAV or MP3 |
+| `diarize` | Assign speakers to existing timed CHAT |
+| `ai` | Apply an AI editing instruction to CHAT |
+| `cache` | Inspect or clear the result cache |
+| `version` | Print version and build information |
+| `daemon` | Run the separate HTTP service |
 
-## Dashboard browser auto-open
+## transcribe
 
-On macOS, when you run a processing command interactively (e.g.,
-`batchalign3 transcribe corpus/ output/`), the CLI automatically opens the
-job's dashboard page in your default browser. This lets you monitor progress
-in real time.
+Accepts the shared input selection and `-o/--out` options above.
 
-Direct local execution does not submit an HTTP job, so there is no dashboard
-page to open. In that mode, `--open-dashboard` is a no-op and the CLI shows
-local terminal progress inline instead.
+| Option or argument | Default | Details |
+|---|---|---|
+| `--engine` | rev | Choices: `rev`, `whisper`, `chatwhisper`, `openai`, `funaudio`, `tencent`, `qwen3`, `aliyun`, `malayalam`, `google`. ASR engine: rev \| google \| whisper \| chatwhisper \| openai \| funaudio \| tencent \| qwen3 \| malayalam. |
+| `--lang` | Required | ISO-639-3 alpha_3 code: eng, cmn, yue, spa, … (Required.) |
+| `--model` | Unset | ASR model id (engine-specific default if omitted). |
+| `--diarize/--no-diarize` | False | Run speaker diarization with --diarize-engine after utterance segmentation. |
+| `--diarize-engine` | pyannote-ai | Choices: `pyannote-ai`, `pyannote`. Diarization engine: pyannote-ai (cloud, default) or pyannote (local). |
+| `--num-speakers`, `-n` | 2 | Expected speaker count (diarization hint). |
+| `--force-cpu` | False | Run local inference, including utterance segmentation, on CPU (BA2's --force-cpu). |
+| `--allow-mps` | False | Explicitly allow local ASR and utterance-segmentation models to use Apple MPS. Off by default because sustained MPS inference can be unstable; CHATWhisper remains float32 when selected. |
+| `--wor/--nowor` | False | Include word-level timing (`%wor` and inline word bullets); omitted by default. |
 
-The dashboard auto-open is **only** triggered when:
+## align
 
-- Running on macOS (no-op on Linux/Windows)
-- stderr is connected to an interactive terminal (TTY)
-- `--no-open-dashboard` was not passed
-- The `BATCHALIGN_NO_BROWSER` environment variable is not set
+Accepts the shared input selection and `-o/--out` options above.
 
-It will **not** fire in non-interactive contexts: cron jobs, CI pipelines,
-SSH sessions without a display, piped output, or scripts. To suppress it
-explicitly in interactive sessions, pass `--no-open-dashboard`.
+| Option or argument | Default | Details |
+|---|---|---|
+| `--engine` | wav2vec | Choices: `wav2vec`, `whisper_fa`, `qwen`. Forced-alignment engine: wav2vec \| whisper_fa \| qwen. |
+| `--model` | Unset | FA model id (engine-specific default if omitted; wav2vec picks per the file language). |
+| `--force-cpu` | False | Run the FA model on CPU (BA2's --force-cpu). Needed for whisper_fa on Apple MPS, where Whisper's bfloat16 attention kernel is unsupported. |
+| `--allow-mps` | False | Explicitly allow local alignment models to use Apple MPS. Off by default because sustained MPS inference can be unstable. |
+| `--utr-engine` | rev | Choices: `off`, `whisper`, `rev`. Utterance Timing Recovery backend: rev \| whisper \| off. When non-off, runs `Task.Utr` before FA to recover utterance bullets on fully-untimed CHATs. Automatically skipped when *any* utterance already carries a bullet — UTR is intended for fully-untimed transcripts only. |
+| `--utr-model` | Unset | UTR model id (only used when --utr-engine=whisper; default is openai/whisper-large-v3 to match BA2's transcribe). |
 
-## Common path-processing options
+## morphotag
 
-The file-processing commands accept one or more input files or directories:
+Accepts the shared input selection and `-o/--out` options above.
 
-| Option | Meaning |
-| --- | --- |
-| `PATHS...` | Input files or directories, walked recursively |
-| `-o`, `--out DIR` | Output directory; otherwise write beside each source |
-| `-i`, `--input-list FILE`, `--file-list FILE` | Read additional input paths from a text file |
+| Option or argument | Default | Details |
+|---|---|---|
+| `--retokenize/--no-retokenize` | False |  |
+| `--clear-existing/--keep-existing` | True | If true (default), drop any pre-existing %mor:/%gra: tiers from each input before tagging so re-runs regenerate. Use --keep-existing to preserve them and let the engine skip already-tagged utterances. |
 
-### Input lists
+## utseg
 
-An input list is UTF-8 text with one file or directory path per line. Blank
-lines and lines beginning with `#` are ignored. Relative paths are resolved
-against the list file's directory; absolute paths are accepted. Paths with
-spaces need no quotes. Missing paths are errors.
+Accepts the shared input selection and `-o/--out` options above.
 
-```text
-# Individual file and a directory to scan recursively
-recordings/interview.wav
-/data/corpus/session2
-```
+| Option or argument | Default | Details |
+|---|---|---|
+| `--stanza-fallback/--no-stanza-fallback` | False |  |
+| `--language` | en |  |
+| `--force-cpu` | False | Run utterance segmentation on CPU. |
+| `--allow-mps` | False | Use Apple MPS for utterance segmentation when available. |
+
+## translate
+
+Accepts the shared input selection and `-o/--out` options above.
+
+| Option or argument | Default | Details |
+|---|---|---|
+| `--target` | eng | Target language code (ISO 639-3). |
+| `--engine` | google | Choices: `google`, `nllb`, `tencent`, `aliyun`.  |
+
+## compare
+
+Accepts the shared input selection and `-o/--out` options above.
+
+| Option or argument | Default | Details |
+|---|---|---|
+
+## convert
+
+Accepts the shared input selection and `-o/--out` options above.
+
+| Option or argument | Default | Details |
+|---|---|---|
+| `--format` | Required | Choices: `mp3`, `wav`. Output format: mp3 or wav. |
+
+## diarize
+
+Accepts the shared input selection and `-o/--out` options above.
+
+| Option or argument | Default | Details |
+|---|---|---|
+| `--engine` | pyannote-ai | Choices: `pyannote-ai`, `pyannote`. Diarization engine: pyannote-ai (cloud) or pyannote (local). |
+| `--num-speakers`, `-n` | 0 | Expected speaker count; zero auto-detects. |
+
+## ai
+
+Accepts the shared input selection and `-o/--out` options above.
+
+| Option or argument | Default | Details |
+|---|---|---|
+| `INSTRUCTION` | Required | Instruction applied to every utterance. |
+| `--engine` | dspy | Choices: `dspy`.  |
+| `--model` | zai-org/GLM-5.2 | DSPy LM model string. |
+| `--max-tokens` | 1024 | Maximum output tokens for the DSPy LM call. |
+| `--timeout` | 30 | Per-utterance DSPy LM timeout in seconds. |
+
+## daemon
+
+| Option or argument | Default | Details |
+|---|---|---|
+| `--host` | 127.0.0.1 | Bind address. Use 0.0.0.0 to accept off-host connections; default loopback-only so an unsecured daemon can't be exposed accidentally. |
+| `--port` | 8765 | Bind port. |
+| `--workers` | 1 | Worker process count. Pinned to 1 by default — the in-memory job registry is per-process. Overriding requires a shared registry backend (not yet wired). |
+| `--log-level` | info | uvicorn log level: critical/error/warning/info/debug/trace. |
+| `--access-log/--no-access-log` | True | Emit HTTP access logs (one line per request). |
+| `--proxy-headers/--no-proxy-headers` | True | Trust X-Forwarded-* headers from the upstream reverse proxy. Combine with --forwarded-allow-ips when fronted by nginx/ALB. |
+| `--forwarded-allow-ips` | 127.0.0.1 | Comma-separated upstream IPs trusted for X-Forwarded-*. Use '*' only when the daemon is behind a trusted proxy. |
+| `--graceful-timeout` | 30 | Seconds to wait for in-flight requests to drain on SIGTERM. |
+| `--dev` | False | Development mode: enable --reload, drop production defaults. Never use in production — disables clean shutdown handling. |
+
+## cache
 
 ```bash
-batchalign3 transcribe --lang eng -i recordings.txt
-batchalign3 align -i transcripts.txt -o aligned
-batchalign3 morphotag first.cha second.cha corpus/
+batchalign cache path
+batchalign cache stats
+batchalign cache clear [--yes]
 ```
 
-The positional input is optional when `-i` is supplied. Positional paths and
-list entries can also be combined. Both use the same discovery rules, and
-repeated or overlapping files are processed once. For `ai`, the instruction
-remains required: `batchalign3 ai "Fix punctuation" -i transcripts.txt`.
+See [Manage the result cache](cache-management.md).
 
-Without `-o`, outputs use each source's normal location. With `-o`, directory
-structure is preserved relative to the common ancestor of the input
-directories (or parent directories for individual files). A single directory
-keeps its existing output layout. Comparison still finds gold templates beside
-each selected transcript.
-
-For batched text-NLP commands (`morphotag`, `utseg`, `translate`, `coref`),
-large `--file-list` runs may not show file-by-file on-disk rewrites while the
-invocation is still running. The command can batch/stage work internally and
-then commit the in-place writes when the current invocation finishes. If you
-need visible write-through during a long rerun, split the list into smaller
-chunks and run those chunks sequentially.
-
-## Processing commands
-
-Each processing command has a dedicated page with full options, a pipeline
-diagram, examples, and gotchas. Click the command name for complete
-documentation.
-
-### CHAT-mutation commands (input `.cha` → output `.cha`)
-
-| Command | What it does |
-| --- | --- |
-| [**align**](commands/align.md) | Add word-level and utterance-level timestamps via forced alignment |
-| [**morphotag**](commands/morphotag.md) | Add `%mor` POS/lemma and `%gra` dependency tiers |
-| [**utseg**](commands/utseg.md) | Re-segment utterance boundaries using Stanza constituency parsing |
-| [**translate**](commands/translate.md) | Add `%xtra` English translation tiers |
-| [**coref**](commands/coref.md) | Add sparse `%xcoref` coreference annotation tiers (English only) |
-| [**compare**](commands/compare.md) | Compare against gold `.cha` references; write `%xsrep`/`%xsmor` + `.compare.csv` |
-
-### Audio-input commands (input audio → new files)
-
-| Command | What it does |
-| --- | --- |
-| [**transcribe**](commands/transcribe.md) | Create `.cha` transcripts from audio via ASR |
-| [**benchmark**](commands/benchmark.md) | Transcribe and evaluate WER against gold `.cha` references |
-
-## Operational commands
-
-### `setup`
-
-Initialize `~/.batchalign.ini`:
+## version
 
 ```bash
-batchalign3 setup
-batchalign3 setup --non-interactive --engine whisper
-batchalign3 setup --non-interactive --engine rev --rev-key <KEY>
+batchalign version
 ```
 
-Options:
+## Removed or unregistered interfaces
 
-| Option | Meaning |
-| --- | --- |
-| `--engine {rev,whisper}` | Persist default ASR engine |
-| `--rev-key KEY` | Rev.AI key for non-interactive setup |
-| `--non-interactive` | Disable prompts |
-
-### `logs`
-
-```bash
-batchalign3 logs
-batchalign3 logs --last
-batchalign3 logs --export
-batchalign3 logs --clear
-```
-
-Key options:
-
-| Option | Meaning |
-| --- | --- |
-| `--last` | Show the most recent run log |
-| `--raw` | Raw JSONL output with `--last` |
-| `--export` | Zip recent logs |
-| `--clear` | Delete log files |
-| `--follow` | Tail the newest log file |
-| `-n`, `--count N` | Number of recent runs to list |
-
-### `serve`
-
-```bash
-batchalign3 serve start --foreground
-batchalign3 serve status
-batchalign3 serve stop
-```
-
-`serve start` key options:
-
-| Option | Meaning |
-| --- | --- |
-| `--port PORT` | Listen port |
-| `--host HOST` | Bind address |
-| `--config PATH` | Alternate `server.yaml` path |
-| `--python PATH` | Worker Python executable |
-| `--foreground` | Do not daemonize |
-| `--test-echo` | Start test-echo workers |
-| `--warmup VALUE` | Warmup preset (`off`, `minimal`, `full`) or comma-separated command list (e.g. `align,morphotag`) |
-
-### `jobs`
-
-```bash
-batchalign3 jobs --server http://myserver:8000
-batchalign3 jobs --server http://myserver:8000 <JOB_ID>
-batchalign3 jobs <JOB_ID>
-batchalign3 jobs --json <JOB_ID>
-batchalign3 jobs cancellations <JOB_ID>
-```
-
-With `--server`, lists or inspects remote jobs. Without `--server`,
-inspects the local job artifact directory for post-failure debugging.
-Pass `--json` for machine-readable output.
-
-The `cancellations` subcommand prints the cancellation audit history
-for a single job — every cancel attempt is recorded with `source`
-(tui / api / dashboard / staging / signal), `host`, `pid`, `reason`,
-and `in_flight_filename`. Use this when a user reports "I didn't
-cancel that job."
-
-### `cache`
-
-```bash
-batchalign3 cache stats
-batchalign3 cache clear --yes
-batchalign3 cache clear --all --yes
-```
-
-`BATCHALIGN_ANALYSIS_CACHE_DIR` and `BATCHALIGN_MEDIA_CACHE_DIR` relocate
-the underlying caches for isolated runs. BA2-compatible flag forms
-`cache --stats` and `cache --clear` are still accepted.
-
-### `openapi`
-
-```bash
-batchalign3 openapi -o openapi.json
-batchalign3 openapi --check --output openapi.json
-```
-
-`--check` exits non-zero when the target file does not match the generated
-schema.
-
-### `models`
-
-Two subcommands:
-
-| Subcommand | Purpose |
-| --- | --- |
-| `models prep` | Extract training text from CHAT files (Rust-native, no CLAN needed) |
-| `models train` | Forward to the Python training runtime (`python -m batchalign.models.training.run`) |
-
-See [Models Training Runtime ADR](../decisions/models-training-runtime-adr.md).
-
-### `ipc-schema`
-
-```bash
-batchalign3 ipc-schema -o schemas/
-batchalign3 ipc-schema --check --output schemas/
-```
-
-Emits JSON Schema for Rust→Python IPC types. Without `-o`, schemas are
-written to stdout as a single JSON object. With `--check`, exits non-zero
-on schema drift against the target directory.
-
-### `bench`
-
-```bash
-batchalign3 bench <COMMAND> <IN_DIR> <OUT_DIR> [--runs N]
-```
-
-Benchmark command execution time across repeated runs. `<COMMAND>` is
-one of: `align`, `transcribe`, `transcribe_s` (with diarization),
-`compare`. Distinct from the `benchmark` top-level command, which
-measures ASR word accuracy.
-
-### `doctor`
-
-```bash
-batchalign3 doctor
-batchalign3 doctor --lang yue --format json
-```
-
-Pre-flight diagnostic that spawns a test worker, sends known inputs
-through the morphosyntax pipeline, and validates the output structure.
-Catches machine-specific issues (stale models, missing processors, MWT
-quirks) before they become production failures.
-
-| Option | Meaning |
-| --- | --- |
-| `--lang LANG` | Language to test (default: `eng`) |
-| `--format {human,json}` | Output format (default: `human`) |
-| `--python PATH` | Custom Python path (overrides `BATCHALIGN_PYTHON`) |
-
-### `replay`
-
-```bash
-batchalign3 replay <DUMP_FILE>
-batchalign3 replay --lang yue path/to/failed_ipc_*.json
-```
-
-Replay a captured failed IPC request against a fresh worker. Takes a
-dump file from `~/.batchalign3/debug/` and sends the exact request to
-a new worker, reporting the response. Useful for reproducing field
-failures locally.
-
-### `eval`
-
-```bash
-batchalign3 eval l2-morphotag <ARGS>
-```
-
-Evaluation subcommands. Currently:
-
-| Subcommand | Purpose |
-| --- | --- |
-| `eval l2-morphotag` | L2 morphotag evaluation: pair `@s` words with `%mor` / `%gra` items via typed AST walk (supersedes `scripts/l2-eval/analyze.py`) |
-
-### `version`
-
-```bash
-batchalign3 version
-```
-
-Prints version and build information.
-
-## Exit codes
-
-`batchalign3` uses stable non-zero exit code categories:
-
-| Code | Meaning |
-| --- | --- |
-| `2` | Usage/input error |
-| `3` | Configuration error |
-| `4` | Network/connectivity error |
-| `5` | Server/job lifecycle error |
-| `6` | Local runtime error |
-
-Exit code `1` is reserved for unexpected failures outside the typed categories.
+The current command registry does not expose `serve`, `jobs`, `logs`, `setup`,
+`doctor`, `bench`, `benchmark`, `eval`, or `coref`. A coreference recipe and backend interface
+exist in the Python API, but the module under `cli/hidden/` is not registered as
+a public command. Old server and benchmark examples are not current CLI syntax.

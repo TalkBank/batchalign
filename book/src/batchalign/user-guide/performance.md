@@ -1,120 +1,65 @@
-# Performance
+# Understanding processing speed and memory use
 
-**Status:** Current
-**Last updated:** 2026-05-01 22:47 EDT
+Processing time depends on the input, backend, hardware, and cache state.
+A first run may download models; a later CLI invocation still has to start
+Python and initialize the backends it needs. Saved results can avoid inference,
+including for text tasks such as morphosyntax. See [Caching](caching.md).
 
-This page covers what to expect from Batchalign's processing times and how to
-improve throughput.
+## How work overlaps
 
-## Cold vs warm starts
+The CLI runs a Rust pipeline inside the Python process. It admits a limited
+number of input files and sends their task requests to shared backend queues.
+`--parallel N` controls file admission; the default is 8.
 
-The first run of any command downloads ML models and initializes them — expect
-5-20x longer than subsequent runs. After the first run:
+Each registered backend has one batcher. It checks the result cache, collects
+misses up to the backend's batch size or batching deadline, then calls that
+backend. That batcher awaits the call before starting another call. Different
+backends can overlap work; `--parallel` does not create N model processes.
 
-- **Model cache:** Stanza, Whisper, and other ML models are cached on disk
-  (~2 GB total). They load from cache on subsequent runs.
-- **Server warmth:** When an explicit server is running, workers can stay warm
-  in memory across multiple jobs. Direct local execution does not keep a daemon
-  alive between CLI invocations.
-- **Analysis cache:** Batchalign caches **audio-bound** intermediate
-  results (forced-alignment word timings, UTR ASR) in a local SQLite
-  database keyed by content hash. Re-running `align` or `transcribe` on
-  the same audio reuses these and is much faster. Text-NLP commands
-  (`morphotag`, `utseg`, `translate`, `coref`) are **not cached** — see
-  [Caching](caching.md).
+For morphosyntax, the current defaults are:
 
-| Scenario | Relative Speed |
-|----------|---------------|
-| First run (model download + init) | 1x (baseline) |
-| Cold start (models cached on disk) | 3-5x faster |
-| Warm server (models in memory) | 5-20x faster |
-| Cached audio task (`align` / `transcribe` UTR re-run) | Near-instant |
+| Control | Value | Meaning |
+|---|---:|---|
+| Active files | 8 | CLI `--parallel` default |
+| Pending utterances per active file | 128 | Rust morphotag dispatch window |
+| Requests per Stanza backend batch | Up to 128 | Backend batch maximum |
+| Batch collection window | Up to 100 ms after the first miss | Allows requests to accumulate |
+| Resident Stanza pipeline configurations in the process-wide LRU | 2 | Keyed by language set and retokenization mode |
 
-## File concurrency
+Stanza groups a received batch by language configuration. A mixed-language batch
+may produce several smaller model calls. The CLI orders morphotag files by
+language header, then by descending file size within a group, to improve locality.
+One sufficiently large file can fill a batch without additional file concurrency.
 
-`--parallel N` controls the maximum number of active input files (default: 8).
-Place it before the command:
+## What the bounds do—and do not—mean
 
-```bash
-batchalign3 --parallel 4 morphotag ~/corpus/ -o ~/output/
-```
+The engine bounds active file work and backend queue lengths, and morphotag
+bounds pending utterance futures. These limits prevent the scheduler from
+submitting the entire corpus for inference at once. They are not an RSS budget.
+The CLI still discovers input paths up front, and active files retain transcript
+state. Long utterances, decoded audio, model weights, inference tensors, and
+allocator retention can dominate memory.
 
-Active files share the backend batcher. Morphotag uses one Stanza call at a
-time, with up to 128 utterances per batch. Increasing file concurrency can
-improve batch filling without creating additional model replicas.
+Increasing file concurrency can improve overlap or batch filling, but can also
+increase RSS without speeding up inference. Increasing utterance batch size
+makes each model call larger. These are separate tuning decisions.
 
-## CPU vs GPU
+## Device selection
 
-Batchalign automatically uses GPU acceleration when available (CUDA on Linux,
-MPS on macOS). To force CPU-only processing:
+Device behavior belongs to the selected backend. `align`, `transcribe`, and
+`utseg` expose `--force-cpu` and an explicit `--allow-mps` option for applicable
+local models. `morphotag` does not expose those flags; its Stanza configuration
+uses the library's device selection. There is no universal GPU speedup factor.
 
-```bash
-batchalign3 morphotag ~/corpus/ -o ~/output/ --force-cpu
-```
+## Measure your workload
 
-CPU-only is slower but uses less memory and avoids GPU driver issues. On
-machines without a supported GPU, CPU mode is selected automatically.
+Compare the same inputs, outputs, backend settings, package version, and cache
+policy. Record model-download time separately from ordinary startup, and report
+whether results were cached. Use utterances per second as well as files per
+second when transcript lengths vary. Measure peak RSS alongside elapsed time;
+a larger batch can trade substantial memory for a small throughput improvement.
 
-## Memory patterns
-
-Memory depends on the loaded models, active files, and inference batch size.
-`--parallel N` bounds the number of active files, so larger values can retain
-more parsed transcripts and pending inputs. It does not multiply the number
-of Stanza model instances by N.
-
-Batch length also matters: 128 long utterances can require substantially more
-memory than 128 short ones. File concurrency and backend batch size should be
-tuned separately.
-
-Audio is loaded on demand; concurrent files can also retain decoded audio.
-
-## Server mode for warm models
-
-For repeated interactive use, keep models loaded in the background:
-
-```bash
-batchalign3 serve start
-```
-
-Subsequent commands automatically connect to the running daemon. Stop it when
-done:
-
-```bash
-batchalign3 serve stop
-```
-
-See [Server Mode](server-mode.md) for configuration details and
-[Worker Tuning](worker-tuning.md) for memory budgets and warmup configuration.
-
-## The `bench` command
-
-Measure processing throughput on your hardware. The shape is
-`bench <command> <in_dir> <out_dir>` — both directories are required
-positional arguments:
-
-```bash
-batchalign3 --parallel 1 bench morphotag ~/sample-corpus/ ~/bench-out/
-batchalign3 --parallel 4 bench morphotag ~/sample-corpus/ ~/bench-out/
-```
-
-This runs the command with timing instrumentation and reports files/second and
-wall-clock time per file. Use `--runs N` to repeat the run, `--use-cache` to
-keep cache lookups enabled (the default is to bypass cache for clean
-benchmarks), and `--dataset <label>` to tag structured output.
-
-## Estimated times per command
-
-Rough estimates for a single file (~100 utterances) on a modern laptop with
-warm daemon:
-
-| Command | Warm Daemon | Cold Start |
-|---------|------------|------------|
-| `morphotag` | 2-5 seconds | 30-60 seconds |
-| `align` | 5-15 seconds | 45-90 seconds |
-| `transcribe` | 10-60 seconds (depends on audio length) | 60-120 seconds |
-| `translate` | 2-5 seconds | 30-60 seconds |
-| `utseg` | 3-8 seconds | 30-60 seconds |
-| `compare` | <1 second | <1 second |
-
-Times vary significantly with hardware, file size, and language. GPU
-acceleration typically provides a 2-5x speedup for model inference.
+For a practical file-concurrency comparison, see [Tune file concurrency](worker-tuning.md).
+The current CLI has no `bench` command. The GUI's HTTP service is a separate
+entrypoint; ordinary CLI processing does not automatically connect to it or keep
+a background model service alive between invocations.

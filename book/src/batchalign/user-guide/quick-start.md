@@ -1,7 +1,7 @@
 # Quick Start
 
 **Status:** Current
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-13
 
 Install Batchalign with the command in the
 [TalkBank/batchalign README](https://github.com/TalkBank/batchalign#install-batchalign).
@@ -44,21 +44,13 @@ updates the files in place.
 
 ## Before you start
 
-**Model downloads:** The first time you run a processing command, Batchalign
-downloads ML models (~2 GB). This is a one-time cost — subsequent runs use
-cached models from disk.
+**Model downloads:** The first use of a backend may download its models. Download
+size and startup time depend on the backend and language. Later runs reuse model
+files from disk.
 
-**Caching:** Batchalign caches **audio-bound** intermediate results
-(forced-alignment word timings and the UTR ASR pass) in a local SQLite
-database, so re-running `align` or `transcribe` on the same audio
-returns those steps from cache. Text-NLP commands (`morphotag`,
-`utseg`, `translate`, `coref`) are not cached and always recompute.
-See [Caching](caching.md) for details.
-
-**Performance:** Back-to-back runs are still much faster than first-run model
-downloads because models and caches stay on disk. If you need hot in-memory
-workers across repeated runs, start an explicit server with `batchalign serve`.
-See [Performance](performance.md) for tuning tips.
+**Caching:** Batchalign saves text and audio backend results in a local LMDB
+cache. Repeat runs can reuse matching results, although startup and file
+processing still take time. See [Caching](caching.md) for details.
 
 ## Basic command shape
 
@@ -67,8 +59,8 @@ batchalign [GLOBAL OPTIONS] COMMAND [COMMAND OPTIONS] [PATHS...]
 ```
 
 - Global options go before the command.
-- Most processing commands use `-o/--output` for a destination directory.
-- Omitting `-o/--output` means in-place processing when the command supports it.
+- Most processing commands use `-o/--out` for a destination directory.
+- Omitting `-o/--out` means in-place processing when the command supports it.
 
 ## Transcribe audio to CHAT
 
@@ -76,23 +68,19 @@ batchalign [GLOBAL OPTIONS] COMMAND [COMMAND OPTIONS] [PATHS...]
 batchalign transcribe ~/recordings/ -o ~/transcripts/ --lang eng
 ```
 
-To use OpenAI Whisper instead of the default Rev.AI engine:
+To use the local OpenAI Whisper package instead of the default Rev.AI engine:
 
 ```bash
 batchalign transcribe ~/recordings/ -o ~/transcripts/ \
-  --asr-engine whisper-oai --lang eng
+  --engine openai --lang eng
 ```
 
 To use a local Whisper model:
 
 ```bash
 batchalign transcribe ~/recordings/ -o ~/transcripts/ \
-  --asr-engine whisper --lang eng
+  --engine whisper --lang eng
 ```
-
-Important routing note: explicit `--server` now submits shared-filesystem
-`paths_mode` jobs for `transcribe`. The target server must be able to read the
-same input paths and write the requested output paths.
 
 ## Align transcripts against audio
 
@@ -103,8 +91,7 @@ batchalign align ~/corpus/ -o ~/aligned/
 Common useful flags:
 
 ```bash
-batchalign align ~/corpus/ -o ~/aligned/ --wor
-batchalign align ~/corpus/ -o ~/aligned/ --fa-engine whisper
+batchalign align ~/corpus/ -o ~/aligned/ --engine whisper
 batchalign align ~/corpus/ -o ~/aligned/ --utr-engine whisper
 ```
 
@@ -118,14 +105,8 @@ Useful variants:
 
 ```bash
 batchalign morphotag ~/corpus/ -o ~/tagged/ --retokenize
-batchalign morphotag ~/corpus/ -o ~/tagged/ --skipmultilang
+batchalign morphotag ~/corpus/ -o ~/tagged/ --keep-existing
 ```
-
-`morphotag` is not cached, so repeated runs run the full Stanza pipeline
-again. The wall-clock win for repeated runs comes from keeping workers
-warm in memory rather than from disk caching. For interactive sessions
-where you want workers to stay loaded across commands, use explicit
-server mode (`batchalign serve start` plus `--server`).
 
 ## Verbosity
 
@@ -136,29 +117,10 @@ batchalign -vv align ~/corpus/ -o ~/aligned/
 batchalign -vvv align ~/corpus/ -o ~/aligned/
 ```
 
-## Run logs
-
-```bash
-batchalign logs
-batchalign logs --last
-batchalign logs --export
-batchalign logs --clear
-```
-
-## Remote server mode
-
-For commands that support explicit remote dispatch:
-
-```bash
-batchalign --server http://yourserver:8000 morphotag ~/corpus/ -o ~/tagged/
-batchalign --server http://yourserver:8000 align ~/corpus/ -o ~/aligned/
-```
-
 ## Next steps
 
 - [Batchalign Desktop (Experimental)](desktop-app.md) — in-repo GUI shell status and scope
 - [CLI Reference](cli-reference.md)
 - [Performance](performance.md)
-- [Server Mode](server-mode.md)
 - [Rev.AI Integration](rev-ai.md)
 - [Python API](python-api.md)

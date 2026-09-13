@@ -1,0 +1,26 @@
+# Contributors and operations: how-to guides
+
+Choose the task you want to complete.
+
+- [Setup](../contributing/setup.md)
+- [Grammar Workflow](../contributing/grammar-workflow.md)
+- [Spec Workflow](../contributing/spec-workflow.md)
+- [Testing](../contributing/testing.md)
+- [Coding Standards](../contributing/coding-standards.md)
+- [Coding Standards (Extended)](../contributing/coding-standards-extended.md)
+- [Parameter Design](../contributing/parameter-design.md)
+- [CLI Option Wiring](../contributing/cli-option-wiring.md)
+- [CI and Release](../contributing/ci-and-release.md)
+- [Quality Gates](../contributing/quality-gates.md)
+- [Documentation Architecture](../contributing/documentation-architecture.md)
+- [CHAT Processing Playbook (Developers)](../contributing/chat-processing-playbook.md)
+- [Open-Source Governance](../contributing/open-source-governance.md)
+- [Compile Times](../contributing/compile-times.md)
+- [Dev Checks](../contributing/dev-checks.md)
+- [Branch Protection](../contributing/branch-protection.md)
+- [Reference Corpus](../contributing/reference-corpus.md)
+- [Desktop App Testing](../contributing/desktop-testing.md)
+- [Overview](../operations/README.md)
+- [Release Pipeline](../operations/release-pipeline.md)
+- [Code Signing & Distribution](../operations/code-signing-and-distribution.md)
+- [Validation Feature Flags](../operations/validation-feature-flags.md)

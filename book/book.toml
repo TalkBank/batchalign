@@ -18,5 +18,115 @@ traverse-parent-directories = false
 warning-policy = "error"
 
 [output.html]
+no-section-label = true
 git-repository-url = "https://github.com/TalkBank/batchalign"
 edit-url-template = "https://github.com/TalkBank/batchalign/edit/main/book/{path}"
+
+[output.html.fold]
+enable = true
+level = 0
+
+# Keep navigation and retired-location pointers out of factual search results.
+[output.html.search.chapter]
+"diataxis" = { enable = false }
+"batchalign/reference/documentation-audit.md" = { enable = false }
+"architecture/python-rust-boundary/python-rust-boundary.md" = { enable = false }
+"architecture/runtime/audio-task-cache.md" = { enable = false }
+"architecture/runtime/batchalign-workers.md" = { enable = false }
+"architecture/runtime/dashboard-architecture.md" = { enable = false }
+"architecture/runtime/dispatch.md" = { enable = false }
+"batchalign/architecture/algorithm-visualizations.md" = { enable = false }
+"batchalign/architecture/align-throughput.md" = { enable = false }
+"batchalign/architecture/cache-override-guide.md" = { enable = false }
+"batchalign/architecture/chat-parsing.md" = { enable = false }
+"batchalign/architecture/command-contracts.md" = { enable = false }
+"batchalign/architecture/command-flowcharts.md" = { enable = false }
+"batchalign/architecture/incremental-processing.md" = { enable = false }
+"batchalign/architecture/job-state-machine.md" = { enable = false }
+"batchalign/architecture/morphotag-invariants.md" = { enable = false }
+"batchalign/architecture/number-expansion.md" = { enable = false }
+"batchalign/architecture/observability.md" = { enable = false }
+"batchalign/architecture/overlap-encoding.md" = { enable = false }
+"batchalign/architecture/path-provenance.md" = { enable = false }
+"batchalign/architecture/pipeline-decisions.md" = { enable = false }
+"batchalign/architecture/preprocessing-postprocessing.md" = { enable = false }
+"batchalign/architecture/progress-reporting.md" = { enable = false }
+"batchalign/architecture/provenance.md" = { enable = false }
+"batchalign/architecture/replacements-handling.md" = { enable = false }
+"batchalign/architecture/server-model-loading.md" = { enable = false }
+"batchalign/architecture/stanza-capability-registry.md" = { enable = false }
+"batchalign/architecture/stanza-defect-mitigation-map.md" = { enable = false }
+"batchalign/architecture/test-server-lifecycle.md" = { enable = false }
+"batchalign/architecture/time-transparency.md" = { enable = false }
+"batchalign/architecture/type-driven-design.md" = { enable = false }
+"batchalign/architecture/worker-failure-classification.md" = { enable = false }
+"batchalign/decisions/lenient-parsing.md" = { enable = false }
+"batchalign/decisions/models-training-runtime-adr.md" = { enable = false }
+"batchalign/decisions/release-state-machine.md" = { enable = false }
+"batchalign/decisions/trait-based-dispatch.md" = { enable = false }
+"batchalign/developer/api-stability.md" = { enable = false }
+"batchalign/developer/apple-mps-workarounds.md" = { enable = false }
+"batchalign/developer/arena-allocators.md" = { enable = false }
+"batchalign/developer/backchannel-aware-alignment.md" = { enable = false }
+"batchalign/developer/chat-validation-failures.md" = { enable = false }
+"batchalign/developer/commands/align.md" = { enable = false }
+"batchalign/developer/commands/benchmark.md" = { enable = false }
+"batchalign/developer/commands/compare.md" = { enable = false }
+"batchalign/developer/commands/coref.md" = { enable = false }
+"batchalign/developer/commands/morphotag.md" = { enable = false }
+"batchalign/developer/commands/transcribe.md" = { enable = false }
+"batchalign/developer/commands/translate.md" = { enable = false }
+"batchalign/developer/commands/utseg.md" = { enable = false }
+"batchalign/developer/debugging-infrastructure.md" = { enable = false }
+"batchalign/developer/decision-provenance.md" = { enable = false }
+"batchalign/developer/gra-correctness-guarantee.md" = { enable = false }
+"batchalign/developer/host-facts.md" = { enable = false }
+"batchalign/developer/http-body-limits.md" = { enable = false }
+"batchalign/developer/investigation-probe-harnesses.md" = { enable = false }
+"batchalign/developer/ipc-type-sync.md" = { enable = false }
+"batchalign/developer/landing-status.md" = { enable = false }
+"batchalign/developer/maturin-pyo3-surface.md" = { enable = false }
+"batchalign/developer/memory-safety.md" = { enable = false }
+"batchalign/developer/model-downloads-and-caching.md" = { enable = false }
+"batchalign/developer/non-english-workarounds.md" = { enable = false }
+"batchalign/developer/plugins.md" = { enable = false }
+"batchalign/developer/regression-fixtures.md" = { enable = false }
+"batchalign/developer/reliability-program.md" = { enable = false }
+"batchalign/developer/rust-cli-and-server.md" = { enable = false }
+"batchalign/developer/rust-contributor-onboarding.md" = { enable = false }
+"batchalign/developer/rust-core.md" = { enable = false }
+"batchalign/developer/tauri-react-dashboard.md" = { enable = false }
+"batchalign/developer/terminator-architecture.md" = { enable = false }
+"batchalign/developer/testing-turmoil.md" = { enable = false }
+"batchalign/developer/worker-protocol-v2.md" = { enable = false }
+"batchalign/developer/workflow-contributor-guide.md" = { enable = false }
+"batchalign/migration/algorithms-and-language.md" = { enable = false }
+"batchalign/migration/ba2-architecture-reference.md" = { enable = false }
+"batchalign/migration/ba2-cli-reference.md" = { enable = false }
+"batchalign/migration/ba2-compare-migration.md" = { enable = false }
+"batchalign/migration/debugging-and-tracing.md" = { enable = false }
+"batchalign/migration/developer-migration.md" = { enable = false }
+"batchalign/migration/persistent-state.md" = { enable = false }
+"batchalign/migration/python-to-rust-rationale.md" = { enable = false }
+"batchalign/reference/benchmarks.md" = { enable = false }
+"batchalign/reference/chinese-word-segmentation.md" = { enable = false }
+"batchalign/reference/cross-repo-dependency.md" = { enable = false }
+"batchalign/reference/hebrew-morphosyntax.md" = { enable = false }
+"batchalign/reference/japanese-morphosyntax.md" = { enable = false }
+"batchalign/reference/l2-handling.md" = { enable = false }
+"batchalign/reference/l2-morphotag-literature.md" = { enable = false }
+"batchalign/reference/l2-morphotag-status.md" = { enable = false }
+"batchalign/reference/l2-morphotag.md" = { enable = false }
+"batchalign/reference/language-code-resolution.md" = { enable = false }
+"batchalign/reference/language-specific-processing.md" = { enable = false }
+"batchalign/reference/morphotag-retokenization.md" = { enable = false }
+"batchalign/reference/multilingual.md" = { enable = false }
+"batchalign/reference/nlp-engine-text-input.md" = { enable = false }
+"batchalign/reference/overlap-markers.md" = { enable = false }
+"batchalign/reference/pos-hints.md" = { enable = false }
+"batchalign/reference/retokenization-overview.md" = { enable = false }
+"batchalign/reference/revai-language-quality-strategy.md" = { enable = false }
+"batchalign/reference/stanza-limitations.md" = { enable = false }
+"batchalign/reference/utterance-segmentation.md" = { enable = false }
+"batchalign/reference/whisper-asr.md" = { enable = false }
+"batchalign/reference/wor-tier.md" = { enable = false }

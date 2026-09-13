@@ -5,8 +5,8 @@
 
 The CHAT-core validation cache, used by `chatter validate` and the
 LSP server. Distinct from the
-[audio-task cache](../runtime/audio-task-cache.md) used by Batchalign
-for FA / UTR ASR / media conversion: this cache stores
+[result cache](../../batchalign/user-guide/caching.md) used by Batchalign
+for text and audio backend results: this cache stores
 **parse + validate** results keyed by file path + options.
 
 `crates/talkbank-transform/src/unified_cache/`.

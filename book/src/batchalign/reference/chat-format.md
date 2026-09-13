@@ -1,40 +1,14 @@
-# CHAT Dependent Tier Handling by Command
+# CHAT handling by the pipeline
 
-**Status:** Current
-Each command reads and writes different dependent tiers (`%mor`, `%gra`, `%wor`, `%xtra`).
-This determines which parse mode is used at pipeline entry.
+The Rust core uses TalkBank's CHAT model and parser. File input conversion enters
+through `Chat::parse`; task runners operate on the resulting typed state, and
+outcome writing serializes it. Python CLI code owns path selection and may stage
+input text before the Rust parse.
 
-## Parse modes
+For morphology, staging removes existing `%mor`/`%gra` by default, while
+`--keep-existing` retains them. Translation emits `%eng`. Transcription creates
+a new transcript from media. See [Command I/O](command-io.md) for the complete
+input/output table and [Morphosyntax](morphosyntax.md) for tier alignment checks.
 
-- **Strict** (`ParsedChat.parse()`): Rejects the file on ANY parse error. Used when the
-  input is expected to be valid — i.e., output from a previous pipeline stage.
-- **Lenient** (`ParsedChat.parse_lenient()`): Error recovery — keeps parseable content and
-  drops broken tiers. Used at pipeline entry because input may have malformed dependent
-  tiers from legacy CLAN runs or previous batchalign versions.
-
-## Where each parse mode is used
-
-| Location | Mode | Why |
-|----------|------|-----|
-| Rust server (per-file dispatch) | Lenient | Input CHAT may have broken dep tiers |
-| Rust server (post-injection re-parse) | Strict | Engine output should be valid; catch bugs early |
-| Rust server (comment insertion) | Strict | Pipeline output should be valid |
-
-## Per-command tier handling
-
-| Command | Reads Dep Tiers | Writes Dep Tiers | Notes |
-|---------|----------------|-----------------|-------|
-| morphotag | None (clears %mor/%gra first) | %mor, %gra | `clear_morphosyntax()` strips existing tiers before processing |
-| align | %wor (for UTR) | %wor | Regenerates timing from scratch |
-| translate | None | %xtra | Adds translation tier |
-| utseg | None | (restructures utterances) | Splits/merges utterance boundaries |
-| transcribe | N/A (generates from audio) | All | Creates fresh CHAT |
-
-## Why morphotag clears before processing
-
-The Rust `collect_morphosyntax_payloads()` function skips utterances that already
-have a `%mor` tier (optimization for cache injection). Without clearing first, files
-with existing `%mor` would be silently round-tripped unchanged. Calling
-`handle.clear_morphosyntax()` at the top of `process_morphosyntax()` ensures
-all utterances are reprocessed. Cache hits still work — the cache lookup happens
-*after* clearing but *before* Stanza runs.
+For CHAT syntax, use the shared [CHAT format reference](../../chat-format/overview.md).
+The old Rust-server parse-mode table does not describe this pipeline entrypoint.
