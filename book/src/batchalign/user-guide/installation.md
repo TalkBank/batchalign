@@ -43,6 +43,5 @@ For an existing `uv` installation, the equivalent command is:
 uv tool install --upgrade --python=3.11 --prerelease=allow 'batchalign[all]>=0.10'
 ```
 
-The package on PyPI is named `batchalign`. It provides both `batchalign` and
-`batchalign3` command names. Model files may download separately when you first
-use a backend; see [Model downloads](model-downloads.md).
+The package on PyPI is named `batchalign`. It installs the `batchalign` command.
+Model files may download separately when you first use a backend; see [Model downloads](model-downloads.md).

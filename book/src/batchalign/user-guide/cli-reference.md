@@ -1,6 +1,6 @@
 # CLI reference
 
-The `batchalign` and `batchalign3` entrypoints run the same CLI.
+The installed command is `batchalign`.
 Options below are checked against `python/batchalign/cli/` for version 0.10.1.
 Run `batchalign COMMAND --help` for the help shipped with your installation.
 
