@@ -28,7 +28,8 @@ def test_root_help():
     assert result.exit_code == 0
     for cmd in SUBCOMMANDS:
         assert cmd in result.output, f"missing {cmd} in root --help"
-    assert "--workers" in result.output
+    assert "--parallel" in result.output
+    assert "--workers" not in result.output
 
 
 @pytest.mark.parametrize("cmd", SUBCOMMANDS)
@@ -143,7 +144,7 @@ def test_ai_passes_instruction_to_inputs(tmp_path, monkeypatch):
     result = CliRunner().invoke(
         app,
         [
-            "--workers",
+            "--parallel",
             "3",
             "ai",
             "revise punctuation",

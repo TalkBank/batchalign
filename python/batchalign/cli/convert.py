@@ -8,7 +8,13 @@ from typing import Any
 
 import typer
 
-from ._common import MEDIA_EXTENSIONS, _root_for, _walk, safe_resolve
+from ._common import (
+    MEDIA_EXTENSIONS,
+    InputSelection,
+    selected_inputs,
+    safe_resolve,
+    resolve_inputs,
+)
 from ._options import cli_options
 from .tui import Interface, Task
 
@@ -30,22 +36,23 @@ def _target_for(source: Path, root: Path, out: Path | None, suffix: str) -> Path
 
 
 def _collect(
-    folder: Path,
+    source: Path | InputSelection,
     out: Path | None,
     suffix: str,
 ) -> tuple[list[Any], Path, dict[str, Path]]:
     from batchalign.inputs import media_from_path
 
-    root = _root_for(folder)
+    selection = selected_inputs(source, MEDIA_EXTENSIONS)
+    root = selection.root
     out_resolved = out.expanduser().resolve() if out is not None else None
     paths = []
-    for path in _walk(folder, MEDIA_EXTENSIONS):
+    for path in selection.paths:
         resolved = path.resolve()
         if out_resolved is not None and resolved.is_relative_to(out_resolved):
             continue
         paths.append(path)
     if not paths:
-        raise typer.BadParameter(f"no supported media files found in {folder}")
+        raise typer.BadParameter(f"no supported media files found in {source}")
 
     targets: dict[str, Path] = {}
     target_sources: dict[Path, Path] = {}
@@ -76,8 +83,8 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def convert(
         ctx: typer.Context,
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
             help="Media file or folder to walk recursively.",
         ),
@@ -86,6 +93,11 @@ def register(app: typer.Typer) -> None:
             "--format",
             case_sensitive=False,
             help="Output format: mp3 or wav.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None,
@@ -97,9 +109,10 @@ def register(app: typer.Typer) -> None:
         """Convert media files to WAV or MP3 without replacing source media."""
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, MEDIA_EXTENSIONS)
         opts = cli_options(ctx)
         suffix = f".{format.value}"
-        inputs, _root, targets = _collect(folder, out, suffix)
+        inputs, _root, targets = _collect(selection, out, suffix)
 
         with Interface.open(
             command="convert",
@@ -109,7 +122,7 @@ def register(app: typer.Typer) -> None:
             plain=opts.plain,
             quiet=opts.quiet,
         ) as ui:
-            pipeline = ba.recipes.convert(format=format.value, workers=opts.workers)
+            pipeline = ba.recipes.convert(format=format.value, workers=opts.parallel)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
 

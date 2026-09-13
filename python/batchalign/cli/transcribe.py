@@ -24,7 +24,12 @@ import typer
 
 from ..backends.base import ASR, Backend
 from ..lang import LanguageCode
-from ._common import collect_media_inputs, write_outcome
+from ._common import (
+    collect_media_inputs,
+    write_outcome,
+    MEDIA_EXTENSIONS,
+    resolve_inputs,
+)
 from .diarize import DiarizeEngine, _build_backend as _build_diarize_backend
 from ._options import cli_options, inference_device
 from .tui import Interface, Task
@@ -98,10 +103,15 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def transcribe(
         ctx: typer.Context,
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
-            help="Folder to walk recursively for media files (single file also accepted).",
+            help="Input media files or directories to walk recursively.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None, "--out", "-o",
@@ -153,6 +163,7 @@ def register(app: typer.Typer) -> None:
         """
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, MEDIA_EXTENSIONS)
         opts = cli_options(ctx)
 
         # Validate the language string at the CLI boundary so failures
@@ -219,9 +230,9 @@ def register(app: typer.Typer) -> None:
                 asr_backend=pipeline_asr_backend,
                 speaker_backend=speaker_backend,
                 utseg_backend=utseg_backend,
-                workers=opts.workers,
+                workers=opts.parallel,
             )
-            inputs, root = collect_media_inputs(folder, language=lang_code.alpha_3)
+            inputs, root = collect_media_inputs(selection, language=lang_code.alpha_3)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

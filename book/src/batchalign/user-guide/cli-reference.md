@@ -22,7 +22,7 @@ Global options go before the command name.
 | Option | Meaning |
 | --- | --- |
 | `-v`, `-vv`, `-vvv` | Increase verbosity |
-| `--workers N` | Maximum concurrent files per job (default: auto-tune; GPU commands default to 1). Auto-tune is `(ram_total_mb / 16 GB).clamp(1, 8)` for GPU-bound work. |
+| `--parallel N` | Maximum number of input files processed concurrently (default: 8; minimum: 1). |
 | `--force-cpu` | Disable MPS/CUDA and force CPU-only models |
 | `--server URL` | Remote server URL. Env fallback: `BATCHALIGN_SERVER` |
 | `--override-media-cache` | Bypass the media analysis cache (audio tasks only; text NLP tasks are not cached at all) |
@@ -52,7 +52,7 @@ batchalign3 morphotag corpus/ -o output/ --sequential
 ```
 
 **What it does:**
-- Forces `--workers 1` and `--no-server`
+- Forces `--parallel 1` and `--no-server`
 - Disables the memory gate (no cross-process coordination)
 - Keeps the worker alive for the entire run (no idle timeout kills)
 - Preserves the utterance cache (repeated runs benefit from cached results)
@@ -92,46 +92,43 @@ explicitly in interactive sessions, pass `--no-open-dashboard`.
 
 ## Common path-processing options
 
-The core processing commands documented below all accept:
+The file-processing commands accept one or more input files or directories:
 
 | Option | Meaning |
 | --- | --- |
-| `PATHS...` | Input files or directories |
-| `-o`, `--output DIR` | Output directory |
-| `--file-list FILE` | Read input paths from a text file (see below) |
-| `--in-place` | Modify inputs in place |
+| `PATHS...` | Input files or directories, walked recursively |
+| `-o`, `--out DIR` | Output directory; otherwise write beside each source |
+| `-i`, `--input-list FILE`, `--file-list FILE` | Read additional input paths from a text file |
 
-When exactly two positional paths are provided, the CLI still accepts the
-legacy input/output directory form. For new scripts, prefer `-o/--output`.
+### Input lists
 
-### `--file-list` format
-
-`--file-list FILE` reads input paths from a plain-text file, one path per
-line. Blank lines and lines beginning with `#` are ignored. All paths must
-exist at the time the command runs; a missing path is a hard error.
+An input list is UTF-8 text with one file or directory path per line. Blank
+lines and lines beginning with `#` are ignored. Relative paths are resolved
+against the list file's directory; absolute paths are accepted. Paths with
+spaces need no quotes. Missing paths are errors.
 
 ```text
-# My align re-run list
-/data/aphasia/Cantonese/Protocol/HKU/A023.cha
-/data/aphasia/Cantonese/Protocol/HKU/A024.cha
-
-# these two need re-running too
-/data/ca/CallHome/English/4092.cha
-/data/ca/CallHome/English/4093.cha
+# Individual file and a directory to scan recursively
+recordings/interview.wav
+/data/corpus/session2
 ```
 
 ```bash
-# Run align on every file in the list (in-place, against a remote server)
-batchalign3 --server http://your-server:8001 align --file-list my-list.txt
+batchalign3 transcribe --lang eng -i recordings.txt
+batchalign3 align -i transcripts.txt -o aligned
+batchalign3 morphotag first.cha second.cha corpus/
 ```
 
-To process a large list in smaller batches, split the list into
-chunked files (e.g. with `split -l 10 my-list.txt batch-`) and run
-`batchalign3 align --file-list <chunk>` on each chunk sequentially.
+The positional input is optional when `-i` is supplied. Positional paths and
+list entries can also be combined. Both use the same discovery rules, and
+repeated or overlapping files are processed once. For `ai`, the instruction
+remains required: `batchalign3 ai "Fix punctuation" -i transcripts.txt`.
 
-`--file-list` is mutually exclusive with positional `PATHS` arguments. It
-does not accept a separate `-o/--output` directory — each path in the list
-is processed in-place (output overwrites input).
+Without `-o`, outputs use each source's normal location. With `-o`, directory
+structure is preserved relative to the common ancestor of the input
+directories (or parent directories for individual files). A single directory
+keeps its existing output layout. Comparison still finds gold templates beside
+each selected transcript.
 
 For batched text-NLP commands (`morphotag`, `utseg`, `translate`, `coref`),
 large `--file-list` runs may not show file-by-file on-disk rewrites while the

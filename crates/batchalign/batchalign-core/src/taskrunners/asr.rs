@@ -113,6 +113,7 @@ fn build_chat_from_asr(
 ) -> BAResult<Chat> {
     use crate::asr::chat::{ParticipantDesc, build_chat, transcript_from_asr_utterances};
     use talkbank_model::ErrorCollector;
+    use talkbank_model::model::{BulletContent, Header, Line};
 
     let lang_code = resolve_lang_code(language);
 
@@ -172,7 +173,23 @@ fn build_chat_from_asr(
     // Let the official CHAT builder infer audio vs. video from the media path.
     desc.media_type = None;
 
-    let chat_file = build_chat(&desc).map_err(|e| BAError::Internal(format!("build_chat: {e}")))?;
+    let mut chat_file =
+        build_chat(&desc).map_err(|e| BAError::Internal(format!("build_chat: {e}")))?;
+
+    // Keep the required CHAT headers first, then flag the transcript for review.
+    let comment_index = chat_file
+        .lines
+        .iter()
+        .position(|line| {
+            line.is_utterance() || matches!(line.as_header(), Some(Header::Media(_) | Header::End))
+        })
+        .unwrap_or(chat_file.lines.len());
+    chat_file.lines.insert(
+        comment_index,
+        Line::header(Header::Comment {
+            content: BulletContent::from_text("Unchecked output of ASR model"),
+        }),
+    );
 
     // Provenance `@Comment` stamping happens once at end-of-pipeline in
     // `batchalign_engine::pipeline::run_one` (single source of truth for

@@ -21,12 +21,19 @@ from typing import Any
 import typer
 
 from ..lang import LanguageCode
-from ._common import CHAT_EXTENSIONS, _walk, collect_chat_inputs, write_outcome
+from ._common import (
+    CHAT_EXTENSIONS,
+    InputSelection,
+    selected_inputs,
+    collect_chat_inputs,
+    write_outcome,
+    resolve_inputs,
+)
 from ._options import cli_options, inference_device
 from .tui import Interface, Task
 
 
-def _infer_lang(folder: Path) -> LanguageCode:
+def _infer_lang(source: Path | InputSelection) -> LanguageCode:
     """Read the first CHAT file's `@Languages:` header and return its
     primary language code. Matches the per-file resolution the Rust
     runners do for FA / Morphosyntax / UTR.
@@ -34,7 +41,7 @@ def _infer_lang(folder: Path) -> LanguageCode:
     Used to construct the Rev.AI / Whisper UTR backend, which (unlike
     Stanza or Qwen3 FA) requires the language at construction time.
     """
-    for path in _walk(folder, CHAT_EXTENSIONS):
+    for path in selected_inputs(source, CHAT_EXTENSIONS).paths:
         try:
             with open(path, "r", encoding="utf-8") as fh:
                 for line in fh:
@@ -46,7 +53,7 @@ def _infer_lang(folder: Path) -> LanguageCode:
         except OSError:
             continue
     raise typer.BadParameter(
-        f"no @Languages: header found in any CHAT under {folder}; "
+        f"no @Languages: header found in any CHAT in {source}; "
         "cannot pick a UTR backend language. Pass --utr-engine off to skip UTR."
     )
 
@@ -77,10 +84,15 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def align(
         ctx: typer.Context,
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
-            help="Folder to walk recursively for CHAT files (single file also accepted).",
+            help="Input CHAT files or directories to walk recursively.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None, "--out", "-o",
@@ -121,6 +133,7 @@ def register(app: typer.Typer) -> None:
         """Run forced alignment on existing CHAT files (adds a `%wor` tier)."""
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, CHAT_EXTENSIONS)
         opts = cli_options(ctx)
 
         with Interface.open(
@@ -156,7 +169,7 @@ def register(app: typer.Typer) -> None:
                 # (unlike Stanza / Qwen3 FA, which read it per-call from
                 # the wire input). Infer it from the first CHAT's
                 # @Languages: header — same source the Rust runners use.
-                lang_code = _infer_lang(folder)
+                lang_code = _infer_lang(selection)
                 if utr_engine is UtrEngine.whisper:
                     utr_backend = ba.WhisperBackend(
                         model=utr_model or "openai/whisper-large-v3",
@@ -172,9 +185,9 @@ def register(app: typer.Typer) -> None:
             pipeline = ba.recipes.align(
                 fa_backend=fa_backend,
                 utr_backend=utr_backend,
-                workers=opts.workers,
+                workers=opts.parallel,
             )
-            inputs, root = collect_chat_inputs(folder)
+            inputs, root = collect_chat_inputs(selection)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

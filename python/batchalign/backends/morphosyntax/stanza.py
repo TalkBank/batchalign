@@ -284,7 +284,7 @@ class StanzaBackend(Morphosyntax):
         self,
         lang: str | None = None,
         *,
-        batch_size: int = 64,
+        batch_size: int = 128,
         batch_window_ms: int = 100,
         retokenize: bool = False,
     ) -> None:

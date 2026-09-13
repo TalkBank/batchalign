@@ -195,9 +195,9 @@ def _global(
         False, "--ansi",
         help="Force the live renderer even when stdout is not a TTY.",
     ),
-    workers: int = typer.Option(
+    parallel: int = typer.Option(
         8,
-        "--workers",
+        "--parallel",
         min=1,
         help="Maximum number of input files processed concurrently.",
     ),
@@ -226,7 +226,7 @@ def _global(
         verbosity=verbosity,
         plain=resolved_plain,
         quiet=quiet,
-        workers=workers,
+        parallel=parallel,
     )
 
 

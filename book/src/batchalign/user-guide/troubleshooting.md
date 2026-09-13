@@ -90,7 +90,7 @@ batchalign3 cache clear --all --yes
 Cap workers explicitly:
 
 ```bash
-batchalign3 --workers 2 morphotag corpus/ -o output/
+batchalign3 --parallel 2 morphotag corpus/ -o output/
 ```
 
 Force CPU mode:

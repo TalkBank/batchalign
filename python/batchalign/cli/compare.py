@@ -24,7 +24,13 @@ from pathlib import Path
 
 import typer
 
-from ._common import CHAT_EXTENSIONS, _root_for, _walk, write_outcome
+from ._common import (
+    CHAT_EXTENSIONS,
+    InputSelection,
+    selected_inputs,
+    write_outcome,
+    resolve_inputs,
+)
 from ._options import cli_options
 from .tui import Interface, Task
 
@@ -50,7 +56,7 @@ def _find_gold(main: Path) -> Path | None:
     return None
 
 
-def _pair_folder_with_gold(folder: Path) -> tuple[list, Path]:
+def _pair_folder_with_gold(source: Path | InputSelection) -> tuple[list, Path]:
     """Walk `folder` for `.cha` inputs and pair each with its gold template.
 
     Returns `(paired_inputs, root)`. Skips any `*.gold.cha` (those are golds,
@@ -58,9 +64,10 @@ def _pair_folder_with_gold(folder: Path) -> tuple[list, Path]:
     """
     from batchalign.inputs import paired_from_paths
 
-    root = _root_for(folder)
+    selection = selected_inputs(source, CHAT_EXTENSIONS)
+    root = selection.root
     inputs = []
-    for src in _walk(folder, CHAT_EXTENSIONS):
+    for src in selection.paths:
         if src.name.endswith(GOLD_SUFFIX):
             continue
         gold = _find_gold(src)
@@ -72,7 +79,7 @@ def _pair_folder_with_gold(folder: Path) -> tuple[list, Path]:
         inputs.append(paired_from_paths(str(src), str(gold), source_id=str(src)))
     if not inputs:
         raise typer.BadParameter(
-            f"no transcripts to compare in {folder} (only gold files, or empty)"
+            f"no transcripts to compare in {source} (only gold files, or empty)"
         )
     return inputs, root
 
@@ -81,11 +88,16 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def compare(
         ctx: typer.Context,
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
             help="Folder of `.cha` transcripts to compare. The gold is a sibling "
             "`FILE.gold.cha` or a shared `template.gold.cha` in the same folder.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None,
@@ -101,6 +113,7 @@ def register(app: typer.Typer) -> None:
         """
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, CHAT_EXTENSIONS)
         opts = cli_options(ctx)
 
         with Interface.open(
@@ -127,10 +140,10 @@ def register(app: typer.Typer) -> None:
                 stanza = None
             pipeline = ba.recipes.compare(
                 stanza_backend=stanza,
-                workers=opts.workers,
+                workers=opts.parallel,
             )
 
-            inputs, root = _pair_folder_with_gold(folder)
+            inputs, root = _pair_folder_with_gold(selection)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

@@ -7,7 +7,12 @@ from pathlib import Path
 
 import typer
 
-from ._common import collect_ai_inputs, write_outcome
+from ._common import (
+    collect_ai_inputs,
+    write_outcome,
+    CHAT_EXTENSIONS,
+    resolve_inputs,
+)
 from ._options import cli_options
 from .tui import Interface, Task
 
@@ -26,10 +31,15 @@ def register(app: typer.Typer) -> None:
             ...,
             help="Instruction applied to every utterance.",
         ),
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
-            help="Folder to walk recursively for CHAT files (single file also accepted).",
+            help="Input CHAT files or directories to walk recursively.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None,
@@ -63,6 +73,7 @@ def register(app: typer.Typer) -> None:
         """Run generic AI transcript editing."""
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, CHAT_EXTENSIONS)
         opts = cli_options(ctx)
 
         with Interface.open(
@@ -81,8 +92,8 @@ def register(app: typer.Typer) -> None:
                 )
             else:
                 raise typer.BadParameter(f"unknown engine: {engine}")
-            pipeline = ba.recipes.ai(ai_backend=backend, workers=opts.workers)
-            inputs, root = collect_ai_inputs(folder, instruction=instruction)
+            pipeline = ba.recipes.ai(ai_backend=backend, workers=opts.parallel)
+            inputs, root = collect_ai_inputs(selection, instruction=instruction)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

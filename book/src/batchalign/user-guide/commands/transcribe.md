@@ -232,7 +232,7 @@ also be reachable from the server, or you must use a shared media mount.
 **Memory on developer machines.** Each Whisper model instance uses 2–15 GB.
 For large corpus runs (more than a handful of files or >1 GB audio total),
 prefer a dedicated server with substantial RAM (via `--server`) over a
-developer laptop, and always pass `--workers 1` for local smoke tests.
+developer laptop, and always pass `--parallel 1` for local smoke tests.
 
 ---
 

@@ -13,6 +13,8 @@ Centralizes:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from os.path import abspath, commonpath
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -22,6 +24,60 @@ from batchalign import config as _ba_config
 
 CHAT_EXTENSIONS = (".cha", ".chat")
 MEDIA_EXTENSIONS = (".wav", ".mp3", ".m4a", ".flac", ".ogg", ".mp4", ".mov", ".m4v")
+
+
+@dataclass(frozen=True)
+class InputSelection:
+    """Discovered files and the root used to mirror outputs."""
+
+    paths: tuple[Path, ...]
+    root: Path
+
+
+def resolve_inputs(
+    paths: list[Path] | None,
+    input_list: Path | None,
+    suffixes: Iterable[str],
+) -> InputSelection:
+    """Expand positional paths and a UTF-8 list into one deduplicated selection."""
+    entries = list(paths or [])
+    if input_list is not None:
+        try:
+            lines = input_list.read_text(encoding="utf-8-sig").splitlines()
+        except (OSError, UnicodeError) as exc:
+            raise typer.BadParameter(f"cannot read input list {input_list}: {exc}") from exc
+        for number, line in enumerate(lines, 1):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            entry = Path(line.strip()).expanduser()
+            if not entry.is_absolute():
+                entry = input_list.absolute().parent / entry
+            if not entry.exists():
+                raise typer.BadParameter(
+                    f"{input_list}:{number}: input path does not exist: {entry}"
+                )
+            entries.append(entry)
+    if not entries:
+        raise typer.BadParameter("provide input paths or -i/--input-list FILE")
+
+    suffixes = tuple(suffixes)
+    roots = []
+    files: dict[Path, Path] = {}
+    for entry in entries:
+        entry = Path(abspath(entry.expanduser()))
+        if not entry.is_file() and not entry.is_dir():
+            raise typer.BadParameter(f"input is not a file or directory: {entry}")
+        roots.append(_root_for(entry))
+        for path in _walk(entry, suffixes):
+            files.setdefault(path.resolve(), path)
+    return InputSelection(tuple(files.values()), Path(commonpath(roots)))
+
+
+def selected_inputs(source: Path | InputSelection, suffixes: Iterable[str]) -> InputSelection:
+    """Keep single-path callers compatible with explicit CLI selections."""
+    if isinstance(source, InputSelection):
+        return source
+    return InputSelection(tuple(_walk(source, suffixes)), _root_for(source))
 
 
 def _walk(folder: Path, suffixes: Iterable[str]) -> list[Path]:
@@ -43,9 +99,9 @@ def _root_for(folder: Path) -> Path:
 
 
 def collect_chat_inputs(
-    folder: Path, *, group_by_language: bool = False
+    source: Path | InputSelection, *, group_by_language: bool = False
 ) -> tuple[list[Any], Path]:
-    """Walk `folder` for CHAT files; return (inputs, root).
+    """Discover inputs for CHAT files; return (inputs, root).
 
     Each input carries its absolute path as `source_id` so outcomes can
     be written back next to their source. Morphosyntax callers may group
@@ -54,11 +110,12 @@ def collect_chat_inputs(
     """
     from batchalign.inputs import chat_from_path
 
-    paths = _walk(folder, CHAT_EXTENSIONS)
+    selection = selected_inputs(source, CHAT_EXTENSIONS)
+    paths = list(selection.paths)
     if group_by_language:
         paths.sort(key=_chat_language_sort_key)
     inputs = [chat_from_path(p, source_id=str(p)) for p in paths]
-    return inputs, _root_for(folder)
+    return inputs, selection.root
 
 
 def _chat_language_sort_key(path: Path) -> tuple[str, int, str]:
@@ -85,26 +142,28 @@ def _chat_language_sort_key(path: Path) -> tuple[str, int, str]:
     return language_set, -path.stat().st_size, str(path)
 
 
-def collect_ai_inputs(folder: Path, *, instruction: str) -> tuple[list[Any], Path]:
-    """Walk `folder` for CHAT files and attach one AI instruction to each."""
+def collect_ai_inputs(source: Path | InputSelection, *, instruction: str) -> tuple[list[Any], Path]:
+    """Discover inputs for CHAT files and attach one AI instruction to each."""
     from batchalign.inputs import ai_from_path
 
+    selection = selected_inputs(source, CHAT_EXTENSIONS)
     inputs = [
         ai_from_path(p, source_id=str(p), instruction=instruction)
-        for p in _walk(folder, CHAT_EXTENSIONS)
+        for p in selection.paths
     ]
-    return inputs, _root_for(folder)
+    return inputs, selection.root
 
 
-def collect_media_inputs(folder: Path, *, language: str | None = None) -> tuple[list[Any], Path]:
-    """Walk `folder` for media files; return (inputs, root)."""
+def collect_media_inputs(source: Path | InputSelection, *, language: str | None = None) -> tuple[list[Any], Path]:
+    """Discover inputs for media files; return (inputs, root)."""
     from batchalign.inputs import media_from_path
 
+    selection = selected_inputs(source, MEDIA_EXTENSIONS)
     inputs = [
         media_from_path(p, source_id=str(p), language=language)
-        for p in _walk(folder, MEDIA_EXTENSIONS)
+        for p in selection.paths
     ]
-    return inputs, _root_for(folder)
+    return inputs, selection.root
 
 
 def safe_resolve(path: Path | str, root: Path | str) -> Path:

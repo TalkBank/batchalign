@@ -69,10 +69,9 @@ use talkbank_model::validation::GoverningMarkKind;
 use talkbank_model::{Line, Utterance};
 use talkbank_transform::extract::collect_utterance_content;
 
-/// Keep each CHAT's pending utterances bounded at the same default admission
-/// budget as the engine. Eight requests are enough for the backend batcher to
-/// coalesce same-language work without materializing one future per utterance.
-const MORPHOTAG_DISPATCH_WINDOW: usize = 8;
+/// Let one CHAT fill the default Stanza batch while keeping pending utterance
+/// futures bounded. File admission remains a separate pipeline-level budget.
+const MORPHOTAG_DISPATCH_WINDOW: usize = 128;
 
 /// Runner that drops typed `%mor` and `%gra` tiers on a CHAT document.
 pub struct MorphosyntaxTaskRunner;
@@ -707,8 +706,9 @@ mod tests {
     #[tokio::test]
     async fn dispatch_batches_without_exceeding_the_memory_window() -> BAResult<()> {
         let source_id = SourceId::try_new("bounded")?;
+        let utterance_count = MORPHOTAG_DISPATCH_WINDOW * 2 + 1;
         let batch = MorphotagBatch {
-            inputs: (0..17)
+            inputs: (0..utterance_count as u32)
                 .map(|utterance_id| MorphosyntaxInput {
                     source_id: source_id.clone(),
                     utterance_id,
@@ -733,7 +733,7 @@ mod tests {
             .dispatch(&dispatcher, progress.clone(), progress)
             .await?;
 
-        assert_eq!(outputs.len(), 17);
+        assert_eq!(outputs.len(), utterance_count);
         let maximum = dispatcher.maximum.load(Ordering::SeqCst);
         assert!(maximum > 1, "dispatch must expose a batch to the engine");
         assert!(maximum <= MORPHOTAG_DISPATCH_WINDOW);

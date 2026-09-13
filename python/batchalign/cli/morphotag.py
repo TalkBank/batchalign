@@ -8,7 +8,12 @@ from pathlib import Path
 
 import typer
 
-from ._common import collect_chat_inputs, write_outcome
+from ._common import (
+    collect_chat_inputs,
+    write_outcome,
+    CHAT_EXTENSIONS,
+    resolve_inputs,
+)
 from ._options import cli_options
 from .tui import Interface, Task
 
@@ -42,10 +47,15 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def morphotag(
         ctx: typer.Context,
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
-            help="Folder to walk recursively for CHAT files (single file also accepted).",
+            help="Input CHAT files or directories to walk recursively.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None,
@@ -68,6 +78,7 @@ def register(app: typer.Typer) -> None:
         """Add `%mor` and `%gra` tiers via Stanza."""
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, CHAT_EXTENSIONS)
         opts = cli_options(ctx)
 
         # Tempdir is created INSIDE the `with Interface.open(...)` block but
@@ -100,9 +111,9 @@ def register(app: typer.Typer) -> None:
                 # lazily on first use.
                 pipeline = ba.recipes.morphotag(
                     stanza_backend=ba.StanzaBackend(retokenize=retokenize),
-                    workers=opts.workers,
+                    workers=opts.parallel,
                 )
-                inputs, root = collect_chat_inputs(folder, group_by_language=True)
+                inputs, root = collect_chat_inputs(selection, group_by_language=True)
 
                 if clear_existing and inputs:
                     # Stage stripped copies in a temp dir; rewrite each input's

@@ -1,60 +1,36 @@
-# Worker Tuning
+# File Concurrency
 
-**Status:** Current
-**Last updated:** 2026-05-10 12:12 EDT
+**Status:** Current CLI guidance; historical worker-pool notes below
 
-This page explains how the server decides how many workers to run, how memory
-budgets work, and how to configure warmup and tuning for your hardware.
+## The `--parallel` flag
 
-## The `--workers` flag
-
-Control how many files are processed in parallel:
+`--parallel N` sets the maximum number of input files processed concurrently.
+The default is 8 and the minimum is 1. Place this global option before the
+command name:
 
 ```bash
-batchalign3 --workers 1 transcribe corpus/ -o output/    # One file at a time (safest)
-batchalign3 --workers 4 morphotag corpus/ -o output/     # Four files in parallel
-batchalign3 transcribe corpus/ -o output/                 # Auto-tune (default)
+batchalign3 --parallel 1 transcribe corpus/ -o output/
+batchalign3 --parallel 4 morphotag corpus/ -o output/
 ```
 
-All commands now use a two-stage policy: the runner computes a **requested**
-worker count from file count, CPU, and category caps, then the host-memory
-coordinator clamps that request to what the machine can safely fit right now.
-GPU-heavy commands (`transcribe`, `align`, `benchmark`) are capped by both
-`max_gpu_workers` and `gpu_thread_pool_size`.
+This option was previously named `--workers`. Update scripts to use
+`--parallel`.
 
-> **CPU-only machines (Apple Silicon, no CUDA):** the host-facts
-> recommendation now sets `gpu_thread_pool_size = 1` automatically
-> when no functional GPU is detected. Leave the field absent in
-> `server.yaml` (or set it to `0` — the legacy "auto" sentinel that
-> still deserializes to "no override"). The recommendation also
-> sets `force_cpu = true` on the same hosts so workers skip GPU
-> detection entirely.
->
-> PyTorch releases the GIL only during CUDA/MPS native calls; with
-> MPS excluded for batchalign3, every Whisper inference is GIL-bound
-> CPU work and there is no compute parallelism to gain. A higher
-> value lets multiple `execute_v2` calls into a single Python
-> process where they fight for cores, slowing each other down by
-> the contention factor. Verify your host's resolved values with
-> `batchalign3 doctor --check` (see [Doctor](doctor.md)).
->
-> The Rust-side `dispatch_semaphore` mirrors `gpu_thread_pool_size`
-> permit-for-thread, so Rust dispatch and Python serving share one
-> ceiling. Set this knob to the parallelism your device actually has:
-> 1 on CPU-bound platforms, 2-4 on real GPU. See
-> [MPS Exclusion Decision](../developer/apple-mps-workarounds.md) and
-> [Worker Protocol V2 § The dispatch semaphore contract](../developer/worker-protocol-v2.md#the-dispatch-semaphore-contract).
->
-> Measured Apple behavior on `dev-machine` confirms that the biggest win is not a
-> larger CPU thread pool. Warm loopback-daemon reuse dominated everything else:
-> `align --no-utr --fa-engine wav2vec` dropped from `17.65s` direct / `9.64s`
-> sequential to `1.06s` warm-daemon, and `transcribe --asr-engine whisper`
-> dropped from `93.92s` direct to `13.58s` warm-daemon. On Apple CPU-only
-> hosts, preserving warm workers matters much more than tuning
-> `gpu_thread_pool_size`.
+For morphotag, active files feed a shared Stanza batcher. The backend executes
+one model call at a time, with up to 128 utterances per batch. Each active file
+can submit up to 128 pending utterances. File concurrency, utterance batch size,
+and PyTorch's internal CPU threads are separate controls.
 
-Override with `--workers N` when you want explicit control, or set
-`max_workers_per_job` in `server.yaml` for a persistent override.
+Increasing file concurrency can help keep batches full and overlap pipeline
+stages. It also keeps more parsed transcripts and pending work resident in
+memory. It does not create a Stanza model replica for each file.
+
+The Python pipeline API continues to accept `workers=N` for file concurrency.
+
+## Historical worker-pool notes
+
+The remaining sections describe an earlier worker-pool architecture. They do
+not describe the current local CLI's file-concurrency configuration.
 
 ## How worker planning works
 

@@ -30,17 +30,18 @@ The first run of any command downloads ML models and initializes them — expect
 | Warm server (models in memory) | 5-20x faster |
 | Cached audio task (`align` / `transcribe` UTR re-run) | Near-instant |
 
-## Worker count
+## File concurrency
 
-By default, Batchalign uses one worker per command. For batch processing of
-many files, increase the worker count:
+`--parallel N` controls the maximum number of active input files (default: 8).
+Place it before the command:
 
 ```bash
-batchalign3 morphotag ~/corpus/ -o ~/output/ --workers 4
+batchalign3 --parallel 4 morphotag ~/corpus/ -o ~/output/
 ```
 
-Each worker loads its own copy of the ML models. Memory usage scales linearly
-with worker count — see the memory section below.
+Active files share the backend batcher. Morphotag uses one Stanza call at a
+time, with up to 128 utterances per batch. Increasing file concurrency can
+improve batch filling without creating additional model replicas.
 
 ## CPU vs GPU
 
@@ -56,23 +57,16 @@ machines without a supported GPU, CPU mode is selected automatically.
 
 ## Memory patterns
 
-Memory usage depends on the command and number of workers:
+Memory depends on the loaded models, active files, and inference batch size.
+`--parallel N` bounds the number of active files, so larger values can retain
+more parsed transcripts and pending inputs. It does not multiply the number
+of Stanza model instances by N.
 
-| Command | ~Memory per Worker |
-|---------|-------------------|
-| `morphotag` | 1-2 GB (Stanza models) |
-| `align` | 2-4 GB (Whisper/Wave2Vec) |
-| `transcribe` | 2-4 GB (Whisper + diarization) |
-| `translate` | 1-2 GB (translation model) |
-| `utseg` | 1-2 GB (constituency parser) |
-| `compare` | <500 MB (no ML models — gold-vs-hypothesis WER scoring) |
+Batch length also matters: 128 long utterances can require substantially more
+memory than 128 short ones. File concurrency and backend batch size should be
+tuned separately.
 
-With `--workers N`, total memory is roughly `N * per-worker cost`. The Rust
-runtime adds minimal overhead (~50 MB).
-
-**Lazy audio loading:** Audio files are loaded on demand and released after
-processing — memory does not grow with corpus size, only with concurrent
-workers.
+Audio is loaded on demand; concurrent files can also retain decoded audio.
 
 ## Server mode for warm models
 
@@ -99,8 +93,8 @@ Measure processing throughput on your hardware. The shape is
 positional arguments:
 
 ```bash
-batchalign3 bench morphotag ~/sample-corpus/ ~/bench-out/ --workers 1
-batchalign3 bench morphotag ~/sample-corpus/ ~/bench-out/ --workers 4
+batchalign3 --parallel 1 bench morphotag ~/sample-corpus/ ~/bench-out/
+batchalign3 --parallel 4 bench morphotag ~/sample-corpus/ ~/bench-out/
 ```
 
 This runs the command with timing instrumentation and reports files/second and

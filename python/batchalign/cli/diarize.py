@@ -8,7 +8,12 @@ from typing import Any
 
 import typer
 
-from ._common import collect_chat_inputs, write_outcome
+from ._common import (
+    collect_chat_inputs,
+    write_outcome,
+    CHAT_EXTENSIONS,
+    resolve_inputs,
+)
 from ._options import cli_options
 from .tui import Interface, Task
 
@@ -30,10 +35,15 @@ def register(app: typer.Typer) -> None:
     @app.command()
     def diarize(
         ctx: typer.Context,
-        folder: Path = typer.Argument(
-            ...,
+        paths: list[Path] | None = typer.Argument(
+            None,
             exists=True,
             help="Timed CHAT file or folder to scan recursively; matching media is resolved from @Media or the transcript stem.",
+        ),
+        input_list: Path | None = typer.Option(
+            None, "--input-list", "--file-list", "-i",
+            exists=True, dir_okay=False,
+            help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
         out: Path | None = typer.Option(
             None,
@@ -58,6 +68,7 @@ def register(app: typer.Typer) -> None:
         """Diarize timed CHAT and write speaker assignments back into CHAT."""
         import batchalign as ba
 
+        selection = resolve_inputs(paths, input_list, CHAT_EXTENSIONS)
         opts = cli_options(ctx)
 
         with Interface.open(
@@ -73,9 +84,9 @@ def register(app: typer.Typer) -> None:
         ) as ui:
             pipeline = ba.recipes.diarize(
                 speaker_backend=_build_backend(ba, engine, num_speakers),
-                workers=opts.workers,
+                workers=opts.parallel,
             )
-            inputs, root = collect_chat_inputs(folder)
+            inputs, root = collect_chat_inputs(selection)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

@@ -145,7 +145,7 @@ with open('file.cha') as f:
 ## What is NOT recorded
 
 Runtime options that don't affect output are omitted:
-- `--workers` (concurrency)
+- `--parallel` (concurrency)
 - `--timeout` (inference timeout)
 - `--batch-window` (batching)
 - `--server` (where processing happened)

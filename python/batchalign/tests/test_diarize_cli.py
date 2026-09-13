@@ -148,7 +148,7 @@ def test_diarize_cloud_cli_relabels_timed_chat_end_to_end(
     result = CliRunner().invoke(
         app,
         [
-            "--workers", "1", "diarize", str(chat),
+            "--parallel", "1", "diarize", str(chat),
             "--out", str(output), "--engine", "pyannote-ai",
         ],
     )
