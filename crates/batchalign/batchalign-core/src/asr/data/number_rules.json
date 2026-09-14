@@ -1,0 +1,71 @@
+{
+  "rules": {
+    "ordinal_eng": {
+      "kind": "ordinal",
+      "pattern": "(?P<value>[0-9]+)(?P<suffix>st|nd|rd|th)"
+    },
+    "decade_eng": {
+      "kind": "decade",
+      "pattern": "(?P<value>[0-9]+)s"
+    },
+    "ordinal_por": {
+      "kind": "ordinal",
+      "pattern": "(?P<value>[0-9]+)\\.?(?P<gender>[ºª])(?P<plural>s?)",
+      "protect_punctuation": true
+    },
+    "digit_groups": {
+      "kind": "digit_groups",
+      "pattern": "(?P<value>[0-9]+(?:-[0-9]+)+)"
+    },
+    "hyphen_compound": {
+      "kind": "hyphen_compound",
+      "pattern": "(?P<value>[0-9]+)-(?P<rest>\\p{Alphabetic}[^\\r\\n]*)"
+    },
+    "currency_prefix": {
+      "kind": "currency",
+      "pattern": "(?P<symbol>[$€£¥₹₩₽])\\s*(?P<value>[0-9]+)\\s*"
+    },
+    "currency_suffix": {
+      "kind": "currency",
+      "pattern": "\\s*(?P<value>[0-9]+)\\s*(?P<symbol>[€₹])"
+    },
+    "cardinal": {
+      "kind": "cardinal",
+      "pattern": "(?P<value>[0-9]+)"
+    }
+  },
+  "common": [
+    "digit_groups",
+    "hyphen_compound",
+    "currency_prefix",
+    "currency_suffix",
+    "cardinal"
+  ],
+  "languages": {
+    "eng": {
+      "renderer": "english",
+      "rules": [
+        "ordinal_eng",
+        "decade_eng"
+      ]
+    },
+    "por": {
+      "renderer": "portuguese",
+      "rules": [
+        "ordinal_por"
+      ]
+    },
+    "zho": {
+      "renderer": "simplified"
+    },
+    "cmn": {
+      "renderer": "simplified"
+    },
+    "jpn": {
+      "renderer": "traditional"
+    },
+    "yue": {
+      "renderer": "traditional"
+    }
+  }
+}

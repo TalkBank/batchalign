@@ -431,6 +431,59 @@ mod tests {
         );
     }
 
+    /// Regression from porchu/000915.mp3: Rev emitted 54ª at 3160..3800 ms.
+    /// Exercise both timed-word and segment-only provider contracts, including
+    /// abbreviation punctuation followed by a real sentence terminator.
+    #[test]
+    fn portuguese_asr_ordinals_build_valid_chat_with_preserved_timing() {
+        let sid = SourceId::try_new("porchu-000915").expect("sid");
+        for ordinal in ["54ª", "54.ª"] {
+            for segment_only in [false, true] {
+                let mut segment = fake_segment("spk_0", ordinal, 3160, 3800);
+                if segment_only {
+                    segment.text = format!("{ordinal}. então").into();
+                    segment.words.clear();
+                }
+                let out = AsrOutput {
+                    source_id: sid.clone(),
+                    segments: vec![segment],
+                };
+                if !segment_only {
+                    let speakers = BTreeMap::from([("spk_0".to_owned(), "PAR0".to_owned())]);
+                    let raw = asr_output_for_postprocess(&out, &speakers).expect("ASR adapter");
+                    let utterances = crate::asr::process_raw_asr(&raw, "por");
+                    let words = &utterances[0].words;
+                    assert_eq!(words[0].text.as_str(), "quinquagésima");
+                    assert_eq!(words[1].text.as_str(), "quarta");
+                    assert_eq!(words[0].start_ms, Some(3160));
+                    assert_eq!(words[1].end_ms, Some(3800));
+                    assert_eq!(words[0].end_ms, words[1].start_ms);
+                    assert!(words[0].start_ms < words[0].end_ms);
+                    assert!(words[1].start_ms < words[1].end_ms);
+                    assert_eq!(utterances[0].speaker, SpeakerIndex(0));
+                }
+                let media = fake_media(&sid, "mp3");
+                let chat = build_chat_from_asr(&media, &LanguageSpec::Code("por".into()), &out)
+                    .expect("Portuguese ordinal must produce validated CHAT");
+                let text = chat.to_chat();
+                assert!(text.contains("@Languages:\tpor"), "{text}");
+                assert!(text.contains("quinquagésima quarta ."), "{text}");
+                assert!(!text.contains(ordinal), "unexpanded ordinal: {text}");
+                if segment_only {
+                    assert_eq!(
+                        text.lines()
+                            .filter(|line| line.starts_with("*PAR0:"))
+                            .count(),
+                        2,
+                        "{text}"
+                    );
+                } else {
+                    assert!(text.contains("\u{15}3160_3800\u{15}"), "{text}");
+                }
+            }
+        }
+    }
+
     #[test]
     fn build_chat_uses_asr_language_for_headers() {
         let sid = SourceId::try_new("tst").expect("sid");

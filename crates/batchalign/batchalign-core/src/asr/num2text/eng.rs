@@ -1,16 +1,17 @@
-//! English ordinal + year + decade expansion. Round 2 of the
-//! number-expansion rework documented in
-//! `book/src/architecture/number-expansion.md`.
-//!
-//! Replaces the Python `num2words(N, to="ordinal" | "year")` IPC
-//! roundtrip for the only language that realistically hits these
-//! modes: `detect_expansion` only flags ordinal/decade tokens via
-//! English-style suffixes (`"3rd"`, `"1950s"`), so non-English
-//! ASR output never reaches this module.
-//!
-//! Cross-validated against `num2words` output for ordinals 0-1234
-//! and years 1900-2100 (see fixture
-//! `data/eng_ordinal_year_fixtures.json`).
+//! English ordinal and decade rendering; cardinal rendering uses the shared table.
+use super::{RenderResult, RuleKind};
+use regex::Captures;
+
+pub(super) fn render(kind: RuleKind, groups: &Captures<'_>) -> RenderResult {
+    let n = groups["value"]
+        .parse::<u64>()
+        .map_err(|_| "English number exceeds u64")?;
+    match kind {
+        RuleKind::Ordinal => Ok(expand_ordinal_eng(n)),
+        RuleKind::Decade => Ok(expand_decade_eng(n)),
+        _ => Err("unsupported English number expression"),
+    }
+}
 
 /// Cardinal forms 0-19 for composing ordinals 20+ ("twenty-first").
 const CARDINAL_TENS: [&str; 10] = [
@@ -223,14 +224,14 @@ mod tests {
     }
 
     fn load_fixtures() -> Fixtures {
-        let raw = include_str!("data/eng_ordinal_year_fixtures.json");
+        let raw = include_str!("../data/eng_ordinal_year_fixtures.json");
         serde_json::from_str(raw).expect("parse fixture")
     }
 
     /// Cross-check every ordinal in the fixture file against the
     /// Rust implementation. Any divergence from `num2words` output
     /// is a bug — we promise behavioural parity for the values
-    /// `detect_expansion` realistically routes through this path.
+    /// the English JSON recognition rules route through this path.
     #[test]
     fn ordinals_match_num2words_fixture() {
         let f = load_fixtures();

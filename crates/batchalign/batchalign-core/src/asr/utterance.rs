@@ -20,15 +20,14 @@ pub fn process_raw_asr(output: &AsrOutput, lang: &str) -> Vec<Utterance> {
 /// boundaries.
 ///
 /// This is the monolithic pipeline that applies all stages in sequence.
-/// For pipelines that need to intercept the number expansion step (e.g. to
-/// route through Python IPC), use [`super::prepare_words_pre_expansion`] and
+/// For pipelines that need to inspect the number expansion boundary, use [`super::prepare_words_pre_expansion`] and
 /// [`super::finalize_words_to_chunks`] separately.
 pub fn prepare_asr_chunks(output: &AsrOutput, lang: &str) -> Vec<super::PreparedMonologueChunk> {
     let mut prepared = Vec::new();
 
     for monologue in &output.monologues {
         let words = prepare_words_pre_expansion(&monologue.elements, lang);
-        // Stage 4: number expansion (Rust fallback tables + CJK + currency)
+        // Stage 4: JSON recognition + language-specific Rust number rendering
         let words = expand_numbers_in_words(words, lang);
         prepared.extend(finalize_words_to_chunks(words, monologue.speaker, lang));
     }

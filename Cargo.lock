@@ -327,6 +327,7 @@ dependencies = [
  "oxideav-mp3",
  "proptest",
  "pyo3",
+ "regex",
  "schemars 1.2.2",
  "serde",
  "serde_json",

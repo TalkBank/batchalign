@@ -31,9 +31,7 @@ mod expand;
 pub mod lang_detect;
 mod num2chinese;
 mod num2text;
-mod ordinal_year_eng;
 mod prepare;
-pub mod registry;
 mod snapshot;
 mod utterance;
 
@@ -46,7 +44,7 @@ pub use chunking::{
 };
 pub use compounds::merge_compounds;
 pub use expand::split_words_with_whitespace;
-pub use num2text::{NumberExpansionMode, detect_expansion, expand_number};
+pub use num2text::expand_number;
 pub use snapshot::AsrPipelineSnapshot;
 pub use utterance::{
     finalize_utterances, prepare_asr_chunks, process_raw_asr, utterances_from_prepared_chunks,

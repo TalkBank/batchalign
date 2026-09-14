@@ -6,7 +6,7 @@ use super::{
 /// and multi-word token splitting.
 ///
 /// Returns words ready for number expansion. The caller is responsible for
-/// expanding numbers (either via the Rust fallback tables or Python IPC)
+/// expanding numbers through the language-selected Rust recognizers/renderers
 /// before passing the words to [`super::finalize_words_to_chunks`].
 pub fn prepare_words_pre_expansion(elements: &[AsrElement], lang: &str) -> Vec<AsrWord> {
     prepare_words_pre_expansion_with_snapshot(elements, lang, None)
@@ -209,7 +209,21 @@ fn split_chunk_word(word: AsrWord, lang: &str) -> Vec<AsrWord> {
         }
     };
 
-    for ch in word.text.as_str().chars() {
+    let mut remaining = word.text.as_str();
+    while !remaining.is_empty() {
+        // Numeric abbreviations own their internal punctuation. Recognize them
+        // before generic sentence splitting, using the same rules as expansion.
+        if current.is_empty()
+            && let Some(len) = num2text::protected_prefix_len(remaining, lang)
+        {
+            parts.push((remaining[..len].to_owned(), false));
+            remaining = &remaining[len..];
+            continue;
+        }
+        let Some(ch) = remaining.chars().next() else {
+            break;
+        };
+        remaining = &remaining[ch.len_utf8()..];
         if ch.is_whitespace() {
             flush_current(&mut parts, &mut current);
             continue;
@@ -318,7 +332,7 @@ fn is_cjk_ideograph(ch: char) -> bool {
     )
 }
 
-fn normalized_split_separator(ch: char) -> Option<Option<&'static str>> {
+pub(super) fn normalized_split_separator(ch: char) -> Option<Option<&'static str>> {
     match ch {
         '.' => Some(Some(".")),
         '?' | '？' | '؟' => Some(Some("?")),
