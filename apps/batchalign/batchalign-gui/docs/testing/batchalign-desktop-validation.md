@@ -347,3 +347,17 @@ comments were corrected: the current morphology renderer already preserves
 head zero; grammar removal remains the deliberate comparison output contract.
 Intel macOS in 35541484100 now passed packaging and native regression tests
 and entered real runtime checks. Full inference results remain pending.
+
+Additional diarization accuracy gate: Pyannote's public 30-second, two-speaker
+sample and its 13 timed reference turns, pinned to upstream commit
+b749285c5cdd4636b2edc7f766f1352c8dde9369 with SHA-256 checks. CI downloads
+under 1 MB of fixtures and runs the actual Pyannote backend with two speakers.
+Require preserved words/source, two distinct output labels, and at least 80%
+word-level speaker agreement after choosing the better label permutation.
+Compare per word so legitimate native turn splitting remains allowed. Syntax
+checked only so far; real accuracy must be established in the installed matrix.
+Local full GUI interactions after folder-recovery changes: all 15 passed with
+the already-cached Chromium 1234 browser. Windows Chromium and WebKit jobs
+106169519495/106169519487 passed using Playwright 1.63; WebKit PID 3052 emitted
+exit and close with code zero, all streams destroyed, and graceful shutdown
+finished in 15 ms. One passing run does not prove the prior flake eliminated.

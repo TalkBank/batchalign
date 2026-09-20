@@ -1,5 +1,6 @@
 // Real inference against the bundled daemon. No model/provider mocks.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -107,6 +108,52 @@ export async function testRealPipelines(base, root, repository, results) {
   assert.equal(speakers.length, 3, 'diarization lost utterances');
   assert.equal(new Set(speakers).size, 1, 'single-speaker fixture received multiple speakers');
 
+  });
+
+  await check('diarize-speakers', async () => {
+    // Upstream's public telephone-conversation example includes timed
+    // reference turns. Download only this small, immutable fixture on CI.
+    const fixture = 'https://raw.githubusercontent.com/pyannote/pyannote-audio/b749285c5cdd4636b2edc7f766f1352c8dde9369/src/pyannote/audio/sample';
+    const assets = [
+      ['wav', 'c319b4abca767b124e41432d364fd7df006cb26bb79d09326c487d606a134e6e'],
+      ['stm', 'f861f3004927e1c4429199f9695bfd252def75d7d5e4bdf735d3d85fd4a667f7'],
+    ];
+    for (const [extension, checksum] of assets) {
+      const response = await fetch(`${fixture}/sample.${extension}`, { signal: AbortSignal.timeout(60_000) });
+      assert(response.ok, `speaker fixture HTTP ${response.status}`);
+      const bytes = Buffer.from(await response.arrayBuffer());
+      assert.equal(createHash('sha256').update(bytes).digest('hex'), checksum, 'speaker fixture changed');
+      await writeFile(join(input, `speakers.${extension}`), bytes);
+    }
+    const reference = (await readFile(join(input, 'speakers.stm'), 'utf8')).trim().split(/\r?\n/).map(line => {
+      const [, , speaker, start, end, ...text] = line.split(/\s+/);
+      return { speaker, start: Math.round(Number(start) * 1000), end: Math.round(Number(end) * 1000),
+        text: text.join(' ').replace(/[^a-zA-Z' ]/g, ' ').replace(/\s+/g, ' ').trim() };
+    });
+    assert.equal(reference.length, 13);
+    const source = '@UTF8\n@Begin\n@Languages:\teng\n@Participants:\tPAR Participant\n'
+      + '@ID:\teng|test|PAR|||||Participant|||\n@Media:\tspeakers, audio\n'
+      + reference.map(turn => `*PAR:\t${turn.text} . \x15${turn.start}_${turn.end}\x15\n`).join('') + '@End\n';
+    await writeFile(join(input, 'speakers.cha'), source);
+    const diarized = await run('diarize', 'speakers.cha', {
+      speaker_backend: { kind: 'PyannoteBackend', kwargs: { num_speakers: 2 } },
+    }, 'diarize-speakers');
+    assert.deepEqual(words(diarized), words(source), 'speaker separation changed the spoken words');
+    // The native runner may split turns at detected speaker boundaries.
+    // Compare labels per preserved word so legitimate splitting is allowed.
+    const actual = [...diarized.matchAll(/^\*([^:]+):[^\n]*$/gm)]
+      .flatMap(match => words(match[0]).map(() => match[1]));
+    const expected = reference.flatMap(turn => words(`*PAR:\t${turn.text} .`).map(() => turn.speaker));
+    assert.equal(actual.length, expected.length);
+    const labels = [...new Set(actual)];
+    assert.equal(labels.length, 2, 'distinct speakers collapsed into one label');
+    const goldLabels = [...new Set(reference.map(turn => turn.speaker))];
+    const direct = actual.filter((label, index) => labels.indexOf(label) === goldLabels.indexOf(expected[index])).length;
+    const agreement = Math.max(direct, expected.length - direct) / expected.length;
+    results.realPipelines['diarize-speakers'].wordSpeakerAgreement = agreement;
+    results.realPipelines['diarize-speakers'].referenceSpeakers = reference.map(turn => turn.speaker);
+    assert(agreement >= 0.8, `speaker assignments disagree with reference: ${agreement}`);
+    assert.equal(await readFile(join(input, 'speakers.cha'), 'utf8'), source);
   });
 
   await check('translate', async () => {
