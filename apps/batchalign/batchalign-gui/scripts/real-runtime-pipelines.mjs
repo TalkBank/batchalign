@@ -26,9 +26,13 @@ export async function testRealPipelines(base, root, repository, results) {
   await copyFile(join(repository, 'scripts/parity/fixtures/translate/es.cha'), join(input, 'es.cha'));
   const gold = await readFile(join(input, 'en.cha'), 'utf8');
   results.realPipelines = {};
+  // A lost submission/status response does not prove the model worker stopped.
+  // Only terminal job state permits another memory-heavy test in this daemon.
+  let workerMayBeRunning = false;
   async function run(recipe, source, kwargs) {
     const output = join(root, 'real-model-output', recipe);
     const started = Date.now();
+    workerMayBeRunning = true;
     const submitted = await fetch(`${base}/desktop/jobs`, { method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ folder: input, source_ids: [source], output_path: output,
@@ -43,7 +47,10 @@ export async function testRealPipelines(base, root, repository, results) {
       const response = await fetch(`${base}/jobs/${job.job_id}`, { signal: AbortSignal.timeout(30_000) });
       assert(response.ok, `status ${response.status}`);
       status = await response.json();
-      if (['completed', 'failed', 'cancelled'].includes(status.state)) break;
+      if (['completed', 'failed', 'cancelled'].includes(status.state)) {
+        workerMayBeRunning = false;
+        break;
+      }
       await delay(1000);
     }
     results.realPipelines[recipe] = { kwargs, status, durationMs: Date.now() - started };
@@ -59,6 +66,9 @@ export async function testRealPipelines(base, root, repository, results) {
     catch (error) {
       results.realPipelines[recipe] = { ...results.realPipelines[recipe], error: String(error) };
       console.error(`${recipe}: ${error}`);
+      if (workerMayBeRunning) throw new Error(
+        `${recipe}: worker termination is unconfirmed; stopping daemon before further model tests`,
+        { cause: error });
     }
   }
 

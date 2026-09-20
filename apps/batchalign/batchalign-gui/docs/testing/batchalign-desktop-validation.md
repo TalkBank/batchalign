@@ -170,5 +170,10 @@ installations on GitHub runners; local tests use one worker.
   strategy; do not count fake services as provider correctness. There is ample
   independent work before this can constitute a blocker.
 
+The real-model CI harness stops the daemon if submission/polling fails before
+a terminal job state is confirmed, preventing a still-running model from
+overlapping the next test. A lightweight fault-injection check verifies this
+and verifies confirmed terminal failures still allow all remaining recipes.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.
