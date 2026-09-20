@@ -182,5 +182,12 @@ defaults and overrides (18 unit/property tests passing); real CI transcription
 now includes local speaker diarization as the GUI does. GUI media discovery
 also includes MOV/M4V, matching the desktop API and CLI extensions.
 
+GUI stress coverage now performs 240 seeded pipeline add/select/remove actions
+with repeated submissions and checks the exact ordered request and input type
+after prior runs. All 14 Chromium GUI tests pass locally, including these three
+seeds; the production frontend build passes. This uses mocked IPC and does not
+prove model inference. Transcription is now offered only as the first step,
+matching the desktop API rather than letting users build a rejected chain.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.

@@ -73,3 +73,51 @@ test('switching pipeline after transcription discovers newly created CHAT files'
   expect(request.steps.map((step: any) => step.recipe)).toEqual(['align']);
   expect(request.source_ids).toEqual(['nested/é.cha']);
 });
+
+for (const seed of [20260920, 0xdeadbeef, 0x12345678]) {
+  test(`seeded pipeline interaction stress (${seed})`, async ({ page }) => {
+    test.setTimeout(90_000);
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.addInitScript({ content: stub + `\n(${install.toString()})();` });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'open folder…' }).click();
+    let state = seed >>> 0;
+    const next = (limit: number) => {
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state % limit;
+    };
+    let chain: string[] = [];
+    for (let action = 0; action < 80; action++) {
+      // Transcription consumes media and must remain first, as the API requires.
+      const unused = verbs.filter(verb => !chain.includes(verb) && (verb !== 'transcribe' || chain.length === 0));
+      if (!chain.length || (unused.length && next(3) === 0)) {
+        const verb = unused[next(unused.length)];
+        await page.getByRole('button', { name: '+ add step', exact: true }).click();
+        if (chain.length && !chain.includes('transcribe')) {
+          await expect(page.locator('div').filter({ hasText: /^transcribe$/ })).toHaveCount(0);
+        }
+        await page.locator('div').filter({ hasText: new RegExp(`^${verb}$`) }).last().click();
+        chain.push(verb);
+      } else {
+        const verb = chain[next(chain.length)];
+        await page.getByRole('button', { name: verb, exact: true }).click();
+        if (next(2) === 0) {
+          await page.getByRole('button', { name: `remove ${verb}`, exact: true }).click();
+          chain = chain.filter(item => item !== verb);
+        }
+      }
+      for (const verb of verbs) {
+        await expect(page.getByRole('button', { name: verb, exact: true })).toHaveCount(chain.includes(verb) ? 1 : 0);
+      }
+      if (chain.length && action % 8 === 0) {
+        await page.getByRole('button', { name: 'start batch', exact: true }).click();
+        await expect(page.getByText('done', { exact: true }).first()).toBeVisible();
+        const submitted = await page.evaluate(() => (window as any).__DESKTOP_REQUEST__);
+        expect(submitted.steps.map((step: any) => step.recipe)).toEqual(chain);
+        expect(submitted.source_ids).toEqual([chain[0] === 'transcribe' ? 'nested/é.wav' : 'nested/é.cha']);
+      }
+    }
+    expect(errors).toEqual([]);
+  });
+}

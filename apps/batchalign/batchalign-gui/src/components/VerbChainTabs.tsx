@@ -32,7 +32,9 @@ export default function VerbChainTabs({ selected, onSelect }: Props) {
   // even down to zero verbs. PipelineBlock renders an empty-state hint
   // when the chain is empty.
   const canRemove = chain.length > 0 && selected != null;
-  const unused = AVAILABLE_VERBS.filter((v) => !chain.includes(v));
+  // Transcription accepts media and cannot follow a CHAT-producing step.
+  const unused = AVAILABLE_VERBS.filter((v) =>
+    !chain.includes(v) && (v !== "transcribe" || chain.length === 0));
 
   const onRemove = () => {
     if (!selected) return;
