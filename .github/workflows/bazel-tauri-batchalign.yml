@@ -196,7 +196,7 @@ jobs:
 
       - name: Install package and test the real native webview
         if: runner.os == 'Linux'
-        timeout-minutes: 15
+        timeout-minutes: 30
         run: |
           set -euo pipefail
           package=$(find "target/${{ matrix.runner.target }}/release/bundle" -name '*.deb' -type f -print -quit)
@@ -220,7 +220,7 @@ jobs:
       - name: Install MSI and test the real Windows webview
         if: runner.os == 'Windows'
         shell: pwsh
-        timeout-minutes: 15
+        timeout-minutes: 30
         run: |
           $package = Get-ChildItem "target/${{ matrix.runner.target }}/release/bundle" -Recurse -Filter *.msi | Select-Object -First 1
           if (!$package) { throw "MSI artifact missing" }
@@ -240,7 +240,7 @@ jobs:
 
       - name: Install macOS QA app and test its native WKWebView
         if: runner.os == 'macOS'
-        timeout-minutes: 15
+        timeout-minutes: 30
         run: |
           set -euo pipefail
           original="target/${{ matrix.runner.target }}/release/bundle/macos/Batchalign.app"

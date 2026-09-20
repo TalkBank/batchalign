@@ -226,5 +226,13 @@ every non-completed output retains its previous contents, valid members
 complete, and a subsequent clean job succeeds. No ML models are downloaded
 for this test; it is parser/orchestration evidence, not inference accuracy.
 
+Native-webview harness now allocates its own fresh PyApp install directory
+and waits through cold bootstrap in the actual webview. It records visible
+progress lines and a screenshot, fails promptly on the existing startup error
+overlay, requires at least one cold progress update, then checks native IPC,
+comparison, app exit, and warm relaunch using that same environment. Native
+steps allow 30 minutes for this additional cleanroom install. Syntax checks
+pass; actual cold-webview execution is still due in CI.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.

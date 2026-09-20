@@ -1,10 +1,10 @@
 // Drives the unmodified installed app through tauri-driver/WebKit or WebView2.
-// The warm environment came from this bundle's cleanroom sidecar check.
+// First launch bootstraps a fresh environment; the second reuses it.
 // No Tauri IPC mocks or test hooks are injected into the production bundle.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -14,13 +14,14 @@ const sidecarReport = JSON.parse(await readFile(process.argv[3], 'utf8'));
 assert(process.argv[2] && sidecarReport.root, 'usage: native-webview-smoke.mjs installed-app packaged-report.json');
 const evidence = resolve('native-webview-evidence');
 await mkdir(evidence, { recursive: true });
-const report = { application, environment: 'warm bundle-specific cleanroom environment', launches: [] };
+const environment = join(await mkdtemp(join(sidecarReport.root, 'native-cleanroom-')), 'environment');
+const report = { application, environment, launches: [], startupProgress: [] };
 let tail = '';
 let driverError;
 function startDriver() {
   const child = spawn(embedded ? application : process.platform === 'win32' ? 'tauri-driver.exe' : 'tauri-driver', [], {
     stdio: ['ignore', 'pipe', 'pipe'], env: {
-      ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: join(sidecarReport.root, 'environment'),
+      ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: environment,
       XDG_CACHE_HOME: join(sidecarReport.root, 'cache'), HF_HOME: join(sidecarReport.root, 'models'),
       PYTHONNOUSERSITE: '1', TAURI_WEBDRIVER_PORT: '4444',
     },
@@ -85,20 +86,29 @@ try {
       await delay(200);
     }
     assert(bridgeReady, 'native IPC bridge did not initialize');
+    let ready = false;
+    const deadline = Date.now() + (launch === 0 ? 16 * 60_000 : 60_000);
+    while (Date.now() < deadline) {
+      const view = await script(`const overlay = document.querySelector('[role="dialog"][aria-modal="true"]');
+        return { ready: !overlay && Array.from(document.querySelectorAll('button')).some(button => button.textContent.includes('open folder')),
+          progress: overlay?.querySelector('[aria-live="polite"][title]')?.textContent || null,
+          error: overlay?.querySelector('pre')?.textContent || null };`);
+      assert(!view.error, view.error);
+      if (view.progress && report.startupProgress.at(-1)?.line !== view.progress) {
+        report.startupProgress.push({ launch, elapsedMs: Date.now() - started, line: view.progress });
+        if (report.startupProgress.length === 1) await screenshot('cold-start-progress.png');
+      }
+      if (view.ready) { ready = true; break; }
+      await delay(500);
+    }
+    assert(ready, await script('return document.body.innerText'));
+    if (launch === 0) assert(report.startupProgress.length > 0, 'cold startup showed no bootstrap progress');
     const port = await invoke('ensure_daemon');
     assert(Number.isInteger(port) && port > 0);
     const capabilities = await invoke('daemon_request', { method: 'GET', path: '/capabilities', body: null });
     for (const recipe of ['transcribe', 'diarize', 'align', 'morphotag', 'translate', 'compare']) {
       assert(recipe in capabilities.recipes, `missing ${recipe}`);
     }
-    let ready = false;
-    for (let i = 0; i < 100; i++) {
-      ready = await script(`return !document.querySelector('[role="dialog"][aria-modal="true"]') &&
-        Array.from(document.querySelectorAll('button')).some(button => button.textContent.includes('open folder'));`);
-      if (ready) break;
-      await delay(200);
-    }
-    assert(ready, await script('return document.body.innerText'));
     await screenshot(`ready-${launch}.png`);
     report.launches.push({ port, durationMs: Date.now() - started });
     if (launch === 0) {
