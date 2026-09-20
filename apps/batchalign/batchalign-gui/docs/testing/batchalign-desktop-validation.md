@@ -361,3 +361,18 @@ the already-cached Chromium 1234 browser. Windows Chromium and WebKit jobs
 106169519495/106169519487 passed using Playwright 1.63; WebKit PID 3052 emitted
 exit and close with code zero, all streams destroyed, and graceful shutdown
 finished in 15 ms. One passing run does not prove the prior flake eliminated.
+
+Intel macOS 35541484100 finished: packaging and all 10 native unit tests pass;
+cleanroom bootstrap 441108 ms, warm restart 1168 ms, comparison passes. Real
+Wav2Vec2 alignment, Pyannote diarization, and Google translation all pass
+(including actual English red-apple/song output). Transcription fails with
+LayerNormKernelImpl not implemented for Half on Torch 2.2 CPU. Whisper now
+requests float32 at load time for explicit or automatically selected CPU,
+avoiding a second in-memory model copy; accelerator auto dtype is preserved.
+Its cache identity now includes the constructor language hint. Seven focused
+device/kernel tests pass without downloading Whisper. Actual fixed inference
+still needs installed CI. The old GUI failure is the known final %gra assertion,
+already replaced by separate standalone-morphology and comparison checks.
+Report: /tmp/batchalign-mac-intel-runtime-35541484100/packaged-sidecar-report.json.
+Run 35545692852 (483ec5b8) has begun the expanded matrix, predating this CPU
+fix; retain its independent native/model evidence and build caches.

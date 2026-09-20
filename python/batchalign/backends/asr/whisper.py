@@ -41,6 +41,7 @@ class WhisperBackend(ASR, UTR):
         chunk_length_s: int = 15,
     ) -> None:
         from transformers import pipeline  # type: ignore[import-not-found]
+        import torch
 
         from batchalign.backends.asr._torch_audio import disable_torchcodec
 
@@ -48,6 +49,15 @@ class WhisperBackend(ASR, UTR):
         kwargs: dict[str, Any] = {"chunk_length_s": chunk_length_s}
         if device is not None:
             kwargs["device"] = device
+        cpu = torch.device(device).type == "cpu" if device is not None else not (
+            torch.cuda.is_available()
+            or (hasattr(torch.backends, "mps") and torch.backends.mps.is_available())
+        )
+        if cpu:
+            # The checkpoint's auto dtype is float16. Intel macOS is pinned
+            # to torch 2.2, whose CPU LayerNorm has no half-precision kernel.
+            # Choose the dtype while loading to avoid a second model copy.
+            kwargs["dtype"] = torch.float32
         self._pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -63,7 +73,8 @@ class WhisperBackend(ASR, UTR):
 
     @property
     def name(self) -> str:
-        return f"whisper:{self._model}"
+        # Auto-language inputs still use the constructor's language hint.
+        return f"whisper:{self._model}:{self._language}:v2"
 
     @property
     def batch_policy(self) -> BatchPolicy:
