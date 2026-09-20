@@ -76,3 +76,21 @@ test('random progress cannot corrupt another batch, revive terminal files, or es
     }
   }), { numRuns: 1000, seed: 20260921 });
 });
+
+test('folder discovery errors are scoped to the current request and clear on recovery', () => {
+  let state = reducer(useStore.getInitialState(), { type: 'BATCH_OPENED', batch: {
+    ...batch('a'), pipeline: ['morphotag'], needsDiscovery: true,
+  } });
+  const failure = { type: 'FILE_DISCOVERY_FAILED' as const, batchId: 'a',
+    firstStep: 'morphotag' as const, jobId: null, error: 'folder unavailable' };
+  expect(reducer(state, { ...failure, jobId: 'old-job' })).toBe(state);
+  state = reducer(state, failure);
+  expect(state.batches.a.discoveryError).toBe('folder unavailable');
+  expect(state.batches.a.needsDiscovery).toBe(true);
+  state = reducer(state, { type: 'PIPELINE_CHANGED', batchId: 'a', pipeline: ['compare'] });
+  expect(reducer(state, failure)).toBe(state);
+  state = reducer(state, { type: 'FILES_REDISCOVERED', batchId: 'a',
+    firstStep: 'compare', jobId: null, files: [] });
+  expect(state.batches.a.discoveryError).toBeUndefined();
+  expect(state.batches.a.needsDiscovery).toBe(false);
+});

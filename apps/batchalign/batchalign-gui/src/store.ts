@@ -80,6 +80,7 @@ export interface Batch {
   files: Record<string, FileRow>;
   fileOrder: string[];
   needsDiscovery?: boolean;
+  discoveryError?: string;
   state: BatchState;
   jobId: string | null;
   startedAt: number | null;
@@ -148,6 +149,7 @@ export type Action =
   | { type: "BATCH_OUTPUT_CHANGED"; batchId: string; outputPath: string | null }
   | { type: "PIPELINE_CHANGED"; batchId: string; pipeline: VerbStep[] }
   | { type: "FILES_REDISCOVERED"; batchId: string; firstStep: VerbStep | null; jobId: string | null; files: FileRow[] }
+  | { type: "FILE_DISCOVERY_FAILED"; batchId: string; firstStep: VerbStep | null; jobId: string | null; error: string }
   | {
       type: "VERB_CONFIG_CHANGED";
       batchId: string;
@@ -308,6 +310,15 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case "FILE_DISCOVERY_FAILED": {
+      const batch = state.batches[action.batchId];
+      if (!batch || batch.state === "running" || batch.jobId !== action.jobId ||
+          (batch.pipeline[0] ?? null) !== action.firstStep) return state;
+      return { ...state, batches: { ...state.batches, [batch.id]: {
+        ...batch, state: "idle", needsDiscovery: true, discoveryError: action.error,
+      } } };
+    }
+
     case "FILES_REDISCOVERED": {
       const batch = state.batches[action.batchId];
       if (!batch || batch.state === "running" || batch.jobId !== action.jobId ||
@@ -319,6 +330,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...batch, files, fileOrder: action.files.map(file => file.source_id),
         state: "idle", jobId: null, startedAt: null, finishedAt: null, expandedFileId: null,
         needsDiscovery: false,
+        discoveryError: undefined,
       } } };
     }
 
@@ -338,6 +350,7 @@ export function reducer(state: AppState, action: Action): AppState {
             ...batch,
             pipeline: action.pipeline,
             needsDiscovery: batch.needsDiscovery || batch.pipeline[0] !== action.pipeline[0],
+            discoveryError: batch.pipeline[0] !== action.pipeline[0] ? undefined : batch.discoveryError,
             files,
           },
         },

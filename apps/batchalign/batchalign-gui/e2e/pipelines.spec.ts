@@ -37,6 +37,7 @@ function install() {
   }));
   const original = w.__TAURI_INTERNALS__.invoke;
   w.__TAURI_INTERNALS__.invoke = async (cmd: string, args: any) => {
+    if (cmd === 'list_folder_files' && w.__SCAN_FAILURE__) throw new Error('folder unavailable');
     if (cmd === 'ensure_daemon') return 43210;
     if (cmd === 'start_batch_pump') return;
     if (cmd === 'daemon_request') {
@@ -49,7 +50,7 @@ function install() {
       throw new Error('unexpected request: ' + args.path);
     }
     return original(cmd, args);
-  };
+};
 }
 
 test('switching pipeline after transcription discovers newly created CHAT files', async ({ page }) => {
@@ -72,6 +73,24 @@ test('switching pipeline after transcription discovers newly created CHAT files'
   const request = await page.evaluate(() => (window as any).__DESKTOP_REQUEST__);
   expect(request.steps.map((step: any) => step.recipe)).toEqual(['align']);
   expect(request.source_ids).toEqual(['nested/é.cha']);
+});
+
+test('folder refresh failure is visible and a new first step retries discovery', async ({ page }) => {
+  await page.addInitScript({ content: stub + `\n(${install.toString()})();` });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'open folder…' }).click();
+  await page.evaluate(() => (window as any).__SCAN_FAILURE__ = true);
+  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.locator('div').filter({ hasText: /^morphotag$/ }).last().click();
+  await expect(page.getByText(/folder refresh failed:.*folder unavailable/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as any).__SCAN_FAILURE__ = false);
+  await page.getByRole('button', { name: 'remove morphotag', exact: true }).click();
+  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
+  await expect(page.getByText(/folder refresh failed:/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'start batch', exact: true }).click();
+  await expect(page.getByText('done', { exact: true }).first()).toBeVisible();
 });
 
 for (const seed of [20260920, 0xdeadbeef, 0x12345678]) {

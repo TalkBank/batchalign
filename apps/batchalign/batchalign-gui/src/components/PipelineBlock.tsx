@@ -21,10 +21,21 @@ export default function PipelineBlock() {
   useEffect(() => {
     if (!batch?.needsDiscovery || batch.state === "running") return;
     let active = true;
-    void scanFolder(batch.folderPath).then(files => {
-      if (active) dispatch({ type: "FILES_REDISCOVERED", batchId: batch.id,
-        firstStep: batch.pipeline[0] ?? null, jobId: batch.jobId, files });
-    }).catch(error => console.error("folder refresh failed", error));
+    void (async () => {
+      for (let attempt = 0; active && attempt < 3; attempt++) {
+        try {
+          const files = await scanFolder(batch.folderPath);
+          if (active) dispatch({ type: "FILES_REDISCOVERED", batchId: batch.id,
+            firstStep: batch.pipeline[0] ?? null, jobId: batch.jobId, files });
+          return;
+        } catch (error) {
+          if (!active) return;
+          if (attempt === 2) dispatch({ type: "FILE_DISCOVERY_FAILED", batchId: batch.id,
+            firstStep: batch.pipeline[0] ?? null, jobId: batch.jobId, error: String(error) });
+          else await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        }
+      }
+    })();
     return () => { active = false; };
   }, [batch?.id, batch?.folderPath, batch?.pipeline[0], batch?.needsDiscovery, dispatch]);
   if (!batch) return null;

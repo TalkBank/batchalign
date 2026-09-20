@@ -335,3 +335,15 @@ do not suppress teardown failures. Updated tooling passes 18 unit tests,
 production frontend build, and test discovery locally; no new local browser
 binaries downloaded. CI now caches Cargo dependencies (including on later
 runtime failure), because the Tauri Cargo build is outside Bazel's cache.
+
+Folder discovery no longer silently leaves start disabled on a scan error:
+retry three times with bounded delays, then show the error in the existing
+placeholder. Reopening the folder or changing the first step permits recovery;
+stale failures cannot override a newer request. Nineteen unit/property tests
+and the production build pass. The focused browser recovery test also passed
+using the already-cached Chromium 1234 binary with Playwright 1.63; CI still
+must verify its own pinned browser binaries. Compare's obsolete ROOT-head
+comments were corrected: the current morphology renderer already preserves
+head zero; grammar removal remains the deliberate comparison output contract.
+Intel macOS in 35541484100 now passed packaging and native regression tests
+and entered real runtime checks. Full inference results remain pending.

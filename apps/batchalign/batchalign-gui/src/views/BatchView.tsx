@@ -30,7 +30,9 @@ export default function BatchView() {
   //     match the chosen verb")
   //   - while running / done / failed, it's the real FileTable
   const isIdle = batch?.state === "idle";
-  const reason = pickReason(batch?.pipeline.length ?? 0, visible.length);
+  const reason = batch?.discoveryError
+    ? `folder refresh failed: ${batch.discoveryError}. reopen the folder or change the first pipeline step to retry.`
+    : pickReason(batch?.pipeline.length ?? 0, visible.length);
 
   return (
     <div
