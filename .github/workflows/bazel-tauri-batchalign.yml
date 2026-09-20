@@ -73,7 +73,7 @@ jobs:
     if: github.event_name != 'pull_request'
     name: bundle (${{ matrix.runner.target }})
     runs-on: ${{ matrix.runner.os }}
-    timeout-minutes: 120
+    timeout-minutes: 180
     defaults:
       run:
         shell: bash
@@ -156,10 +156,11 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Cold and warm bootstrap from packaged sidecar, with native output checks
-        timeout-minutes: 45
+        timeout-minutes: 90
         env:
           BATCHALIGN_SMOKE_REPORT: ${{ github.workspace }}/packaged-sidecar-report.json
           BATCHALIGN_SMOKE_GUI: "1"
+          BATCHALIGN_SMOKE_MODELS: "1"
         run: |
           set -euo pipefail
           bundle_root="target/${{ matrix.runner.target }}/release/bundle"

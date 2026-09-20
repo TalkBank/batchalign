@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 import { once } from 'node:events';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { testRealPipelines } from './real-runtime-pipelines.mjs';
 
 const cli = process.argv[2] === '--cli';
 const binary = cli ? 'just' : resolve(process.argv[2] || '');
@@ -108,6 +109,9 @@ try {
   assert.equal(Number(row[header.indexOf('accuracy')]), 1);
   assert.equal(await readFile(join(input, 'é.cha'), 'utf8'), transcript);
   results.comparison = { status, chat, csv, events: eventText };
+  if (process.env.BATCHALIGN_SMOKE_MODELS === '1') {
+    await testRealPipelines(base, root, repository, results);
+  }
   if (process.env.BATCHALIGN_SMOKE_GUI === '1') {
     const gui = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const browser = spawn(process.execPath, [join(gui, 'node_modules/playwright/cli.js'),
@@ -118,6 +122,9 @@ try {
     const [code] = await once(browser, 'exit');
     assert.equal(code, 0, 'real-daemon GUI pipeline test failed');
     results.gui = 'passed: morphotag → compare with real outputs';
+  }
+  for (const [recipe, result] of Object.entries(results.realPipelines || {})) {
+    assert(!result.error, `${recipe}: ${result.error}`);
   }
 } catch (error) {
   results.error = String(error);

@@ -106,6 +106,15 @@ installations on GitHub runners; local tests use one worker.
   and runs the shared native smoke through embedded WKWebView WebDriver.
   Production bundle artifacts remain uninstrumented. Dependency resolution and
   script syntax checks pass; actual macOS test build/execution remain pending.
+- Added real-model checks to each packaged-runtime job: default Whisper
+  large-v3 transcription of the 20-second English reference (WER <= 0.3 and
+  timing required), default Wav2Vec2 FA (unchanged words, %wor, valid timing),
+  local Pyannote single-speaker diarization (no word/utterance loss), and live
+  Google translation of two Spanish sentences (meaning assertions). These run
+  one at a time on CPU with independent failure records; existing GUI checks
+  exercise real Stanza plus comparison afterward. Reports retain actual CHAT
+  outputs, model kwargs, timings and errors. Syntax checked only; real inference
+  is pending CI, and provider-specific alternatives still require coverage.
 - Verify native supervisor changes in bundle CI, including subprocess cleanup
   during PyApp bootstrap (the direct-child test alone cannot prove descendant
   cleanup). New environment isolation leaves old versions available; their
