@@ -155,6 +155,9 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                     if req.force_cpu and cls and "device" in inspect.signature(cls.__init__).parameters:
                         value["kwargs"]["device"] = "cpu"
                     kwargs[key] = api.build_backend(value)
+            if step.recipe == "align" and "utr_backend" not in kwargs:
+                from batchalign.desktop_timing import DesktopTimingRecovery
+                kwargs["utr_backend"] = DesktopTimingRecovery(device="cpu" if req.force_cpu else None)
             opts: dict[str, Any] = {"workers": req.workers}
             if not step.use_cache:
                 from batchalign._core import CacheSpec

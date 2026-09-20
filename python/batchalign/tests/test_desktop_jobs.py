@@ -114,6 +114,27 @@ def test_force_cpu_and_worker_count_reach_stanza_pipeline(desktop, monkeypatch):
     assert options[0]["workers"] == 1
 
 
+def test_standalone_alignment_includes_lazy_timing_recovery(desktop, monkeypatch):
+    from batchalign.desktop_timing import DesktopTimingRecovery
+    client, request, _ = desktop
+    request.update(force_cpu=True)
+    request["steps"] = [{"recipe": "align", "kwargs": {
+        "fa_backend": {"kind": "Wav2Vec2FaBackend", "kwargs": {}}
+    }}]
+    options = []
+    factory = recipe("align", [])
+    def make_pipeline(**kwargs):
+        options.append(kwargs)
+        return factory(**kwargs)
+    monkeypatch.setitem(api.RECIPES, "align", make_pipeline)
+    state, _, _ = run(client, request)
+    assert state["state"] == "completed", state
+    recovery = options[0]["utr_backend"]
+    assert isinstance(recovery, DesktopTimingRecovery)
+    assert recovery._device == "cpu"
+    assert recovery._backend is None
+
+
 def test_local_access_is_required(desktop, monkeypatch):
     client, request, _ = desktop
     monkeypatch.delenv("BATCHALIGN_API_ALLOW_PATHS")

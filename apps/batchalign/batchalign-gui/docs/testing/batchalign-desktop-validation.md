@@ -125,6 +125,12 @@ installations on GitHub runners; local tests use one worker.
   switch to the .cha output suffix.
 - Native comparison CSV file labels previously appended .cha to absolute CHAT
   paths (yielding .cha.cha); fixed with a native integration assertion.
+- Standalone desktop alignment previously omitted UTR entirely. It now adds
+  a lazy local Whisper timing-recovery backend when none is explicitly given;
+  force-CPU is forwarded, and model construction is deferred until dispatch.
+  Focused orchestration/laziness tests pass (17 tests including desktop jobs).
+  Actual untimed-media alignment and native timed-input skip behavior still
+  require integration evidence; mocks do not prove recovery accuracy.
 - CI provider-secret listing was empty. Need live-provider credentials/test
   strategy; do not count fake services as provider correctness. There is ample
   independent work before this can constitute a blocker.
