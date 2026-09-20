@@ -157,8 +157,11 @@ installations on GitHub runners; local tests use one worker.
   a lazy local Whisper timing-recovery backend when none is explicitly given;
   force-CPU is forwarded, and model construction is deferred until dispatch.
   Focused orchestration/laziness tests pass (17 tests including desktop jobs).
-  Actual untimed-media alignment and native timed-input skip behavior still
-  require integration evidence; mocks do not prove recovery accuracy.
+  Native timed-input skip now passes an integration test with zero Whisper
+  construction; native untimed recovery correctly dispatches controlled ASR
+  output, writes 100_700 timing and removes the unlinked media status. Four
+  timing tests pass. Actual untimed-media model accuracy remains unverified;
+  the controlled ASR result does not prove inference correctness.
 - CI provider-secret listing was empty. Need live-provider credentials/test
   strategy; do not count fake services as provider correctness. There is ample
   independent work before this can constitute a blocker.
