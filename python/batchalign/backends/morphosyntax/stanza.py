@@ -287,6 +287,7 @@ class StanzaBackend(Morphosyntax):
         batch_size: int = 128,
         batch_window_ms: int = 100,
         retokenize: bool = False,
+        device: str | None = None,
     ) -> None:
         stanza = _import_stanza_runtime()
 
@@ -304,6 +305,7 @@ class StanzaBackend(Morphosyntax):
                 self._normalize_pipeline_lang(to_stanza(p)) for p in parts
             ] or ["en"]
         self._retokenize = retokenize
+        self._device = device
         # Eager-build only when a language was pinned; otherwise defer until
         # the first input arrives (header-driven dispatch).
         if self._pinned_langs is not None:
@@ -318,8 +320,8 @@ class StanzaBackend(Morphosyntax):
         return "zh-hans" if lang == "zh" else lang
 
     @staticmethod
-    def _pipeline_key_for(langs: list[str], retokenize: bool) -> tuple:
-        return (frozenset(langs), retokenize)
+    def _pipeline_key_for(langs: list[str], retokenize: bool, device: str | None = None) -> tuple:
+        return (frozenset(langs), retokenize, device)
 
     def _lang_config(self, lang: str, langs: list[str], key: tuple) -> dict[str, Any]:
         """Per-language Stanza config matching BA2's `_build_nlp`."""
@@ -338,6 +340,8 @@ class StanzaBackend(Morphosyntax):
             # model files are still downloaded by REUSE_RESOURCES.
             "download_method": "reuse_resources",
         }
+        if self._device is not None:
+            config["device"] = self._device
         if lang not in _MWT_EXCLUSION:
             config["processors"]["mwt"] = "gum" if lang == "en" else "default"
         if lang == "ja":
@@ -374,7 +378,7 @@ class StanzaBackend(Morphosyntax):
         header-driven construction is caught and memoized by ``call()``;
         explicitly pinned construction fails immediately in ``__init__``.
         """
-        key = self._pipeline_key_for(langs, self._retokenize)
+        key = self._pipeline_key_for(langs, self._retokenize, self._device)
         with _pipeline_cache_lock:
             hit = _pipeline_cache.get(key)
             if hit is not None:
@@ -386,6 +390,7 @@ class StanzaBackend(Morphosyntax):
                     lang_configs=configs,
                     lang_id_config={"langid_lang_subset": list(langs)},
                     download_method="reuse_resources",
+                    device=self._device,
                 )
             else:
                 lang = langs[0]
@@ -485,7 +490,7 @@ class StanzaBackend(Morphosyntax):
                 )
                 outputs[idx] = self._empty_output(item)
                 continue
-            key = self._pipeline_key_for(langs, self._retokenize)
+            key = self._pipeline_key_for(langs, self._retokenize, self._device)
             groups.setdefault(key, []).append((idx, item, tuple(langs)))
 
         # Phase 2: per-language batched dispatch.

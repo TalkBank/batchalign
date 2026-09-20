@@ -143,9 +143,9 @@ def test_pipeline_cache_evicts_least_recently_used_language_set() -> None:
     assert len(stanza_backend_mod._pipeline_cache) == 2
     assert fake_stanza.Pipeline.call_count == 3
     collect.assert_called_once_with()
-    assert (frozenset({"es"}), False) not in stanza_backend_mod._pipeline_cache
-    assert (frozenset({"en"}), False) in stanza_backend_mod._pipeline_cache
-    assert (frozenset({"fr"}), False) in stanza_backend_mod._pipeline_cache
+    assert (frozenset({"es"}), False, None) not in stanza_backend_mod._pipeline_cache
+    assert (frozenset({"en"}), False, None) in stanza_backend_mod._pipeline_cache
+    assert (frozenset({"fr"}), False, None) in stanza_backend_mod._pipeline_cache
 
 
 def test_language_group_releases_postprocessor_sentences() -> None:
@@ -166,7 +166,7 @@ def test_language_group_releases_postprocessor_sentences() -> None:
         return_value=SimpleNamespace(sentences=[mock.sentinel.SENTENCE])
     )
     outputs = [None]
-    key = (frozenset({"it"}), False)
+    key = (frozenset({"it"}), False, None)
 
     with _fake_runtime(fake_stanza):
         backend = StanzaBackend()
@@ -333,3 +333,24 @@ def test_multilingual_pipeline_cached_under_frozenset_key() -> None:
         config["download_method"] == "reuse_resources"
         for config in configs.values()
     )
+
+
+@pytest.mark.parametrize("lang", ["eng", "eng,spa"])
+def test_explicit_cpu_does_not_reuse_an_automatic_device_pipeline(lang) -> None:
+    _reset_cache()
+    from batchalign.backends.morphosyntax.stanza import StanzaBackend
+
+    fake = mock.MagicMock()
+    fake.__version__ = "test"
+    factory = fake.MultilingualPipeline if "," in lang else fake.Pipeline
+    factory.side_effect = [mock.sentinel.AUTO, mock.sentinel.CPU]
+    with _fake_runtime(fake):
+        automatic = StanzaBackend(lang=lang)
+        cpu = StanzaBackend(lang=lang, device="cpu")
+        repeated = StanzaBackend(lang=lang, device="cpu")
+    assert automatic._nlp is mock.sentinel.AUTO
+    assert cpu._nlp is repeated._nlp is mock.sentinel.CPU
+    assert factory.call_count == 2
+    assert factory.call_args.kwargs["device"] == "cpu"
+    if "," in lang:
+        assert all(config["device"] == "cpu" for config in factory.call_args.kwargs["lang_configs"].values())

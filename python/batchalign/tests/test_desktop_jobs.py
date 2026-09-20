@@ -96,6 +96,24 @@ def test_model_construction_failure_is_a_failed_job(desktop, monkeypatch):
     assert source.read_text() == "original"
 
 
+def test_force_cpu_and_worker_count_reach_stanza_pipeline(desktop, monkeypatch):
+    client, request, _ = desktop
+    request.update(force_cpu=True, workers=1)
+    request["steps"] = request["steps"][:1]
+    constructed = []
+    options = []
+    monkeypatch.setattr(api, "build_backend", lambda spec: constructed.append(spec) or object())
+    factory = recipe("morphotag", [])
+    def make_pipeline(**kwargs):
+        options.append(kwargs)
+        return factory(**kwargs)
+    monkeypatch.setitem(api.RECIPES, "morphotag", make_pipeline)
+    state, _, _ = run(client, request)
+    assert state["state"] == "completed", state
+    assert constructed == [{"kind": "StanzaBackend", "kwargs": {"device": "cpu"}}]
+    assert options[0]["workers"] == 1
+
+
 def test_local_access_is_required(desktop, monkeypatch):
     client, request, _ = desktop
     monkeypatch.delenv("BATCHALIGN_API_ALLOW_PATHS")

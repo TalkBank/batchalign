@@ -90,8 +90,11 @@ installations on GitHub runners; local tests use one worker.
 - Re-run behavior: BATCH_STARTED replaces discovery rows with selected inputs;
   changing pipeline type after a run may require re-scanning the folder.
 - Settings still need complete mapping: memory/adaptive-worker controls,
-  stored Rev.AI key, and skip-code-switching semantics. Global/local models
-  must honor force-CPU even where constructors lack a device parameter.
+  stored Rev.AI key, and skip-code-switching semantics. Stanza now accepts
+  device selection, forwards it to single/multilingual pipelines, and includes
+  device in its cache key so force-CPU cannot reuse an automatic-device model.
+  Focused tests cover this and the desktop force_cpu/worker forwarding path.
+  Other global/local models still need a force-CPU audit.
 - In-place .chat suffix preservation has a regression test; only media inputs
   switch to the .cha output suffix.
 - Native comparison CSV file labels previously appended .cha to absolute CHAT
