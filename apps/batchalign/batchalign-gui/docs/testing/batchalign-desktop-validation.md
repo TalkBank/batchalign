@@ -85,6 +85,12 @@ installations on GitHub runners; local tests use one worker.
   unmodified-app readiness/IPC/output/shutdown/relaunch script. MSI logs and
   screenshots are retained. This is configured but not yet executed; macOS
   needs a separate native automation implementation.
+- First Windows bundle job 106150069980 (run 35537862870) compiled the wheel
+  and PyApp, then failed because the declared extensionless `sidecar` output
+  was missing. MSYS executable-copy suffix behavior is the suspected cause:
+  wrappers now write the exact declared binary output with shell redirection,
+  for both PyApp and cargo-tauri. Shell syntax checks pass; Windows CI must
+  confirm the fix. Full failed-job log: /tmp/batchalign-windows-job.log.
 - Verify native supervisor changes in bundle CI, including subprocess cleanup
   during PyApp bootstrap (the direct-child test alone cannot prove descendant
   cleanup). New environment isolation leaves old versions available; their

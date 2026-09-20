@@ -93,6 +93,7 @@ cargo install \
 # cargo install of `tauri-cli` produces a binary called `cargo-tauri`.
 installed="$out_dir/bin/cargo-tauri"
 [[ -f "$installed" ]] || installed="${installed}.exe"
-cp -f "$installed" "$OUTPUT"
+# MSYS cp may silently append .exe; Bazel declares `cargo-tauri` literally.
+cat "$installed" > "$OUTPUT"
 chmod +x "$OUTPUT"
 echo "tauri_install.sh: produced $OUTPUT"

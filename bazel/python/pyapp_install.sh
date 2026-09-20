@@ -158,6 +158,8 @@ cargo install \
 
 installed="$out_dir/bin/pyapp"
 [[ -f "$installed" ]] || installed="${installed}.exe"
-cp -f "$installed" "$OUTPUT"
+# MSYS cp can append .exe when copying a PE executable to an extensionless
+# destination. Bazel requires the literal declared output `sidecar`.
+cat "$installed" > "$OUTPUT"
 chmod +x "$OUTPUT"
 echo "pyapp_install.sh: produced $OUTPUT"
