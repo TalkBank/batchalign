@@ -49,7 +49,7 @@ export BUILD_WORKSPACE_DIRECTORY="$ws"
 if [[ -n "${PYAPP_RUST_BIN_DIRS:-}" ]]; then
     for p in $PYAPP_RUST_BIN_DIRS; do
         case "$p" in
-            */bin/cargo|*/bin/rustc)
+            */bin/cargo|*/bin/rustc|*/bin/cargo.exe|*/bin/rustc.exe)
                 abs="$(cd "$(dirname "$p")" && pwd)"
                 case ":$PATH:" in
                     *":$abs:"*) ;;
@@ -91,6 +91,8 @@ cargo install \
     "${cargo_flag[@]+"${cargo_flag[@]}"}"
 
 # cargo install of `tauri-cli` produces a binary called `cargo-tauri`.
-cp -f "$out_dir/bin/cargo-tauri" "$OUTPUT"
+installed="$out_dir/bin/cargo-tauri"
+[[ -f "$installed" ]] || installed="${installed}.exe"
+cp -f "$installed" "$OUTPUT"
 chmod +x "$OUTPUT"
 echo "tauri_install.sh: produced $OUTPUT"

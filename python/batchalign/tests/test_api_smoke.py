@@ -116,7 +116,7 @@ def test_job_lifecycle_with_stub_recipe(client, monkeypatch, tmp_path):
         def run(self, inputs, callbacks):
             for inp in inputs:
                 sid = str(getattr(inp, "source_id", "") or "")
-                callbacks[sid](FakeEvent())
+                dict(callbacks)[sid](FakeEvent())
             return [FakeOutcome()]
 
     def fake_recipe(*, asr_backend, speaker_backend=None, **opts):

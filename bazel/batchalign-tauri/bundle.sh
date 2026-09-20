@@ -30,6 +30,16 @@ if [[ -z "$CARGO_TAURI" || ! -x "$CARGO_TAURI" ]]; then
     echo "bundle.sh: rlocation could not resolve _main/bazel/tauri/cargo-tauri" >&2
     exit 2
 fi
+case "$(uname -s)" in
+    MINGW*|MSYS*)
+        # Cargo resolves subcommands with an .exe suffix on Windows. The
+        # Bazel output has a platform-independent name, so stage that suffix.
+        cli_stage="$BUILD_WORKSPACE_DIRECTORY/python/target/tauri-wrapper"
+        mkdir -p "$cli_stage"
+        cp -f "$CARGO_TAURI" "$cli_stage/cargo-tauri.exe"
+        CARGO_TAURI="$cli_stage/cargo-tauri.exe"
+        ;;
+esac
 PATH="$(cd "$(dirname "$CARGO_TAURI")" && pwd):$PATH"
 export PATH
 

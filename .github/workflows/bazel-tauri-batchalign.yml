@@ -72,6 +72,10 @@ jobs:
     if: github.event_name != 'pull_request'
     name: bundle (${{ matrix.runner.target }})
     runs-on: ${{ matrix.runner.os }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -79,12 +83,8 @@ jobs:
           - { os: macos-14,       target: aarch64-apple-darwin }
           - { os: macos-15-intel, target: x86_64-apple-darwin }
           - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
-          # Windows bundle: tools/bazel is a bash wrapper that bazelisk
-          # rejects on PowerShell hosts ("unexpected wrapper type").
-          # Track windows-msvc separately once we have a portable wrapper
-          # or a windows-batch shim; for now the matrix covers the three
-          # platforms whose toolchain story is solid.
-          # - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: windows-2022, target: x86_64-pc-windows-msvc }
     steps:
       - uses: actions/checkout@v4
 
@@ -101,7 +101,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
+
+      - uses: extractions/setup-just@v2
+
+      - name: Enable Windows long paths
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          git config --system core.longpaths true
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -Value 1
 
       # Tauri v2 frontend deps (Linux only — macOS/Windows ship them).
       - name: install linux tauri prereqs
@@ -119,9 +128,9 @@ jobs:
       # from a SHA-pinned crates.io tarball, PATH-injected by the
       # bundle wrapper). No host install required.
 
-      - name: npm install (frontend)
+      - name: npm ci (frontend)
         working-directory: apps/batchalign/batchalign-gui
-        run: npm install
+        run: npm ci
 
       # Pre-build the sidecar daemon binary. The genrule at
       # //python/batchalign:sidecar produces a Bazel-tracked output that
@@ -129,15 +138,48 @@ jobs:
       # src-tauri/binaries/sidecar-<triple> before invoking cargo tauri
       # build.
       - name: build sidecar
-        run: bazel build --config=ci //python/batchalign:sidecar
+        run: just batchalign sidecar
 
       - name: bundle Batchalign desktop
+        id: desktop_bundle
         env:
           TAURI_PROFILE: release
-        run: bazel run --config=ci //apps/batchalign/batchalign-gui/src-tauri:bundle -- --target ${{ matrix.runner.target }}
+        run: just batchalign gui build release --target ${{ matrix.runner.target }}
+
+      - name: Cold and warm bootstrap from packaged sidecar, with native output checks
+        timeout-minutes: 45
+        env:
+          BATCHALIGN_SMOKE_REPORT: ${{ github.workspace }}/packaged-sidecar-report.json
+        run: |
+          set -euo pipefail
+          bundle_root="target/${{ matrix.runner.target }}/release/bundle"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            sidecar=$(find "$bundle_root" -path '*/Batchalign.app/Contents/MacOS/sidecar' -type f -print -quit)
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            package=$(find "$bundle_root" -name '*.deb' -type f -print -quit)
+            unpacked=$(mktemp -d)
+            dpkg-deb -x "$package" "$unpacked"
+            sidecar=$(find "$unpacked" -name sidecar -type f -print -quit)
+          else
+            package=$(find "$bundle_root" -name '*.msi' -type f -print -quit)
+            unpacked=$(mktemp -d)
+            MSYS_NO_PATHCONV=1 msiexec.exe /a "$(cygpath -w "$package")" /qn "TARGETDIR=$(cygpath -w "$unpacked")"
+            sidecar=$(find "$unpacked" -name sidecar.exe -type f -print -quit)
+          fi
+          test -n "$sidecar"
+          node apps/batchalign/batchalign-gui/scripts/packaged-sidecar-smoke.mjs "$sidecar"
+
+      - name: Upload packaged runtime report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: packaged-runtime-${{ matrix.runner.target }}
+          path: packaged-sidecar-report.json
+          retention-days: 7
 
       - name: upload bundle artifact
         uses: actions/upload-artifact@v4
+        if: always() && steps.desktop_bundle.outcome == 'success'
         with:
           name: batchalign-${{ matrix.runner.target }}
           # cargo-tauri honors the workspace's root `Cargo.toml`

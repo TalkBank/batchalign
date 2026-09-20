@@ -10,7 +10,6 @@
 //! batch via `stop_pump`.
 
 use std::pin::Pin;
-use std::time::Duration;
 
 use eventsource_stream::Eventsource;
 use futures_util::stream::StreamExt;
@@ -41,18 +40,12 @@ pub async fn pump(app: AppHandle, batch_id: String, job_id: String) {
     );
     let resp = match reqwest::Client::new()
         .get(&url)
-        .timeout(Duration::from_secs(0))
         .send()
         .await
     {
         Ok(r) => r,
         Err(e) => {
-            let _ = app.emit(
-                events::DAEMON_FAILED,
-                crate::protocol::DaemonFailedPayload {
-                    reason: format!("SSE connect failed: {e}"),
-                },
-            );
+            eprintln!("[daemon events] SSE connect failed for {job_id}: {e}");
             return;
         }
     };

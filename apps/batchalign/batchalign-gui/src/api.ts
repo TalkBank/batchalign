@@ -57,6 +57,10 @@ export async function submitRecipe(
   return request<{ job_id: string }>("POST", `/recipes/${recipe}`, body);
 }
 
+export async function submitDesktopJob(body: Record<string, unknown>): Promise<{ job_id: string }> {
+  return request("POST", "/desktop/jobs", body);
+}
+
 export interface JobStatusJson {
   id: string;
   recipe: string;

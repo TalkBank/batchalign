@@ -1,140 +1,56 @@
-// Encapsulates the "submit the active batch's first verb as a recipe
-// and kick off the SSE pump" flow so the start button can live in the
-// batch action footer (per the design canvas — variant-a.jsx places it
-// in the left pane's sticky footer, NOT inside the files block).
-
 import { invoke } from "@tauri-apps/api/core";
-import { submitRecipe } from "../api";
-import { useStore, type VerbConfig, type VerbStep } from "../store";
+import { submitDesktopJob, fetchJobStatus } from "../api";
+import { useStore, getAppState, dispatch } from "../store";
 import { filterFilesForVerb } from "./useFilteredFiles";
+import { buildDesktopRequest } from "../desktop";
 
-function buildRecipeKwargs(
-  verb: VerbStep,
-  config: VerbConfig,
-): Record<string, unknown> {
-  switch (verb) {
-    case "transcribe": {
-      const engine = (config.engine as string) || "WhisperBackend";
-      const lang = (config.lang as string) || "eng";
-      const speakers = (config.speakers as number) ?? 2;
-      const diarize = (config.diarize as boolean) ?? true;
-      const nativeSpeaker = engine === "RevAI" || engine === "GoogleGenAIBackend";
-      const asrKwargs: Record<string, unknown> = { language: lang };
-      if (nativeSpeaker) asrKwargs.num_speakers = speakers;
-      const out: Record<string, unknown> = {
-        asr_backend: { kind: engine, kwargs: asrKwargs },
-      };
-      if (diarize) {
-        if (nativeSpeaker) {
-          out.diarize = true;
-        } else {
-          out.speaker_backend = {
-            kind: (config.diarize_engine as string) || "PyannoteAIBackend",
-            kwargs: { num_speakers: speakers },
-          };
-        }
+// Synchronous latch closes the gap before React renders the running state.
+const submitting = new Set<string>();
+
+export async function startBatch(batchId: string): Promise<void> {
+  const { batches, settings } = getAppState();
+  const batch = batches[batchId];
+  if (!batch || !batch.pipeline.length || batch.state === "running" || submitting.has(batchId)) return;
+  const request = buildDesktopRequest(batch, settings);
+  if (!request.source_ids.length) return;
+  submitting.add(batchId);
+  const files = request.source_ids.map(id => ({
+    ...batch.files[id], status: "queued" as const, log: [],
+    stages: batch.pipeline.map(verb => ({ verb, state: "queued" as const, pct: 0 })),
+  }));
+  dispatch({ type: "BATCH_STARTED", batchId, jobId: "", files });
+  let jobId = "";
+  try {
+    const job = await submitDesktopJob(request);
+    jobId = job.job_id;
+    dispatch({ type: "BATCH_STARTED", batchId, jobId, files });
+    // Status remains authoritative even if an SSE connection closes early.
+    // A progress transport problem must never mark the daemon itself failed.
+    void invoke("start_batch_pump", { batchId, jobId }).catch(console.error);
+    while (getAppState().batches[batchId]?.jobId === jobId) {
+      const status = await fetchJobStatus(jobId);
+      if (["completed", "failed", "cancelled"].includes(status.state)) {
+        dispatch({ type: "BATCH_FINISHED", batchId, jobId,
+          error: status.state === "completed" ? null : status.error || `job ${status.state}` });
+        return;
       }
-      return out;
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
-    case "diarize":
-      return {
-        speaker_backend: {
-          kind: (config.engine as string) || "PyannoteAIBackend",
-          kwargs: { num_speakers: (config.speakers as number) ?? 0 },
-        },
-      };
-    case "align":
-      return {
-        fa_backend: {
-          kind: (config.engine as string) || "WhisperXFaBackend",
-          kwargs: {},
-        },
-      };
-    case "morphotag":
-      return {
-        stanza_backend: {
-          kind: "StanzaBackend",
-          kwargs: { lang: (config.lang as string) || "eng" },
-        },
-      };
-    case "translate":
-      return {
-        translate_backend: {
-          kind: (config.engine as string) || "GoogleTranslateBackend",
-          kwargs: { target: (config.target as string) || "eng" },
-        },
-      };
-    case "compare":
-      return {
-        stanza_backend: {
-          kind: "StanzaBackend",
-          kwargs: { lang: (config.lang as string) || "eng" },
-        },
-      };
+  } catch (error) {
+    dispatch({ type: "BATCH_FINISHED", batchId, jobId, error: String(error) });
+  } finally {
+    submitting.delete(batchId);
   }
 }
 
-export interface UseStartBatchResult {
-  /** True iff the current batch has at least one file and one verb. */
-  canStart: boolean;
-  /** True while the batch is mid-run; the button should reflect this. */
-  isRunning: boolean;
-  /** Fire the recipe submission + SSE pump. */
-  start: () => Promise<void>;
-}
-
-export function useStartBatch(): UseStartBatchResult {
-  const { activeBatchId, batches, dispatch } = useStore();
+export function useStartBatch() {
+  const { activeBatchId, batches, daemon } = useStore();
   const batch = activeBatchId ? batches[activeBatchId] : null;
-
-  const isRunning = batch?.state === "running";
-  // Only count files the daemon would actually pick up — the start
-  // button stays disabled if the user has dropped in chat files but
-  // their first verb is transcribe (and similar mismatches).
   const visibleIds = batch?.pipeline[0]
-    ? filterFilesForVerb(batch.files, batch.fileOrder, batch.pipeline[0])
-    : [];
-  const canStart =
-    !!batch && visibleIds.length > 0 && batch.pipeline.length > 0;
-
-  const start = async () => {
-    if (!batch) return;
-    const firstVerb = batch.pipeline[0];
-    if (!firstVerb) return;
-    const ids = filterFilesForVerb(batch.files, batch.fileOrder, firstVerb);
-    if (ids.length === 0) return;
-    const kwargs = buildRecipeKwargs(firstVerb, batch.config[firstVerb]);
-    const inputs = ids.map((id) => {
-      const file = batch.files[id];
-      // The daemon's InputSpec.kind set is "media" | "chat" | "paired".
-      // We tag with the file's discovered kind so the daemon doesn't
-      // need to re-classify.
-      return {
-        kind: file.kind,
-        path: `${batch.folderPath}/${file.filename}`,
-      };
-    });
-    try {
-      const job = await submitRecipe(firstVerb, { ...kwargs, inputs });
-      dispatch({
-        type: "BATCH_STARTED",
-        batchId: batch.id,
-        jobId: job.job_id,
-        files: ids.map((id) => batch.files[id]),
-      });
-      await invoke("start_batch_pump", {
-        batchId: batch.id,
-        jobId: job.job_id,
-      });
-    } catch (err) {
-      // Recipe-submission failure is a batch-level error, NOT a
-      // daemon failure. The daemon is fine — it just rejected this
-      // particular request (e.g. bad kwargs, missing model). Don't
-      // dispatch DAEMON_FAILED or we'd hide the entire UI behind the
-      // boot overlay's error state.
-      console.error("start_batch failed", err);
-    }
+    ? filterFilesForVerb(batch.files, batch.fileOrder, batch.pipeline[0]) : [];
+  return {
+    canStart: !!batch && daemon.ready && visibleIds.length > 0 && batch.pipeline.length > 0,
+    isRunning: batch?.state === "running",
+    start: async () => { if (batch) await startBatch(batch.id); },
   };
-
-  return { canStart, isRunning, start };
 }

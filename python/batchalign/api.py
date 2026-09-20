@@ -453,7 +453,11 @@ def _event_to_dict(event: Any) -> dict[str, Any]:
             elif val is None or isinstance(val, (str, int, float, bool)):
                 pass
             else:
-                val = str(val)
+                # PyO3 enums are not enum.Enum. Their default string form
+                # is "ProgressKind.StageStarted" / "Task.Asr"; the wire
+                # protocol uses the variant name, like Python enum values.
+                rendered = str(val)
+                val = rendered.removeprefix(f"{type(val).__name__}.") if attr in ("kind", "task") else rendered
             payload[attr] = val
     if not payload:
         payload["repr"] = repr(event)
@@ -489,17 +493,22 @@ def _run_job_blocking(
     try:
         pipeline = recipe_fn(**recipe_kwargs, **pipeline_opts)
         cb = _make_callback(job, loop)
-        callbacks = {
-            str(getattr(inp, "source_id", "") or ""): cb for inp in inputs_resolved
-        }
+        callbacks = [
+            (str(getattr(inp, "source_id", "") or ""), cb) for inp in inputs_resolved
+        ]
         outcomes = pipeline.run(inputs_resolved, callbacks=callbacks)
         # Outcomes are Rust BAValue objects; stringify for JSON.
         job.result = [_event_to_dict(o) if hasattr(o, "source_id") else repr(o)
                       for o in outcomes]
-        job.state = JobState.COMPLETED
+        if job.state != JobState.CANCELLED:
+            failures = [str(getattr(o, "error", "pipeline failed")) for o in outcomes
+                        if getattr(o, "is_failed", False)]
+            job.error = "\n".join(failures) or None
+            job.state = JobState.FAILED if failures else JobState.COMPLETED
     except Exception as exc:  # noqa: BLE001
         job.error = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}"
-        job.state = JobState.FAILED
+        if job.state != JobState.CANCELLED:
+            job.state = JobState.FAILED
     finally:
         job.finished_at = time.time()
         # Sentinel so the SSE drain loop knows to stop.
@@ -858,8 +867,8 @@ def cancel_job(job_id: str) -> dict[str, bool]:
         # We can't yank a thread out of native Rust code. Mark as
         # cancelled; the result will still arrive (and be discarded).
         job.state = JobState.CANCELLED
-    if job.workdir and job.workdir.exists():
-        shutil.rmtree(job.workdir, ignore_errors=True)
+    # The worker owns its input/output staging directory until it exits.
+    # Deleting it while native inference is still running corrupts the job.
     return {"cancelled": True}
 
 
@@ -888,3 +897,7 @@ __all__ = [
     "build_backend",
     "materialize_input",
 ]
+
+# Local desktop orchestration shares the job/status/event contract above.
+from batchalign.desktop import router as desktop_router
+app.include_router(desktop_router)

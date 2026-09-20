@@ -60,7 +60,7 @@ export function bootBridge(): () => void {
           dispatch({ type: "DAEMON_PROGRESS", line });
         }),
         subscribe<ProgressV2Payload>(TauriEvents.progressV2, (payload) => {
-          dispatch({ type: "PROGRESS_V2", batchId: payload.batchId, event: payload.event });
+          dispatch({ type: "PROGRESS_V2", batchId: payload.batchId, jobId: payload.jobId, event: payload.event });
         }),
       ]);
       if (disposed) return;

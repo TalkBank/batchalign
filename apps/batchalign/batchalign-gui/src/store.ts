@@ -158,7 +158,8 @@ export type Action =
       jobId: string;
       files: FileRow[];
     }
-  | { type: "PROGRESS_V2"; batchId: string; event: ProgressEvent }
+  | { type: "PROGRESS_V2"; batchId: string; jobId?: string; event: ProgressEvent }
+  | { type: "BATCH_FINISHED"; batchId: string; jobId: string; error: string | null }
   | {
       type: "FILE_EXPANDED";
       batchId: string;
@@ -370,11 +371,33 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case "BATCH_FINISHED": {
+      const batch = state.batches[action.batchId];
+      if (!batch || batch.jobId !== action.jobId) return state;
+      const files = Object.fromEntries(Object.entries(batch.files).map(([id, file]) => {
+        if (action.error && file.status === "done") return [id, file];
+        return [id, {
+          ...file,
+          status: action.error ? "failed" as const : "done" as const,
+          stages: file.stages.map(stage => ({ ...stage,
+            state: action.error ? (stage.state === "done" ? "done" as const : "fail" as const) : "done" as const,
+            pct: action.error ? stage.pct : 100,
+          })),
+          log: action.error ? [...file.log, { ts: Date.now(), level: "error" as const, text: action.error }].slice(-200) : file.log,
+        }];
+      }));
+      return { ...state, batches: { ...state.batches, [batch.id]: {
+        ...batch, files, state: action.error ? "failed" : "done", finishedAt: Date.now(),
+      }}};
+    }
+
     case "PROGRESS_V2": {
       const batch = state.batches[action.batchId];
       if (!batch) return state;
+      if (action.jobId !== undefined && batch.jobId !== action.jobId) return state;
       const file = batch.files[action.event.source_id];
       if (!file) return state;
+      if (file.status === "done" || file.status === "failed") return state;
       const stageIdx = findStageIndex(file, action.event.task);
       const stages = file.stages.map((s) => ({ ...s }));
       const log: LogEntry[] = [...file.log];
@@ -443,7 +466,9 @@ export function reducer(state: AppState, action: Action): AppState {
         ...file,
         stages,
         log: log.slice(-200), // cap at 200 to bound memory
-        status: recomputeFileStatus({ ...file, stages }),
+        status: action.event.kind === "SourceCompleted"
+          ? recomputeFileStatus({ ...file, stages })
+          : stages.some(stage => stage.state === "fail") ? "failed" : "running",
       };
       const newFiles = { ...batch.files, [file.source_id]: newFile };
       const newBatch: Batch = {

@@ -305,7 +305,11 @@ fn build_compare_metrics(
     CompareMetrics {
         // BA2 uses the bare file name (with `.cha` suffix) — emit the same
         // for direct diffability against BA2's compare.csv.
-        file_label: format!("{source_id}.cha"),
+        file_label: std::path::Path::new(source_id)
+            .with_extension("cha")
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| format!("{source_id}.cha")),
         wer: summary.wer,
         cwer: summary.cwer,
         accuracy: summary.accuracy,

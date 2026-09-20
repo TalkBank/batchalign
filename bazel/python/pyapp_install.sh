@@ -61,7 +61,7 @@ export BUILD_WORKSPACE_DIRECTORY="$ws"
 if [[ -n "${PYAPP_RUST_BIN_DIRS:-}" ]]; then
     for p in $PYAPP_RUST_BIN_DIRS; do
         case "$p" in
-            */bin/cargo|*/bin/rustc)
+            */bin/cargo|*/bin/rustc|*/bin/cargo.exe|*/bin/rustc.exe)
                 abs="$(cd "$(dirname "$p")" && pwd)"
                 case ":$PATH:" in
                     *":$abs:"*) ;;
@@ -156,6 +156,8 @@ cargo install \
     --root "$out_dir" \
     "${cargo_flag[@]+"${cargo_flag[@]}"}"
 
-cp -f "$out_dir/bin/pyapp" "$OUTPUT"
+installed="$out_dir/bin/pyapp"
+[[ -f "$installed" ]] || installed="${installed}.exe"
+cp -f "$installed" "$OUTPUT"
 chmod +x "$OUTPUT"
 echo "pyapp_install.sh: produced $OUTPUT"

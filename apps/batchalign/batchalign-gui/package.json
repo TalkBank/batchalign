@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "test:unit": "vitest run",
     "test:startup": "playwright test e2e/startup.spec.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:gui": "playwright test e2e/startup.spec.ts e2e/pipelines.spec.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
