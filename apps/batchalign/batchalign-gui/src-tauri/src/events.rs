@@ -41,7 +41,31 @@ async fn relay(app: &AppHandle, batch_id: &str, job_id: &str, port: u16) {
         port = port,
         job_id = job_id,
     );
-    let resp = match reqwest::Client::new().get(&url).send().await {
+    let client = match reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .build()
+    {
+        Ok(client) => client,
+        Err(error) => {
+            eprintln!("[daemon events] SSE client failed for {job_id}: {error}");
+            return;
+        }
+    };
+    // Bound response headers separately: the event body itself may legitimately
+    // stay open for hours while a pipeline runs.
+    let response =
+        match tokio::time::timeout(std::time::Duration::from_secs(30), client.get(&url).send())
+            .await
+        {
+            Ok(response) => response,
+            Err(error) => {
+                eprintln!("[daemon events] SSE headers timed out for {job_id}: {error}");
+                return;
+            }
+        };
+    let resp = match response {
         Ok(r) => match r.error_for_status() {
             Ok(response) => response,
             Err(error) => {

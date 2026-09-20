@@ -20,6 +20,14 @@ load("@rules_rust//rust:defs.bzl", "rust_test")
 package(default_visibility = ["//visibility:public"])
 
 rust_test(
+    name = "daemon_http_test",
+    srcs = ["src/daemon_http.rs"],
+    crate_root = "src/daemon_http.rs",
+    edition = "2024",
+    deps = ["@crates//:reqwest", "@crates//:serde_json", "@crates//:tokio"],
+)
+
+rust_test(
     name = "daemon_protocol_test",
     srcs = ["src/daemon_protocol.rs"],
     crate_root = "src/daemon_protocol.rs",

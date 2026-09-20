@@ -10,6 +10,7 @@
 
 mod commands;
 mod daemon;
+mod daemon_http;
 mod daemon_protocol;
 mod events;
 mod protocol;

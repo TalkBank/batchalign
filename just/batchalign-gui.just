@@ -53,6 +53,10 @@ unit:
 native-protocol:
     bazel test --jobs=1 //apps/batchalign/batchalign-gui/src-tauri:daemon_protocol_test
 
+# Exercise the actual Rust HTTP relay against local socket servers.
+native-http:
+    bazel test --jobs=1 //apps/batchalign/batchalign-gui/src-tauri:daemon_http_test
+
 # Test the full native library after Bazel stages its bundled dependencies.
 native-unit *args:
     bazel run //apps/batchalign/batchalign-gui/src-tauri:native_unit -- "$@"

@@ -90,7 +90,12 @@ installations on GitHub runners; local tests use one worker.
 - Native SSE relay now observes replacement and daemon shutdown while connecting
   and streaming, checks HTTP errors, and uses identity-checked cleanup so an old
   pump cannot unregister its replacement. Added a native replacement-ordering
-  regression test; full native CI execution and relay timeout tests remain due.
+  regression test; full native CI execution remains due. SSE connection/headers
+  are bounded separately from the long-lived event body.
+- Extracted native HTTP relay has a 30-second total request deadline, bypasses
+  environment proxies for loopback, and aborts when its daemon stops. Two Rust
+  socket-level tests pass via `just batchalign gui native-http`, covering JSON,
+  empty responses, HTTP errors, malformed JSON, and a stalled response body.
 - Re-run behavior: BATCH_STARTED replaces discovery rows with selected inputs;
   changing pipeline type after a run may require re-scanning the folder.
 - Settings still need complete mapping: memory/adaptive-worker controls,
