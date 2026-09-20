@@ -93,6 +93,49 @@ test('submission rejection appears in the existing file error log and supports r
   expect(useStore.getState().batches.batch.state).toBe('done');
 });
 
+test('transient polling failures recover without resubmitting a running pipeline', async () => {
+  vi.useFakeTimers();
+  try {
+    const value = batch();
+    useStore.getState().dispatch({ type: 'BATCH_OPENED', batch: value });
+    let polls = 0;
+    native.invoke.mockImplementation(async (command, args) => {
+      if (command === 'start_batch_pump') return;
+      if (args.path === '/desktop/jobs') return { job_id: 'job' };
+      if (++polls <= 2) throw new Error('temporary connection failure');
+      return { state: 'completed' };
+    });
+    const running = startBatch(value.id);
+    await vi.runAllTimersAsync();
+    await running;
+    expect(polls).toBe(3);
+    expect(native.invoke.mock.calls.filter(([, args]) => args?.path === '/desktop/jobs')).toHaveLength(1);
+    expect(useStore.getState().batches.batch.state).toBe('done');
+  } finally { vi.useRealTimers(); }
+});
+
+test('persistent polling failure terminates with a diagnostic after bounded retries', async () => {
+  vi.useFakeTimers();
+  try {
+    const value = batch();
+    useStore.getState().dispatch({ type: 'BATCH_OPENED', batch: value });
+    let polls = 0;
+    native.invoke.mockImplementation(async (command, args) => {
+      if (command === 'start_batch_pump') return;
+      if (args.path === '/desktop/jobs') return { job_id: 'job' };
+      polls++;
+      throw new Error('daemon disconnected');
+    });
+    const running = startBatch(value.id);
+    await vi.runAllTimersAsync();
+    await running;
+    expect(polls).toBe(5);
+    const failed = useStore.getState().batches.batch;
+    expect(failed.state).toBe('failed');
+    expect(failed.files['nested space/é.cha'].log.at(-1)?.text).toContain('daemon disconnected');
+  } finally { vi.useRealTimers(); }
+});
+
 test('late progress from a previous job or a finished file cannot regress the UI', () => {
   const value = batch(['morphotag']);
   const store = useStore.getState();

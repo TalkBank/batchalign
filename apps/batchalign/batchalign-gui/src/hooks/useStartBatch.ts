@@ -27,8 +27,19 @@ export async function startBatch(batchId: string): Promise<void> {
     // Status remains authoritative even if an SSE connection closes early.
     // A progress transport problem must never mark the daemon itself failed.
     void invoke("start_batch_pump", { batchId, jobId }).catch(console.error);
+    let consecutivePollFailures = 0;
     while (getAppState().batches[batchId]?.jobId === jobId) {
-      const status = await fetchJobStatus(jobId);
+      let status;
+      try {
+        status = await fetchJobStatus(jobId);
+        consecutivePollFailures = 0;
+      } catch (error) {
+        // Retry only reads: resubmitting the job could duplicate writes while
+        // the daemon is still processing it. Bound retries for a dead daemon.
+        if (++consecutivePollFailures >= 5) throw error;
+        await new Promise(resolve => setTimeout(resolve, 500 * consecutivePollFailures));
+        continue;
+      }
       if (["completed", "failed", "cancelled"].includes(status.state)) {
         dispatch({ type: "BATCH_FINISHED", batchId, jobId,
           error: status.state === "completed" ? null : status.error || `job ${status.state}` });

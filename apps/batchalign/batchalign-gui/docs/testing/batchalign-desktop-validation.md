@@ -39,7 +39,7 @@ installations on GitHub runners; local tests use one worker.
   failed native outcomes no longer count as successful jobs. Cancelled workers
   retain their staging files until exit. Removed zero-duration SSE timeout and
   stopped SSE connection failures from marking the entire daemon failed.
-- Current local frontend: 13 unit/property tests and 10 Chromium GUI tests pass
+- Current local frontend: 15 unit/property tests and 10 Chromium GUI tests pass
   (all six individual steps and a four-step chain; GUI boundary is mocked).
 - GUI CI run 35537862881 passed all ten Chromium/WebKit jobs across Linux
   arm64/x86_64, macOS arm64/x86_64, and Windows x86_64 at revision 751d666.
@@ -78,8 +78,10 @@ installations on GitHub runners; local tests use one worker.
 - Existing gui.spec.ts remains stale: 60-second bootstrap budget, old overlay
   selectors, and tolerated recipe/capability errors. Replace it with real
   pipeline/output assertions using the new orchestration endpoint.
-- Native SSE pump cancellation/removal races and relay request timeouts still
-  need focused tests; HTTP reconnects currently fail the batch on first error.
+- Status polling now retries transient failures without resubmitting the job;
+  two tests verify recovery and bounded persistent-failure diagnosis. Native
+  SSE pump cancellation/removal races and relay request timeouts still need
+  focused tests.
 - Re-run behavior: BATCH_STARTED replaces discovery rows with selected inputs;
   changing pipeline type after a run may require re-scanning the folder.
 - Settings still need complete mapping: memory/adaptive-worker controls,
