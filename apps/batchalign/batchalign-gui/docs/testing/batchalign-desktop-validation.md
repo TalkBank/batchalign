@@ -195,5 +195,21 @@ plugin and uses the public ShellExt::command API to launch the real child.
 The Tauri test feature is development-only. Cargo manifest metadata resolves;
 full native compilation and execution remain due in CI.
 
+Additional authoritative packaged evidence: run 35537862870, SHA 751d666,
+macOS ARM64 report downloaded from packaged-runtime-aarch64-apple-darwin.
+The sidecar inside Batchalign.app bootstraps cold in 138752 ms and warm in
+482 ms, then writes real comparison CHAT/CSV with WER 0 and accuracy 1,
+correct Unicode filename, source preservation, and terminal SSE events.
+This old revision does not include full-model or native-webview gates and
+must not be cited as evidence that those passed.
+
+Intel macOS packaged bootstrap in run 35537862870 failed before daemon
+startup: pip selected Numba 0.67/llvmlite source distributions, then llvmlite
+failed to compile because LLVM was unavailable. Verified PyPI CPython 3.12
+Intel macOS wheels exist for numba 0.62.1 and llvmlite 0.45.1. Added a
+macOS-x86_64-only Numba <0.63 constraint to speech extras and NumPy <2
+for the available Torch 2.2 wheel ABI. Regenerated Python locks via just;
+focused desktop_jobs Bazel tests pass. Intel cleanroom bootstrap needs rerun.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.

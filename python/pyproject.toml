@@ -45,6 +45,8 @@ dependencies = [
     "click>=8",
     "tqdm>=4",
     "numpy>=1.24",
+    # Intel macOS is limited to torch 2.2 wheels, built against NumPy 1.x.
+    "numpy<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "polars>=0.20",
     "soundfile>=0.12",
     "pyarrow<21.0.0",
@@ -71,11 +73,13 @@ dependencies = [
 # explicitly via `batchalign[whisper]`, `batchalign[stanza]`, etc.
 # `batchalign[all]` is the kitchen sink for users who don't care.
 [project.optional-dependencies]
+# Numba 0.62 is the last series shipping Intel macOS wheels; later
+# releases force llvmlite source compilation during app bootstrap.
 # `nltk` powers the CHATUtterance BERT segmenter's sentence split (BA2 parity).
-whisper      = ["transformers>=4.57,<5", "torch>=2.0", "torchaudio>=2.0", "nltk>=3.8", "openai-whisper", "pycountry", "num2words"]
+whisper      = ["transformers>=4.57,<5", "torch>=2.0", "torchaudio>=2.0", "nltk>=3.8", "openai-whisper", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'", "pycountry", "num2words"]
 malayalam    = ["transformers>=4.57,<5", "torch>=2.0", "torchaudio>=2.0", "wtpsplit"]
 stanza       = ["stanza>=1.12.2,<1.13", "transformers>=4.57,<5", "torch>=2.0,<2.13"]
-pyannote     = ["pyannote.audio>=3.0", "onnxruntime>=1.16"]
+pyannote     = ["pyannote.audio>=3.0", "onnxruntime>=1.16", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'"]
 revai        = ["rev-ai"]
 google       = ["google-genai"]
 cantonese    = ["pycantonese>=4.2,<5", "tencentcloud-sdk-python-asr", "tencentcloud-sdk-python-tmt", "aliyun-python-sdk-core>=2.13", "aliyun-python-sdk-alimt", "funasr==1.3.1", "opencc", "cos-python-sdk-v5"]
@@ -91,7 +95,7 @@ ai           = ["dspy-ai"]
 api          = ["fastapi>=0.110", "uvicorn[standard]>=0.27", "sse-starlette>=2.0", "python-multipart>=0.0.9"]
 all = [
     "transformers>=4.57,<5", "torch>=2.0,<2.13", "torchaudio>=2.0,<2.13", "nltk>=3.8",
-    "openai-whisper", "pycountry", "num2words",
+    "openai-whisper", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'", "pycountry", "num2words",
     "stanza>=1.12.2,<1.13",
     "pyannote.audio>=3.0", "onnxruntime>=1.16",
     "rev-ai",
@@ -214,6 +218,8 @@ pyapp = "0.27.0"     # https://crates.io/crates/pyapp -- consumed by
 runtime = [
     "click>=8",
     "numpy>=1.24",
+    # Intel macOS is limited to torch 2.2 wheels, built against NumPy 1.x.
+    "numpy<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "polars>=0.20",
     "pydantic>=2",
     "rich>=13",
