@@ -301,3 +301,13 @@ outputs, 194 preserved failures, and successful recovery; evidence:
 still pending. The model harness also now tests actual NLLB translation in
 addition to Google; neither backend's success is assumed. Dependency and
 Python packaging changes now trigger the desktop matrix directly.
+
+Pyannote 3.4 calls Lightning's checkpoint loader without weights_only, which
+inherits Torch 2.6+'s restricted default. Static inspection of the public
+seg-fork-3.0 checkpoint's first 64 KiB (no tensor weights loaded) found four
+metadata globals beyond Torch's ordinary tensor types: TorchVersion,
+Specifications, Problem, and Resolution. Scope those four known types to
+Pipeline.from_pretrained via torch.serialization.safe_globals. Do not disable
+restricted loading globally. Two focused tests use real torch.save/load with
+weights_only=True and verify allowlist restoration after success and failure;
+both pass through just batchalign pytest. Actual model inference still awaits CI.

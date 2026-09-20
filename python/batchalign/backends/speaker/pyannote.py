@@ -20,6 +20,7 @@ variants.
 from __future__ import annotations
 
 from typing import Any
+from contextlib import nullcontext
 
 from batchalign.backends.base import Speaker, UtSeg, BatchPolicy
 from batchalign import config
@@ -63,10 +64,22 @@ class PyannoteBackend(Speaker, UtSeg):
         # pyannote.audio renamed `use_auth_token` → `token` between 3.1
         # and 3.3 and removed the old keyword. Pass `token=` if available,
         # fall back to `use_auth_token=` for older installations.
-        try:
-            self._pipeline = Pipeline.from_pretrained(model, token=token)
-        except TypeError:
-            self._pipeline = Pipeline.from_pretrained(model, use_auth_token=token)
+        import torch
+        from pyannote.audio.core.task import Specifications, Problem, Resolution
+
+        # The public 3.0 checkpoint stores these metadata classes alongside
+        # its tensor state. Torch 2.6+ defaults to restricted weights loading;
+        # allow only the known types, scoped to this load, rather than disabling
+        # weights_only for the daemon or accepting arbitrary checkpoint globals.
+        safe_globals = getattr(torch.serialization, "safe_globals", None)
+        checkpoint_context = safe_globals([
+            torch.torch_version.TorchVersion, Specifications, Problem, Resolution,
+        ]) if safe_globals else nullcontext()  # Intel macOS's torch 2.2
+        with checkpoint_context:
+            try:
+                self._pipeline = Pipeline.from_pretrained(model, token=token)
+            except TypeError:
+                self._pipeline = Pipeline.from_pretrained(model, use_auth_token=token)
         self._model = model
         self._num_speakers = num_speakers
         self._policy = BatchPolicy(max_size=batch_size, window_ms=batch_window_ms)
