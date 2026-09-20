@@ -92,7 +92,9 @@ impl AppState {
     pub fn failed(&self, reason: String) {
         *self.startup_error.lock().unwrap_or_else(|e| e.into_inner()) = Some(reason);
         if let Some(handle) = self.daemon.swap(None) {
-            let _ = handle.shutdown.send(true);
+            // A request may have loaded this handle but not subscribed yet.
+            // send() discards the value when there are no current receivers.
+            handle.shutdown.send_replace(true);
         }
         self.daemon_spawning
             .store(false, std::sync::atomic::Ordering::Release);
@@ -153,6 +155,20 @@ mod tests {
         assert!(!state.daemon_spawning.load(Ordering::Acquire));
         state.clear_startup_error();
         assert_eq!(state.startup_error(), None);
+    }
+
+    #[test]
+    fn a_late_subscriber_still_observes_daemon_shutdown() {
+        let state = AppState::new();
+        let (shutdown, receiver) = tokio::sync::watch::channel(false);
+        drop(receiver);
+        state.set_daemon(DaemonHandle {
+            port: 43210,
+            shutdown,
+        });
+        let request_handle = state.daemon.load_full().unwrap();
+        state.failed("daemon exited".into());
+        assert!(*request_handle.shutdown.subscribe().borrow());
     }
 
     #[test]

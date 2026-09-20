@@ -137,6 +137,10 @@ installations on GitHub runners; local tests use one worker.
   environment proxies for loopback, and aborts when its daemon stops. Two Rust
   socket-level tests pass via `just batchalign gui native-http`, covering JSON,
   empty responses, HTTP errors, malformed JSON, and a stalled response body.
+- Shutdown state now persists even with no active watch subscribers, so a
+  request that captured a daemon handle immediately before exit cannot miss
+  the failure when it subscribes afterward. Added a native late-subscriber
+  regression; full native unit execution remains pending package CI.
 - Re-run behavior: BATCH_STARTED replaces discovery rows with selected inputs;
   changing pipeline type after a run may require re-scanning the folder.
 - Settings still need complete mapping: memory/adaptive-worker controls,
