@@ -79,9 +79,11 @@ installations on GitHub runners; local tests use one worker.
   selectors, and tolerated recipe/capability errors. Replace it with real
   pipeline/output assertions using the new orchestration endpoint.
 - Status polling now retries transient failures without resubmitting the job;
-  two tests verify recovery and bounded persistent-failure diagnosis. Native
-  SSE pump cancellation/removal races and relay request timeouts still need
-  focused tests.
+  two tests verify recovery and bounded persistent-failure diagnosis.
+- Native SSE relay now observes replacement and daemon shutdown while connecting
+  and streaming, checks HTTP errors, and uses identity-checked cleanup so an old
+  pump cannot unregister its replacement. Added a native replacement-ordering
+  regression test; full native CI execution and relay timeout tests remain due.
 - Re-run behavior: BATCH_STARTED replaces discovery rows with selected inputs;
   changing pipeline type after a run may require re-scanning the folder.
 - Settings still need complete mapping: memory/adaptive-worker controls,

@@ -33,10 +33,41 @@ pub struct AppState {
     /// Per-batch SSE pump cancellers. A new batch start replaces the
     /// previous canceller for that batch (rare; the GUI runs at most
     /// one job per tab).
-    pub pumps: Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<()>>>,
+    pumps: Mutex<std::collections::HashMap<String, PumpHandle>>,
+}
+
+struct PumpHandle {
+    identity: Arc<()>,
+    cancel: tokio::sync::oneshot::Sender<()>,
 }
 
 impl AppState {
+    pub async fn register_pump(
+        &self,
+        batch: String,
+    ) -> (Arc<()>, tokio::sync::oneshot::Receiver<()>) {
+        let identity = Arc::new(());
+        let (cancel, receiver) = tokio::sync::oneshot::channel();
+        let handle = PumpHandle {
+            identity: identity.clone(),
+            cancel,
+        };
+        if let Some(previous) = self.pumps.lock().await.insert(batch, handle) {
+            let _ = previous.cancel.send(());
+        }
+        (identity, receiver)
+    }
+
+    pub async fn finish_pump(&self, batch: &str, identity: &Arc<()>) {
+        let mut pumps = self.pumps.lock().await;
+        // A replaced task may finish after its successor has registered.
+        if pumps
+            .get(batch)
+            .is_some_and(|handle| Arc::ptr_eq(&handle.identity, identity))
+        {
+            pumps.remove(batch);
+        }
+    }
     pub fn set_child(&self, child: CommandChild) {
         *self.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
     }
@@ -84,6 +115,27 @@ impl AppState {
 mod tests {
     use super::*;
     use std::sync::atomic::Ordering;
+
+    #[test]
+    fn late_pump_cleanup_cannot_remove_or_cancel_its_successor() {
+        tauri::async_runtime::block_on(async {
+            let state = AppState::new();
+            let (first, cancelled) = state.register_pump("batch".into()).await;
+            let (second, mut running) = state.register_pump("batch".into()).await;
+            assert_eq!(cancelled.await, Ok(()));
+            state.finish_pump("batch", &first).await;
+            assert!(matches!(
+                running.try_recv(),
+                Err(tokio::sync::oneshot::error::TryRecvError::Empty)
+            ));
+            let (third, _) = state.register_pump("batch".into()).await;
+            assert_eq!(running.await, Ok(()));
+            state.finish_pump("batch", &second).await;
+            assert_eq!(state.pumps.lock().await.len(), 1);
+            state.finish_pump("batch", &third).await;
+            assert!(state.pumps.lock().await.is_empty());
+        });
+    }
 
     #[test]
     fn failure_is_observable_after_the_readiness_event_was_missed() {

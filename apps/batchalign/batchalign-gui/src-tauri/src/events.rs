@@ -5,9 +5,8 @@
 //! writes them as `event: progress\ndata: <json>`), wrap each in
 //! `ProgressV2Payload`, and emit on the `progress-v2` Tauri channel.
 //!
-//! The stream is owned by a tokio task; its canceller (oneshot) is
-//! stored in `AppState.pumps` so the GUI can stop following a finished
-//! batch via `stop_pump`.
+//! Replacement and daemon shutdown cancel both pending connections and active
+//! streams. Identity-checked cleanup cannot remove a newer pump for the batch.
 
 use std::pin::Pin;
 
@@ -15,35 +14,41 @@ use eventsource_stream::Eventsource;
 use futures_util::stream::StreamExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::protocol::{events, ProgressV2Payload};
+use crate::protocol::{ProgressV2Payload, events};
 use crate::state::AppState;
 
 pub async fn pump(app: AppHandle, batch_id: String, job_id: String) {
     let state = app.state::<AppState>();
-    let port = match state.daemon_port() {
-        Some(p) => p,
-        None => return,
+    let Some(daemon) = state.daemon.load_full() else {
+        return;
     };
-
-    let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
-    {
-        let mut pumps = state.pumps.lock().await;
-        if let Some(prev) = pumps.insert(batch_id.clone(), cancel_tx) {
-            let _ = prev.send(());
+    let mut shutdown = daemon.shutdown.subscribe();
+    let (identity, cancel) = state.register_pump(batch_id.clone()).await;
+    if !*shutdown.borrow() {
+        tokio::select! {
+            biased;
+            _ = cancel => {},
+            _ = shutdown.changed() => {},
+            _ = relay(&app, &batch_id, &job_id, daemon.port) => {},
         }
     }
+    state.finish_pump(&batch_id, &identity).await;
+}
 
+async fn relay(app: &AppHandle, batch_id: &str, job_id: &str, port: u16) {
     let url = format!(
         "http://127.0.0.1:{port}/jobs/{job_id}/events",
         port = port,
         job_id = job_id,
     );
-    let resp = match reqwest::Client::new()
-        .get(&url)
-        .send()
-        .await
-    {
-        Ok(r) => r,
+    let resp = match reqwest::Client::new().get(&url).send().await {
+        Ok(r) => match r.error_for_status() {
+            Ok(response) => response,
+            Err(error) => {
+                eprintln!("[daemon events] SSE request failed for {job_id}: {error}");
+                return;
+            }
+        },
         Err(e) => {
             eprintln!("[daemon events] SSE connect failed for {job_id}: {e}");
             return;
@@ -52,39 +57,31 @@ pub async fn pump(app: AppHandle, batch_id: String, job_id: String) {
 
     let mut stream: Pin<Box<_>> = Box::pin(resp.bytes_stream().eventsource());
 
-    loop {
-        tokio::select! {
-            biased;
-            _ = &mut cancel_rx => break,
-            evt = stream.next() => {
-                match evt {
-                    Some(Ok(e)) => {
-                        if e.event == "done" {
-                            break;
-                        }
-                        if e.event != "progress" {
-                            continue;
-                        }
-                        let parsed: serde_json::Value = match serde_json::from_str(&e.data) {
-                            Ok(v) => v,
-                            Err(_) => continue,
-                        };
-                        let _ = app.emit(
-                            events::PROGRESS_V2,
-                            ProgressV2Payload {
-                                batch_id: batch_id.clone(),
-                                job_id: job_id.clone(),
-                                event: parsed,
-                            },
-                        );
-                    }
-                    Some(Err(_)) => continue,
-                    None => break,
-                }
+    while let Some(event) = stream.next().await {
+        let event = match event {
+            Ok(event) => event,
+            Err(error) => {
+                eprintln!("[daemon events] SSE stream failed for {job_id}: {error}");
+                break;
             }
+        };
+        if event.event == "done" {
+            break;
         }
+        if event.event != "progress" {
+            continue;
+        }
+        let parsed: serde_json::Value = match serde_json::from_str(&event.data) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        let _ = app.emit(
+            events::PROGRESS_V2,
+            ProgressV2Payload {
+                batch_id: batch_id.to_owned(),
+                job_id: job_id.to_owned(),
+                event: parsed,
+            },
+        );
     }
-
-    let mut pumps = state.pumps.lock().await;
-    pumps.remove(&batch_id);
 }
