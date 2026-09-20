@@ -39,8 +39,12 @@ installations on GitHub runners; local tests use one worker.
   failed native outcomes no longer count as successful jobs. Cancelled workers
   retain their staging files until exit. Removed zero-duration SSE timeout and
   stopped SSE connection failures from marking the entire daemon failed.
-- Current local frontend: 15 unit/property tests and 10 Chromium GUI tests pass
+- Current local frontend: 16 unit/property tests and 10 Chromium GUI tests pass
   (all six individual steps and a four-step chain; GUI boundary is mocked).
+- Added 1,000 seeded mixed progress sequences checking batch isolation,
+  terminal-file stability, stale jobs and percentage bounds. Fuzzing found
+  negative progress percentages (minimal completed=-1, total=1); fixed with
+  bounded finite progress handling. Production frontend build also passes.
 - GUI CI run 35537862881 passed all ten Chromium/WebKit jobs across Linux
   arm64/x86_64, macOS arm64/x86_64, and Windows x86_64 at revision 751d666.
 - Native startup now retains its child for timeout/error/app-exit cleanup,

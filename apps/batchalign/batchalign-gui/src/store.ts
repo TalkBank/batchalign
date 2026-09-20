@@ -421,13 +421,13 @@ export function reducer(state: AppState, action: Action): AppState {
           if (stageIdx >= 0) {
             stages[stageIdx].state = "running";
             stages[stageIdx].pct =
-              action.event.total > 0
-                ? Math.min(
+              action.event.total > 0 && Number.isFinite(action.event.completed) && Number.isFinite(action.event.total)
+                ? Math.max(0, Math.min(
                     100,
                     Math.round(
                       (action.event.completed / action.event.total) * 100,
                     ),
-                  )
+                  ))
                 : stages[stageIdx].pct;
           }
           if (action.event.label) {
