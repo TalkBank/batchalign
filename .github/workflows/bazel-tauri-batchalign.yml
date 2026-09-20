@@ -24,7 +24,8 @@ on:
     paths:
       - "apps/batchalign/batchalign-gui/**"
       - "bazel/batchalign-tauri/**"
-      - "python/batchalign/**"
+      - "python/**"
+      - "bazel/python/**"
       - "crates/batchalign/**"
       - "scripts/gen_openapi.py"
       - ".github/workflows/bazel-tauri-batchalign.yml"
@@ -32,7 +33,8 @@ on:
     paths:
       - "apps/batchalign/batchalign-gui/**"
       - "bazel/batchalign-tauri/**"
-      - "python/batchalign/**"
+      - "python/**"
+      - "bazel/python/**"
       - "crates/batchalign/**"
       - "scripts/gen_openapi.py"
       - ".github/workflows/bazel-tauri-batchalign.yml"

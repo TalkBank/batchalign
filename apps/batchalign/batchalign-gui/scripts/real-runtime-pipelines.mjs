@@ -29,8 +29,8 @@ export async function testRealPipelines(base, root, repository, results) {
   // A lost submission/status response does not prove the model worker stopped.
   // Only terminal job state permits another memory-heavy test in this daemon.
   let workerMayBeRunning = false;
-  async function run(recipe, source, kwargs) {
-    const output = join(root, 'real-model-output', recipe);
+  async function run(recipe, source, kwargs, evidenceKey = recipe) {
+    const output = join(root, 'real-model-output', evidenceKey);
     const started = Date.now();
     workerMayBeRunning = true;
     const submitted = await fetch(`${base}/desktop/jobs`, { method: 'POST',
@@ -53,11 +53,11 @@ export async function testRealPipelines(base, root, repository, results) {
       }
       await delay(1000);
     }
-    results.realPipelines[recipe] = { kwargs, status, durationMs: Date.now() - started };
+    results.realPipelines[evidenceKey] = { kwargs, status, durationMs: Date.now() - started };
     assert.equal(status?.state, 'completed', `${recipe}: ${JSON.stringify(status)}`);
     const chat = await readFile(join(output, source.replace(/\.wav$/, '.cha')), 'utf8');
-    await writeFile(join(root, `${recipe}-evidence.cha`), chat);
-    results.realPipelines[recipe].chat = chat;
+    await writeFile(join(root, `${evidenceKey}-evidence.cha`), chat);
+    results.realPipelines[evidenceKey].chat = chat;
     return chat;
   }
 
@@ -115,6 +115,13 @@ export async function testRealPipelines(base, root, repository, results) {
   });
   assert.match(translated.toLowerCase(), /red apple/, 'missing translated sentence meaning');
   assert.match(translated.toLowerCase(), /song/, 'second utterance was not translated');
+  });
+  await check('translate-nllb', async () => {
+  const translated = await run('translate', 'es.cha', {
+    translate_backend: { kind: 'NllbTranslateBackend', kwargs: { target: 'eng' } },
+  }, 'translate-nllb');
+  assert.match(translated.toLowerCase(), /red apple/, 'local translation lost sentence meaning');
+  assert.match(translated.toLowerCase(), /song/, 'local translation lost the second utterance');
   });
   assert.equal(await readFile(join(input, 'en.cha'), 'utf8'), gold, 'source CHAT was modified');
 }

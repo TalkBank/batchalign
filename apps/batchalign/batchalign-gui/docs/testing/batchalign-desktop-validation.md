@@ -290,3 +290,14 @@ Follow-up fixes awaiting installed CI evidence:
 Local validation: 20 focused desktop/translation Python tests and 18 GUI
 unit/property tests passed; frontend production build passed. No local ML
 models or full desktop build were downloaded/run for these changes.
+
+Installed-runtime smash coverage now runs before ML tests on every target:
+259 cases (65 structurally valid comparison/writer variations, 194 malformed
+cases from three seeds), five invalid API requests, source/gold preservation,
+no partial publication over previous outputs, and a subsequent successful job.
+Local authoritative CLI harness validation passed with exactly 65 completed
+outputs, 194 preserved failures, and successful recovery; evidence:
+/tmp/batchalign-smash-cli-report-v2.json. Packaged cross-platform execution is
+still pending. The model harness also now tests actual NLLB translation in
+addition to Google; neither backend's success is assumed. Dependency and
+Python packaging changes now trigger the desktop matrix directly.

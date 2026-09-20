@@ -8,6 +8,7 @@ import { once } from 'node:events';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { testRealPipelines } from './real-runtime-pipelines.mjs';
+import { testPackagedInputSmash } from './packaged-input-smash.mjs';
 
 const cli = process.argv[2] === '--cli';
 const binary = cli ? 'just' : resolve(process.argv[2] || '');
@@ -109,6 +110,7 @@ try {
   assert.equal(Number(row[header.indexOf('accuracy')]), 1);
   assert.equal(await readFile(join(input, 'é.cha'), 'utf8'), transcript);
   results.comparison = { status, chat, csv, events: eventText };
+  await testPackagedInputSmash(base, root, results);
   if (process.env.BATCHALIGN_SMOKE_MODELS === '1') {
     await testRealPipelines(base, root, repository, results);
   }
