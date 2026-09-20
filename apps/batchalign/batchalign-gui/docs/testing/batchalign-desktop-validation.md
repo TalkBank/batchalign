@@ -91,6 +91,10 @@ installations on GitHub runners; local tests use one worker.
   wrappers now write the exact declared binary output with shell redirection,
   for both PyApp and cargo-tauri. Shell syntax checks pass; Windows CI must
   confirm the fix. Full failed-job log: /tmp/batchalign-windows-job.log.
+- Linux ARM64 job 106150069976 compiled successfully but AppImage packaging
+  failed because /usr/bin/xdg-open was absent. Added xdg-utils to Linux runner
+  prerequisites. Verification is pending the next matrix; complete log is
+  /tmp/batchalign-linux-arm-job.log.
 - Verify native supervisor changes in bundle CI, including subprocess cleanup
   during PyApp bootstrap (the direct-child test alone cannot prove descendant
   cleanup). New environment isolation leaves old versions available; their

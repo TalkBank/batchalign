@@ -123,6 +123,7 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libssl-dev \
+            xdg-utils \
             patchelf
 
       # cargo-tauri comes from //bazel/tauri:cargo_tauri (Bazel-built
