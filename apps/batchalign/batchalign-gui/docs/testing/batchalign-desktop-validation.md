@@ -248,5 +248,26 @@ unresolved until detailed diagnostics or a successful installer run exists.
 Native unit/model gates were skipped in that failed job; do not count them
 as passing. Other platform jobs in this run remain live.
 
+GUI matrix 35542394739 completed successfully across all ten platform/browser
+jobs (macOS ARM/Intel, Linux ARM/x64, Windows; Chromium and WebKit), including
+18 unit/property tests and 14 GUI tests per job. This verifies mocked-IPC
+frontend behavior, not installed inference. Native run 35541484100 Linux ARM
+passed packaging and native regression tests and entered real runtime checks;
+Linux x64 has also advanced past packaging/native tests. Full reports pending.
+
+Real Linux runtime reports from 35541484100 are now available for both
+architectures: cold/warm startup and native comparison pass, and real
+Wav2Vec2 alignment passes. Transcribe and diarize fail because Pyannote 4
+attempts gated community-1 PLDA downloads while loading the public TalkBank
+3.0 config. Real GUI morphotag→compare has %mor and correct WER, but loses
+%gra; investigate pipeline/writer behavior rather than weakening the assertion.
+Translation echoed Spanish instead of English. A local authoritative CLI run
+reproduced that false success. googletrans defaults to fabricated echo output
+on HTTP errors; now it raises, uses bounded HTTP timeouts, closes each client,
+and has a v2 cache identity to invalidate bad cached echoes. Four real-client
+mock-HTTP tests pass. A fresh CLI run correctly fails with HTTP 429; successful
+translation remains unverified and must still be achieved. Reports are in
+/tmp/batchalign-{aarch64,x86_64}-runtime-35541484100 locally.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.

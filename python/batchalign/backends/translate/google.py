@@ -101,8 +101,8 @@ class GoogleTranslateBackend(Translate):
         self._client: Any = None
         self._mode: str
         if force_free:
-            self._client = self._make_free_client()
-            self._mode = "googletrans:free"
+            self._client = None
+            self._mode = "googletrans:free:v2"
         else:
             try:
                 from google.cloud import translate_v2 as g_translate  # type: ignore[import-not-found]
@@ -113,15 +113,19 @@ class GoogleTranslateBackend(Translate):
                     self._client = g_translate.Client()
                 self._mode = "google-cloud-translate:v2"
             except ImportError:
-                self._client = self._make_free_client()
-                self._mode = "googletrans:free"
+                self._client = None
+                self._mode = "googletrans:free:v2"
         self._policy = BatchPolicy(max_size=batch_size, window_ms=batch_window_ms)
 
     @staticmethod
     def _make_free_client() -> Any:
         from googletrans import Translator  # type: ignore[import-not-found]
 
-        return Translator()
+        import httpx
+
+        # googletrans otherwise fabricates an unchanged translation for HTTP
+        # errors. Never publish that fallback as successful pipeline output.
+        return Translator(raise_exception=True, timeout=httpx.Timeout(30.0))
 
     @property
     def name(self) -> str:
@@ -183,8 +187,6 @@ class GoogleTranslateBackend(Translate):
         # googletrans' httpx client binds to the event loop it was created in,
         # so reusing one client across our per-call loops raises "Event loop
         # is closed". Mirror that: one Translator per utterance.
-        from googletrans import Translator  # type: ignore[import-not-found]
-
         # Pass src= explicitly when we have a source language. Auto-detect
         # silently mis-routes short utterances (e.g. "hola amigos como
         # estan" detects as English fallback and passes through verbatim).
@@ -193,13 +195,13 @@ class GoogleTranslateBackend(Translate):
         src_code = _iso2(source) if source else None
 
         async def _translate(t: str) -> Any:
-            translator = Translator()
             kwargs: dict[str, Any] = {}
             if dest:
                 kwargs["dest"] = dest
             if src_code:
                 kwargs["src"] = src_code
-            return await translator.translate(t, **kwargs)
+            async with self._make_free_client() as translator:
+                return await translator.translate(t, **kwargs)
 
         out = []
         for text in texts:
