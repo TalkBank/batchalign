@@ -1,4 +1,4 @@
-// Drives the unmodified, installed Linux app through tauri-driver/WebKit.
+// Drives the unmodified installed app through tauri-driver/WebKit or WebView2.
 // The warm environment came from this bundle's cleanroom sidecar check.
 // No Tauri IPC mocks or test hooks are injected into the production bundle.
 import assert from 'node:assert/strict';
@@ -14,7 +14,7 @@ assert(process.argv[2] && sidecarReport.root, 'usage: native-webview-smoke.mjs i
 const evidence = resolve('native-webview-evidence');
 await mkdir(evidence, { recursive: true });
 const report = { application, environment: 'warm bundle-specific cleanroom environment', launches: [] };
-const driver = spawn('tauri-driver', [], { stdio: ['ignore', 'pipe', 'pipe'], env: {
+const driver = spawn(process.platform === 'win32' ? 'tauri-driver.exe' : 'tauri-driver', [], { stdio: ['ignore', 'pipe', 'pipe'], env: {
   ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: join(sidecarReport.root, 'environment'),
   XDG_CACHE_HOME: join(sidecarReport.root, 'cache'), HF_HOME: join(sidecarReport.root, 'models'),
   PYTHONNOUSERSITE: '1',

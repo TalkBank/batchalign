@@ -203,12 +203,42 @@ jobs:
           test -x "$executable"
           xvfb-run -a node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs "$executable" packaged-sidecar-report.json
 
+      - name: Install matching Windows native webview drivers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo install tauri-driver --version 2.0.6 --locked
+          if ($LASTEXITCODE -ne 0) { throw "tauri-driver installation failed" }
+          cargo install --git https://github.com/chippers/msedgedriver-tool --rev 8c4b34f51b45f5cf08013366d703de464ab871d1 --locked
+          if ($LASTEXITCODE -ne 0) { throw "Edge driver helper installation failed" }
+          msedgedriver-tool.exe
+          if ($LASTEXITCODE -ne 0) { throw "matching Edge driver download failed" }
+          "$env:GITHUB_WORKSPACE" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install MSI and test the real Windows webview
+        if: runner.os == 'Windows'
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $package = Get-ChildItem "target/${{ matrix.runner.target }}/release/bundle" -Recurse -Filter *.msi | Select-Object -First 1
+          if (!$package) { throw "MSI artifact missing" }
+          $installDir = Join-Path $env:RUNNER_TEMP 'Batchalign Installed'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'native-msi-install.log'
+          $install = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @('/i', "`"$($package.FullName)`"", '/qn', '/norestart', "INSTALLDIR=`"$installDir`"", '/l*v', "`"$log`"")
+          if ($install.ExitCode -notin @(0, 3010)) { throw "MSI installation failed: $($install.ExitCode)" }
+          $application = Join-Path $installDir 'Batchalign.exe'
+          if (!(Test-Path $application)) { throw "installed application missing: $application" }
+          node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs $application packaged-sidecar-report.json
+          if ($LASTEXITCODE -ne 0) { throw "Windows native webview tests failed" }
+
       - name: Upload installed native-webview evidence
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: native-webview-${{ matrix.runner.target }}
-          path: native-webview-evidence/
+          path: |
+            native-webview-evidence/
+            native-msi-install.log
           retention-days: 7
 
       - name: Upload real-daemon GUI evidence

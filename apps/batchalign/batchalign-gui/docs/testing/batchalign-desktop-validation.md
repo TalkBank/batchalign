@@ -80,6 +80,11 @@ installations on GitHub runners; local tests use one worker.
   after window close. It reuses this bundle's isolated warm PyApp environment
   from the preceding cold/warm sidecar test. Syntax checked, not yet executed;
   native cold bootstrap and Windows/macOS webview automation remain due.
+- Windows native-webview CI now installs the MSI into a path containing spaces,
+  installs a pinned WebView2-matching Edge driver helper, and runs the same
+  unmodified-app readiness/IPC/output/shutdown/relaunch script. MSI logs and
+  screenshots are retained. This is configured but not yet executed; macOS
+  needs a separate native automation implementation.
 - Verify native supervisor changes in bundle CI, including subprocess cleanup
   during PyApp bootstrap (the direct-child test alone cannot prove descendant
   cleanup). New environment isolation leaves old versions available; their
