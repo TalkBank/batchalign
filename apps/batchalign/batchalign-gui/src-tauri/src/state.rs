@@ -173,11 +173,15 @@ mod tests {
 
     #[test]
     fn stopping_a_managed_child_reaps_the_process() {
-        use tauri_plugin_shell::process::{Command, CommandEvent};
+        use tauri_plugin_shell::{process::CommandEvent, ShellExt};
+        let app = tauri::test::mock_builder()
+            .plugin(tauri_plugin_shell::init())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .expect("build shell test app");
         #[cfg(unix)]
-        let command = Command::new("sleep").args(["30"]);
+        let command = app.shell().command("sleep").args(["30"]);
         #[cfg(windows)]
-        let command = Command::new("ping.exe").args(["-t", "127.0.0.1"]);
+        let command = app.shell().command("ping.exe").args(["-t", "127.0.0.1"]);
         let (mut events, child) = command.spawn().expect("spawn test child");
         let state = AppState::new();
         state.set_child(child);

@@ -189,5 +189,11 @@ seeds; the production frontend build passes. This uses mocked IPC and does not
 prove model inference. Transcription is now offered only as the first step,
 matching the desktop API rather than letting users build a rejected chain.
 
+Native lifetime test audit found a call to the shell plugin's private
+Command::new constructor. It now creates a mock Tauri app with the shell
+plugin and uses the public ShellExt::command API to launch the real child.
+The Tauri test feature is development-only. Cargo manifest metadata resolves;
+full native compilation and execution remain due in CI.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.
