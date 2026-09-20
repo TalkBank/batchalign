@@ -22,7 +22,7 @@ export function buildRecipeKwargs(
           out.diarize = true;
         } else {
           out.speaker_backend = {
-            kind: (config.diarize_engine as string) || "PyannoteAIBackend",
+            kind: (config.diarize_engine as string) || "PyannoteBackend",
             kwargs: { num_speakers: speakers },
           };
         }
@@ -32,7 +32,7 @@ export function buildRecipeKwargs(
     case "diarize":
       return {
         speaker_backend: {
-          kind: (config.engine as string) || "PyannoteAIBackend",
+          kind: (config.engine as string) || "PyannoteBackend",
           kwargs: { num_speakers: (config.speakers as number) ?? 0 },
         },
       };

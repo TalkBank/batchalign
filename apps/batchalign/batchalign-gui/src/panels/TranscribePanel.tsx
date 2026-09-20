@@ -55,7 +55,7 @@ export default function TranscribePanel({ batchId, config }: Props) {
   const diarize = (config.diarize as boolean) ?? true;
   const nativeSpeaker = engine === "RevAI" || engine === "GoogleGenAIBackend";
   const diarizeEngine =
-    (config.diarize_engine as string) ?? "PyannoteAIBackend";
+    (config.diarize_engine as string) ?? "PyannoteBackend";
 
   return (
     <div>

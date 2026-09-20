@@ -18,7 +18,7 @@ export default function DiarizePanel({ batchId, config }: Props) {
     capabilities?.backends_by_task["Speaker"] ??
     ["PyannoteAIBackend", "PyannoteBackend"]
   ).filter((name) => name.startsWith("Pyannote"));
-  const engine = (config.engine as string) ?? "PyannoteAIBackend";
+  const engine = (config.engine as string) ?? "PyannoteBackend";
   const speakers = (config.speakers as number) ?? 0;
   const set = (patch: VerbConfig) =>
     dispatch({ type: "VERB_CONFIG_CHANGED", batchId, verb: "diarize", patch });

@@ -176,3 +176,20 @@ test('rediscovery ignores stale scans and running jobs, then restores newly elig
   expect(ready.state).toBe('idle');
   expect(filterFilesForVerb(ready.files, ready.fileOrder, 'align')).toEqual(['nested space/é.cha']);
 });
+
+
+test('fresh-install speech defaults use local models and preserve explicit cloud choices', () => {
+  expect(buildRecipeKwargs('transcribe', {})).toMatchObject({
+    asr_backend: { kind: 'WhisperBackend' },
+    speaker_backend: { kind: 'PyannoteBackend' },
+  });
+  expect(buildRecipeKwargs('diarize', {})).toMatchObject({
+    speaker_backend: { kind: 'PyannoteBackend' },
+  });
+  expect(buildRecipeKwargs('transcribe', { diarize_engine: 'PyannoteAIBackend' })).toMatchObject({
+    speaker_backend: { kind: 'PyannoteAIBackend' },
+  });
+  expect(buildRecipeKwargs('diarize', { engine: 'PyannoteAIBackend' })).toMatchObject({
+    speaker_backend: { kind: 'PyannoteAIBackend' },
+  });
+});

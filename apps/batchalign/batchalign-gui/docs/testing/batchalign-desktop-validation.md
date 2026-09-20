@@ -175,5 +175,12 @@ a terminal job state is confirmed, preventing a still-running model from
 overlapping the next test. A lightweight fault-injection check verifies this
 and verifies confirmed terminal failures still allow all remaining recipes.
 
+Fresh-install transcription and diarization now default to local Pyannote;
+the previous cloud default required credentials before ordinary speech jobs
+could run. Explicit cloud selections remain supported. Unit coverage verifies
+defaults and overrides (18 unit/property tests passing); real CI transcription
+now includes local speaker diarization as the GUI does. GUI media discovery
+also includes MOV/M4V, matching the desktop API and CLI extensions.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.

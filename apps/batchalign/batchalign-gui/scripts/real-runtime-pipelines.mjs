@@ -75,6 +75,7 @@ export async function testRealPipelines(base, root, repository, results) {
   await check('transcribe', async () => {
   const asr = await run('transcribe', 'en.wav', {
     asr_backend: { kind: 'WhisperBackend', kwargs: { language: 'eng' } },
+    speaker_backend: { kind: 'PyannoteBackend', kwargs: { num_speakers: 1 } },
   });
   const wer = wordErrorRate(words(gold), words(asr));
   results.realPipelines.transcribe.wer = wer;

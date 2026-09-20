@@ -19,7 +19,7 @@ use crate::state::AppState;
 // defaults so the GUI's folder scan returns the exact same file set the
 // CLI would pick up for a recipe submission. Keep these in sync if the
 // Python side broadens its discovery.
-const AUDIO_EXTS: &[&str] = &["wav", "mp3", "m4a", "flac", "ogg", "mp4"];
+const AUDIO_EXTS: &[&str] = &["wav", "mp3", "m4a", "flac", "ogg", "mp4", "mov", "m4v"];
 const CHAT_EXTS: &[&str] = &["cha", "chat"];
 
 /// Which subset of files in a folder the GUI cares about, given the
