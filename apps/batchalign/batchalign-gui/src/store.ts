@@ -226,6 +226,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "DAEMON_READY":
       return {
         ...state,
+        capabilities: null,
         daemon: {
           port: action.port,
           ready: true,
@@ -236,6 +237,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case "DAEMON_FAILED":
       return {
         ...state,
+        capabilities: null,
         daemon: {
           port: null,
           ready: false,
@@ -276,6 +278,7 @@ export function reducer(state: AppState, action: Action): AppState {
     }
 
     case "BATCH_ACTIVATED":
+      if (!state.batches[action.batchId]) return state;
       return { ...state, activeBatchId: action.batchId, showSettings: false };
 
     case "BATCH_INPLACE_CHANGED": {

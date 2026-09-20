@@ -44,3 +44,11 @@ openapi:
 test:
     bazel build //python/batchalign:sidecar
     cd {{ justfile_directory() }}/apps/batchalign/batchalign-gui && npx playwright test e2e/gui.spec.ts --reporter=list
+
+# Lightweight GUI unit/property tests; one worker keeps local memory bounded.
+unit:
+    cd {{ justfile_directory() }}/apps/batchalign/batchalign-gui && npm run test:unit
+
+# Native-boundary startup regressions, without installing the ML environment.
+startup *args:
+    cd {{ justfile_directory() }}/apps/batchalign/batchalign-gui && npm run test:startup -- "$@"

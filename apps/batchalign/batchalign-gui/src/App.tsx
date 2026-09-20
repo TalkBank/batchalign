@@ -15,18 +15,7 @@ import SettingsView from "./views/SettingsView";
 export default function App() {
   const { tabOrder, daemon, capabilities, showSettings, dispatch } = useStore();
 
-  useEffect(() => {
-    let cleanup: (() => void) | null = null;
-    let cancelled = false;
-    bootBridge().then((fn) => {
-      if (cancelled) fn();
-      else cleanup = fn;
-    });
-    return () => {
-      cancelled = true;
-      if (cleanup) cleanup();
-    };
-  }, []);
+  useEffect(() => bootBridge(), []);
 
   const isEmpty = tabOrder.length === 0 && !showSettings;
   // The app is interactive once the daemon is ready AND we've loaded

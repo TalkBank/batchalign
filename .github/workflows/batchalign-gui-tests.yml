@@ -1,0 +1,55 @@
+name: Batchalign GUI tests
+
+on:
+  push:
+    paths:
+      - 'apps/batchalign/batchalign-gui/**'
+      - 'just/batchalign-gui.just'
+      - '.github/workflows/batchalign-gui-tests.yml'
+  pull_request:
+    paths:
+      - 'apps/batchalign/batchalign-gui/**'
+      - 'just/batchalign-gui.just'
+      - '.github/workflows/batchalign-gui-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gui-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: GUI (${{ matrix.os }}, ${{ matrix.browser }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15-intel, ubuntu-24.04, windows-2022]
+        browser: [chromium, webkit]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/batchalign/batchalign-gui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/batchalign/batchalign-gui/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:unit
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run test:startup -- --project=${{ matrix.browser }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gui-${{ matrix.os }}-${{ matrix.browser }}
+          path: |
+            apps/batchalign/batchalign-gui/test-results/
+            apps/batchalign/batchalign-gui/playwright-report/
+          retention-days: 7
