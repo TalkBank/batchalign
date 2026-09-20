@@ -311,3 +311,14 @@ Pipeline.from_pretrained via torch.serialization.safe_globals. Do not disable
 restricted loading globally. Two focused tests use real torch.save/load with
 weights_only=True and verify allowlist restoration after success and failure;
 both pass through just batchalign pytest. Actual model inference still awaits CI.
+
+Translation cache audit found that the runner's target hint stays eng while
+Google/NLLB constructor targets override it. Include target in both backend
+cache identities (and NLLB's generation length). A real native Pipeline/LMDB
+regression runs eng→fra→eng, verifies the emitted language each time, and
+proves the final English run reuses only the English result. Five focused
+translation tests pass. NLLB now explicitly requests safetensors: the official
+model repo's SFconvertbot PR 5 is based on current main and contains the
+converted weights; Transformers 4.57 resolves this existing conversion. This
+avoids its pickle fallback, which Intel macOS's Torch cannot load through
+current Transformers. Successful cross-platform NLLB inference still pending.

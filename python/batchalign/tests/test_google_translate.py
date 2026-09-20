@@ -52,3 +52,29 @@ def test_free_translation_parses_response_and_closes_each_client(monkeypatch):
     assert all(client.is_closed for client in clients)
     assert len(clients) == 2
     assert all(request.url.params['sl'] == 'es' and request.url.params['tl'] == 'en' for request in requests)
+
+
+def test_translation_target_changes_do_not_reuse_wrong_language_cache(tmp_path, monkeypatch):
+    from batchalign._core import Pipeline, Task, CacheSpec
+    from batchalign.inputs import chat_from_path
+
+    source = tmp_path / 'source.cha'
+    source.write_text('@UTF8\n@Begin\n@Languages:\tspa\n@Participants:\tPAR Participant\n'
+                      '@ID:\tspa|test|PAR|||||Participant|||\n*PAR:\thola .\n@End\n')
+    calls = []
+
+    def translate(self, texts, *, source, target):
+        calls.append(target)
+        return [{'eng': 'hello .', 'fra': 'bonjour .'}[target] for _ in texts]
+
+    monkeypatch.setattr(GoogleTranslateBackend, '_translate_many', translate)
+    cache = CacheSpec(path=str(tmp_path / 'cache'))
+    for index, target in enumerate(['eng', 'fra', 'eng']):
+        backend = GoogleTranslateBackend(target=target, force_free=True)
+        pipeline = Pipeline(tasks=[Task.Translate], backends=[backend], workers=1, cache=cache)
+        outcome, = pipeline.run([chat_from_path(source, source_id=str(source))])
+        assert not outcome.is_failed, outcome.error
+        output = tmp_path / f'output-{index}.cha'
+        outcome.write(str(output))
+        assert f"%xtra:\t{'hello' if target == 'eng' else 'bonjour'} ." in output.read_text()
+    assert calls == ['eng', 'fra']  # Third job uses the correct English cache.

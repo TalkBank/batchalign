@@ -71,7 +71,11 @@ class NllbTranslateBackend(Translate):
         self._max_length = max_length
 
         self._tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self._model = AutoModelForSeq2SeqLM.from_pretrained(model_id)
+        # Request the Hub's safetensors variant explicitly. The official NLLB
+        # repository has a verified SFconvertbot conversion; otherwise the
+        # default chooses pickle weights, unsupported by Transformers on
+        # Intel macOS's torch 2.2.
+        self._model = AutoModelForSeq2SeqLM.from_pretrained(model_id, use_safetensors=True)
         # Move to device if requested; default CPU keeps memory predictable.
         if device:
             self._model = self._model.to(device)
@@ -86,8 +90,9 @@ class NllbTranslateBackend(Translate):
 
     @property
     def name(self) -> str:
-        # v2: terminator stripped from input (tbtbt parity).
-        return f"nllb:{self._model_id}:v2"
+        # The task runner's target hint defaults to eng; constructor settings
+        # override it and must be part of the backend cache identity.
+        return f"nllb:{self._model_id}:{self._target}:max-{self._max_length}:v3"
 
     @property
     def batch_policy(self) -> BatchPolicy:

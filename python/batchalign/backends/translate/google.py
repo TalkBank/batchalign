@@ -129,7 +129,8 @@ class GoogleTranslateBackend(Translate):
 
     @property
     def name(self) -> str:
-        return self._mode
+        # The constructor target overrides the runner's default eng hint.
+        return f"{self._mode}:target-{self._target}"
 
     @property
     def batch_policy(self) -> BatchPolicy:
