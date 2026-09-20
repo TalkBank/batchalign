@@ -41,6 +41,14 @@ installations on GitHub runners; local tests use one worker.
   stopped SSE connection failures from marking the entire daemon failed.
 - Current local frontend: 13 unit/property tests and 10 Chromium GUI tests pass
   (all six individual steps and a four-step chain; GUI boundary is mocked).
+- GUI CI run 35537862881 passed all ten Chromium/WebKit jobs across Linux
+  arm64/x86_64, macOS arm64/x86_64, and Windows x86_64 at revision 751d666.
+- Native startup now retains its child for timeout/error/app-exit cleanup,
+  remembers failures that precede frontend listeners, and clears dead daemon
+  handles. Environments are isolated by SHA-256 of the embedded sidecar rather
+  than deleting other installed versions. Four standalone Rust protocol tests
+  pass, including all 65,535 valid ports and bounded large Unicode diagnostics.
+  Full native state/process tests are wired into bundle CI and remain unverified.
 - Focused Bazel pytest: native CompareBackend runs on a valid corpus excerpt,
   produces CHAT + metrics, and verifies WER=0 / accuracy=1 for identical inputs.
   Native invalid-CHAT test confirms failure diagnosis and no overwrite. Other
@@ -62,9 +70,11 @@ installations on GitHub runners; local tests use one worker.
 - Run and fix the expanded CI bundle/bootstrap matrix, including Windows build
   portability. Add installed native-webview automation (not just sidecar tests),
   installation/quarantine handling, and real-model/provider pipeline matrix.
-- Native daemon startup can leak a child on timeout; exited daemon does not
-  reset its spawn latch. Cache invalidation deletes every project install and
-  marker writes tag every version, instead of targeting this bundle's install.
+- Verify native supervisor changes in bundle CI, including subprocess cleanup
+  during PyApp bootstrap (the direct-child test alone cannot prove descendant
+  cleanup). New environment isolation leaves old versions available; their
+  disk usage needs an explicit, safe retention policy if automatic pruning is
+  introduced later.
 - Existing gui.spec.ts remains stale: 60-second bootstrap budget, old overlay
   selectors, and tolerated recipe/capability errors. Replace it with real
   pipeline/output assertions using the new orchestration endpoint.

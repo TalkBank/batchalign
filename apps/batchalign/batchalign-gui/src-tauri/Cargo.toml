@@ -15,6 +15,7 @@ name = "batchalign-gui"
 path = "src/main.rs"
 
 [build-dependencies]
+sha2 = "0.10"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]

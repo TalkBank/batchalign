@@ -10,6 +10,7 @@
 
 mod commands;
 mod daemon;
+mod daemon_protocol;
 mod events;
 mod protocol;
 mod state;
@@ -38,6 +39,12 @@ pub fn run() {
             commands::reveal_in_file_manager,
             commands::start_batch_pump,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running batchalign desktop");
+        .build(tauri::generate_context!())
+        .expect("error while building batchalign desktop")
+        .run(|app, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                use tauri::Manager;
+                app.state::<AppState>().stop_child();
+            }
+        });
 }

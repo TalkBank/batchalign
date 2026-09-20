@@ -49,6 +49,14 @@ test:
 unit:
     cd {{ justfile_directory() }}/apps/batchalign/batchalign-gui && npm run test:unit
 
+# Native startup protocol tests; no GUI or ML environment build required.
+native-protocol:
+    bazel test --jobs=1 //apps/batchalign/batchalign-gui/src-tauri:daemon_protocol_test
+
+# Test the full native library after Bazel stages its bundled dependencies.
+native-unit *args:
+    bazel run //apps/batchalign/batchalign-gui/src-tauri:native_unit -- "$@"
+
 # Native-boundary startup regressions, without installing the ML environment.
 startup *args:
     cd {{ justfile_directory() }}/apps/batchalign/batchalign-gui && npm run test:startup -- "$@"

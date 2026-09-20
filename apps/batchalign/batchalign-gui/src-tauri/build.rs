@@ -1,22 +1,37 @@
+use sha2::{Digest, Sha256};
+use std::io::Read;
+
 fn main() {
-    // Propagate the repo's stamped BUILD_HASH (produced by bazel/stamp.sh:
-    // `<git-sha>[-dirty]`) into the binary as a compile-time env value.
-    // daemon.rs reads it via `env!("BATCHALIGN_BUILD_HASH")` and uses it
-    // to invalidate the PyApp install cache when the binary's build
-    // differs from the one that populated the cache — PyApp's own cache
-    // key only includes the wheel name + version, so feature-set changes
-    // would otherwise slip past it.
-    //
-    // The wrapper scripts (bazel/batchalign-tauri/{dev,bundle}.sh) call
-    // bazel/stamp.sh and export the result as BATCHALIGN_BUILD_HASH
-    // before invoking `cargo tauri {dev,build}`. If the env var is
-    // absent (someone running cargo directly outside Bazel) we fall
-    // back to a "dev-unstamped" sentinel so the wipe path still works,
-    // it just wipes on every build.
     println!("cargo:rerun-if-env-changed=BATCHALIGN_BUILD_HASH");
-    let stamp = std::env::var("BATCHALIGN_BUILD_HASH")
-        .unwrap_or_else(|_| "dev-unstamped".to_string());
+    let stamp =
+        std::env::var("BATCHALIGN_BUILD_HASH").unwrap_or_else(|_| "dev-unstamped".to_string());
     println!("cargo:rustc-env=BATCHALIGN_BUILD_HASH={stamp}");
 
+    // PyApp's own key does not identify the embedded wheel contents/extras.
+    // Fingerprint the staged binary so a warm launch reuses exactly its own
+    // environment, including for two builds at the same version or dirty SHA.
+    let target = std::env::var("TARGET").expect("Cargo target");
+    let suffix = if target.contains("windows") {
+        ".exe"
+    } else {
+        ""
+    };
+    let path = std::path::Path::new("binaries").join(format!("sidecar-{target}{suffix}"));
+    println!("cargo:rerun-if-changed={}", path.display());
+    let mut file =
+        std::fs::File::open(&path).expect("Bazel must stage the sidecar before building Tauri");
+    let mut hash = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buffer).expect("read staged sidecar");
+        if count == 0 {
+            break;
+        }
+        hash.update(&buffer[..count]);
+    }
+    println!(
+        "cargo:rustc-env=BATCHALIGN_SIDECAR_ID={:x}",
+        hash.finalize()
+    );
     tauri_build::build();
 }

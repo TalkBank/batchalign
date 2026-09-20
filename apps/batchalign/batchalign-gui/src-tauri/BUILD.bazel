@@ -15,8 +15,16 @@ before invoking cargo tauri build.
 """
 
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_rust//rust:defs.bzl", "rust_test")
 
 package(default_visibility = ["//visibility:public"])
+
+rust_test(
+    name = "daemon_protocol_test",
+    srcs = ["src/daemon_protocol.rs"],
+    crate_root = "src/daemon_protocol.rs",
+    edition = "2024",
+)
 
 # Both `bundle` and `dev` declare //python/batchalign:sidecar as data.
 # Bazel materializes the sidecar's sh_binary launcher into our runfiles
@@ -50,6 +58,19 @@ sh_binary(
 sh_binary(
     name = "dev",
     srcs = ["//bazel/batchalign-tauri:dev.sh"],
+    data = [
+        "//apps/batchalign/batchalign-gui:frontend_sources",
+        "//python/batchalign:sidecar",
+        "//bazel/tauri:cargo_tauri",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+# Shares bundle staging, then tests the native library without opening a UI.
+sh_binary(
+    name = "native_unit",
+    srcs = ["//bazel/batchalign-tauri:bundle.sh"],
+    env = {"BATCHALIGN_TAURI_TEST": "1"},
     data = [
         "//apps/batchalign/batchalign-gui:frontend_sources",
         "//python/batchalign:sidecar",

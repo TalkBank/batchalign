@@ -88,4 +88,7 @@ export BATCHALIGN_BUILD_HASH
 # `"${arr[@]+"${arr[@]}"}"` is the bash-set-u-safe way to splat a
 # possibly-empty array — naked `"${arr[@]}"` trips `unbound variable`
 # under bash 3.2 (macOS default) when the array has zero elements.
+if [[ "${BATCHALIGN_TAURI_TEST:-0}" == "1" ]]; then
+    exec cargo test --release --lib --manifest-path src-tauri/Cargo.toml "$@"
+fi
 exec cargo tauri build "${profile_flag[@]+"${profile_flag[@]}"}" "$@"

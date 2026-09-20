@@ -146,6 +146,9 @@ jobs:
           TAURI_PROFILE: release
         run: just batchalign gui build release --target ${{ matrix.runner.target }}
 
+      - name: Native startup and process-lifetime regression tests
+        run: just batchalign gui native-unit --target ${{ matrix.runner.target }}
+
       - name: Cold and warm bootstrap from packaged sidecar, with native output checks
         timeout-minutes: 45
         env:
