@@ -18,7 +18,8 @@ permissions:
 
 concurrency:
   group: gui-tests-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve teardown diagnostics when follow-up tests or fixes are pushed.
+  cancel-in-progress: false
 
 jobs:
   frontend:
@@ -45,6 +46,8 @@ jobs:
       - run: npm run test:unit
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run test:gui -- --project=${{ matrix.browser }}
+        env:
+          DEBUG: pw:browser
       - uses: actions/upload-artifact@v4
         if: always()
         with:
