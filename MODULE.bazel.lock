@@ -566,9 +566,9 @@
         "bzlTransitiveDigest": "FddxzhKrC+BN1/nFVvpQ1pzVVggp3zl5Sg6oL+7TcIQ=",
         "usagesDigest": "PQa3OpRNLmdAztU6pIUYqDiNs1qIT1DTAqemIZLEC1Y=",
         "recordedFileInputs": {
-          "@@//Cargo.lock": "422e00b7a13c1a4ca97c8606e374d7761564417c084da5f68939a6aa25670d39",
+          "@@//Cargo.lock": "de6c3d4708064922d8d96fd9227b2d7c00f690d229983c7a0032dba15029af27",
           "@@//Cargo.toml": "84faef09c5263869c1d4f1e991311972c6e86a71106dbfc63f45efe61d80fa8e",
-          "@@//apps/batchalign/batchalign-gui/src-tauri/Cargo.toml": "6320fb3f158cd02977b8a9c95ccc021def7b6a32206c6a402eb6300e12a7b695",
+          "@@//apps/batchalign/batchalign-gui/src-tauri/Cargo.toml": "6415123ab0b1dc8d298dede335123128d55be3f6e47fece01ea46a33666ba8c7",
           "@@//crates/batchalign/batchalign-core/Cargo.toml": "7fec4e3956f85b7f6cc731f93bbcdd364b7e6f89868dcd3dbba03dc9746750d0",
           "@@//crates/batchalign/batchalign-engine/Cargo.toml": "e5b6cf37c27e5135155e830b732660eb4e5387150b405e76cce81443dbbefbdb"
         },

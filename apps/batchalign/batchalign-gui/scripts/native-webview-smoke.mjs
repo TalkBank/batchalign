@@ -9,22 +9,30 @@ import { resolve, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const application = resolve(process.argv[2] || '');
+const embedded = process.argv[4] === '--embedded';
 const sidecarReport = JSON.parse(await readFile(process.argv[3], 'utf8'));
 assert(process.argv[2] && sidecarReport.root, 'usage: native-webview-smoke.mjs installed-app packaged-report.json');
 const evidence = resolve('native-webview-evidence');
 await mkdir(evidence, { recursive: true });
 const report = { application, environment: 'warm bundle-specific cleanroom environment', launches: [] };
-const driver = spawn(process.platform === 'win32' ? 'tauri-driver.exe' : 'tauri-driver', [], { stdio: ['ignore', 'pipe', 'pipe'], env: {
-  ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: join(sidecarReport.root, 'environment'),
-  XDG_CACHE_HOME: join(sidecarReport.root, 'cache'), HF_HOME: join(sidecarReport.root, 'models'),
-  PYTHONNOUSERSITE: '1',
-} });
 let tail = '';
 let driverError;
-for (const pipe of [driver.stdout, driver.stderr]) pipe.on('data', data => {
-  tail = (tail + data).slice(-32768);
-});
-driver.on('error', error => { driverError = error; });
+function startDriver() {
+  const child = spawn(embedded ? application : process.platform === 'win32' ? 'tauri-driver.exe' : 'tauri-driver', [], {
+    stdio: ['ignore', 'pipe', 'pipe'], env: {
+      ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: join(sidecarReport.root, 'environment'),
+      XDG_CACHE_HOME: join(sidecarReport.root, 'cache'), HF_HOME: join(sidecarReport.root, 'models'),
+      PYTHONNOUSERSITE: '1', TAURI_WEBDRIVER_PORT: '4444',
+    },
+  });
+  for (const pipe of [child.stdout, child.stderr]) pipe.on('data', data => {
+    tail = (tail + data).slice(-32768);
+  });
+  child.on('error', error => { driverError = error; });
+  return child;
+}
+report.instrumentation = embedded ? 'macOS QA build with embedded WebDriver feature' : 'unmodified release app with external WebDriver';
+let driver = startDriver();
 let session;
 async function command(method, path, body) {
   const response = await fetch(`http://127.0.0.1:4444${path}`, {
@@ -50,17 +58,20 @@ async function screenshot(name) {
   const image = await command('GET', `/session/${session}/screenshot`);
   await writeFile(join(evidence, name), Buffer.from(image, 'base64'));
 }
-try {
-  let listening = false;
+async function waitForDriver() {
   for (let i = 0; i < 100; i++) {
     if (driverError) throw driverError;
     if (driver.exitCode !== null) throw new Error(`driver exited: ${tail}`);
-    try { await command('GET', '/status'); listening = true; break; } catch { await delay(200); }
+    try { await command('GET', '/status'); return; } catch { await delay(200); }
   }
-  assert(listening, `driver never became ready: ${tail}`);
+  throw new Error(`driver never became ready: ${tail}`);
+}
+try {
+  await waitForDriver();
   for (let launch = 0; launch < 2; launch++) {
+    if (launch > 0 && embedded) { driver = startDriver(); await waitForDriver(); }
     const started = Date.now();
-    const created = await command('POST', '/session', { capabilities: { alwaysMatch: {
+    const created = await command('POST', '/session', { capabilities: { alwaysMatch: embedded ? {} : {
       browserName: 'wry', 'tauri:options': { application },
     } } });
     session = created.sessionId;
@@ -121,7 +132,15 @@ try {
       await writeFile(join(evidence, 'comparison.csv'), csv);
       report.comparison = status;
     }
-    await command('DELETE', `/session/${session}`);
+    if (embedded) {
+      // Closing the last window stops the embedded server along with the app;
+      // its HTTP response may therefore be interrupted by normal shutdown.
+      await command('DELETE', `/session/${session}/window`).catch(() => {});
+      if (driver.exitCode === null) await Promise.race([once(driver, 'exit'), delay(5000)]);
+      assert(driver.exitCode !== null, 'macOS app survived closing its last window');
+    } else {
+      await command('DELETE', `/session/${session}`);
+    }
     session = undefined;
     // Closing the real window must terminate its daemon, not just its webview.
     let stopped = false;

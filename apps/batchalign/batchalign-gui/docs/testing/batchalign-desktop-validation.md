@@ -95,6 +95,17 @@ installations on GitHub runners; local tests use one worker.
   failed because /usr/bin/xdg-open was absent. Added xdg-utils to Linux runner
   prerequisites. Verification is pending the next matrix; complete log is
   /tmp/batchalign-linux-arm-job.log.
+- Linux x64 job 106150070004 passed packaged-sidecar checks at 751d666:
+  cold bootstrap 225.283s, warm launch 0.610s, real comparison CHAT + CSV with
+  WER=0 / accuracy=1, input preservation and SSE completion. Downloaded report:
+  /tmp/batchalign-linux-x64-runtime-35537862870/packaged-sidecar-report.json.
+  This predates the native-webview/model test additions and does not prove them.
+- macOS QA native-webview support uses optional `webdriver` Cargo feature and
+  a separate capability config. CI builds an instrumented executable after the
+  production .app, copies it into a separate QA .app, clears xattrs/ad-hoc signs,
+  and runs the shared native smoke through embedded WKWebView WebDriver.
+  Production bundle artifacts remain uninstrumented. Dependency resolution and
+  script syntax checks pass; actual macOS test build/execution remain pending.
 - Verify native supervisor changes in bundle CI, including subprocess cleanup
   during PyApp bootstrap (the direct-child test alone cannot prove descendant
   cleanup). New environment isolation leaves old versions available; their

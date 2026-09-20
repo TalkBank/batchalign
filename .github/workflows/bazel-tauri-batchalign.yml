@@ -232,6 +232,24 @@ jobs:
           node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs $application packaged-sidecar-report.json
           if ($LASTEXITCODE -ne 0) { throw "Windows native webview tests failed" }
 
+      - name: Build macOS native-webview test instrumentation
+        if: runner.os == 'macOS'
+        run: |
+          just batchalign gui build release --target ${{ matrix.runner.target }} --features webdriver --no-bundle --config src-tauri/tauri.webdriver.conf.json
+
+      - name: Install macOS QA app and test its native WKWebView
+        if: runner.os == 'macOS'
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          original="target/${{ matrix.runner.target }}/release/bundle/macos/Batchalign.app"
+          installed="$RUNNER_TEMP/Batchalign QA.app"
+          ditto "$original" "$installed"
+          cp "target/${{ matrix.runner.target }}/release/Batchalign" "$installed/Contents/MacOS/Batchalign"
+          xattr -cr "$installed"
+          codesign --force --deep --sign - "$installed"
+          node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs "$installed/Contents/MacOS/Batchalign" packaged-sidecar-report.json --embedded
+
       - name: Upload installed native-webview evidence
         uses: actions/upload-artifact@v4
         if: always()
