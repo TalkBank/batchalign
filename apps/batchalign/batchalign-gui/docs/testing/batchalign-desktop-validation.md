@@ -74,6 +74,12 @@ installations on GitHub runners; local tests use one worker.
 - Run and fix the expanded CI bundle/bootstrap matrix, including Windows build
   portability. Add installed native-webview automation (not just sidecar tests),
   installation/quarantine handling, and real-model/provider pipeline matrix.
+- Linux CI now installs the generated .deb and drives the unmodified app with
+  tauri-driver/WebKit: two native launches, overlay readiness, real folder scan
+  and HTTP IPC comparison, correct CHAT/metrics, screenshots, and daemon exit
+  after window close. It reuses this bundle's isolated warm PyApp environment
+  from the preceding cold/warm sidecar test. Syntax checked, not yet executed;
+  native cold bootstrap and Windows/macOS webview automation remain due.
 - Verify native supervisor changes in bundle CI, including subprocess cleanup
   during PyApp bootstrap (the direct-child test alone cannot prove descendant
   cleanup). New environment isolation leaves old versions available; their

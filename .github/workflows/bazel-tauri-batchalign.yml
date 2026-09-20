@@ -186,6 +186,31 @@ jobs:
           path: packaged-sidecar-report.json
           retention-days: 7
 
+      - name: Install native WebKit test driver
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y webkit2gtk-driver xvfb
+          cargo install tauri-driver --version 2.0.6 --locked
+
+      - name: Install package and test the real native webview
+        if: runner.os == 'Linux'
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          package=$(find "target/${{ matrix.runner.target }}/release/bundle" -name '*.deb' -type f -print -quit)
+          sudo apt-get install -y "$PWD/$package"
+          executable=$(dpkg-deb -c "$package" | awk '$NF ~ /\/usr\/bin\/[^/]+$/ { sub(/^\.\//, "/", $NF); print $NF; exit }')
+          test -x "$executable"
+          xvfb-run -a node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs "$executable" packaged-sidecar-report.json
+
+      - name: Upload installed native-webview evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-webview-${{ matrix.runner.target }}
+          path: native-webview-evidence/
+          retention-days: 7
+
       - name: Upload real-daemon GUI evidence
         uses: actions/upload-artifact@v4
         if: always()
