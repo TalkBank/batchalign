@@ -10,7 +10,7 @@ const submitting = new Set<string>();
 export async function startBatch(batchId: string): Promise<void> {
   const { batches, settings } = getAppState();
   const batch = batches[batchId];
-  if (!batch || !batch.pipeline.length || batch.state === "running" || submitting.has(batchId)) return;
+  if (!batch || batch.needsDiscovery || !batch.pipeline.length || batch.state === "running" || submitting.has(batchId)) return;
   const request = buildDesktopRequest(batch, settings);
   if (!request.source_ids.length) return;
   submitting.add(batchId);
@@ -60,7 +60,7 @@ export function useStartBatch() {
   const visibleIds = batch?.pipeline[0]
     ? filterFilesForVerb(batch.files, batch.fileOrder, batch.pipeline[0]) : [];
   return {
-    canStart: !!batch && daemon.ready && visibleIds.length > 0 && batch.pipeline.length > 0,
+    canStart: !!batch && !batch.needsDiscovery && daemon.ready && visibleIds.length > 0 && batch.pipeline.length > 0,
     isRunning: batch?.state === "running",
     start: async () => { if (batch) await startBatch(batch.id); },
   };

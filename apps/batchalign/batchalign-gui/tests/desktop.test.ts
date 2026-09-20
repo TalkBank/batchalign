@@ -150,3 +150,29 @@ test('late progress from a previous job or a finished file cannot regress the UI
   store.dispatch({ type: 'PROGRESS_V2', batchId: value.id, jobId: 'new', event: { ...event, kind: 'StageStarted' } });
   expect(useStore.getState().batches.batch.files[row.source_id].status).toBe('done');
 });
+
+test('rediscovery ignores stale scans and running jobs, then restores newly eligible inputs', () => {
+  const value = batch(['transcribe']);
+  const store = useStore.getState();
+  store.dispatch({ type: 'BATCH_OPENED', batch: value });
+  store.dispatch({ type: 'BATCH_STARTED', batchId: value.id, jobId: 'job', files: [value.files['nested space/é.wav']] });
+  store.dispatch({ type: 'PIPELINE_CHANGED', batchId: value.id, pipeline: ['align'] });
+  expect(useStore.getState().batches.batch.pipeline).toEqual(['transcribe']);
+  const scan = { type: 'FILES_REDISCOVERED' as const, batchId: value.id, firstStep: 'transcribe' as const,
+    jobId: 'job', files: Object.values(value.files) };
+  const running = useStore.getState().batches.batch;
+  store.dispatch(scan);
+  expect(useStore.getState().batches.batch).toBe(running);
+  store.dispatch({ type: 'BATCH_FINISHED', batchId: value.id, jobId: 'job', error: null });
+  store.dispatch({ type: 'PIPELINE_CHANGED', batchId: value.id, pipeline: ['align'] });
+  const waiting = useStore.getState().batches.batch;
+  expect(waiting.needsDiscovery).toBe(true);
+  store.dispatch(scan);
+  store.dispatch({ ...scan, firstStep: 'align', jobId: 'old' });
+  expect(useStore.getState().batches.batch).toBe(waiting);
+  store.dispatch({ ...scan, firstStep: 'align' });
+  const ready = useStore.getState().batches.batch;
+  expect(ready.needsDiscovery).toBe(false);
+  expect(ready.state).toBe('idle');
+  expect(filterFilesForVerb(ready.files, ready.fileOrder, 'align')).toEqual(['nested space/é.cha']);
+});

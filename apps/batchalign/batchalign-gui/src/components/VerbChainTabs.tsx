@@ -111,13 +111,14 @@ export default function VerbChainTabs({ selected, onSelect }: Props) {
           <button
             type="button"
             onClick={onRemove}
+            disabled={batch.state === "running"}
             className="ba-btn ba-btn--sm"
             style={{ padding: "3px 9px", fontSize: "var(--fs-xs)" }}
           >
             remove {selected}
           </button>
         )}
-        <AddVerb unused={unused} onAdd={onAdd} />
+        <AddVerb unused={unused} onAdd={onAdd} disabled={batch.state === "running"} />
       </div>
     </div>
   );
@@ -126,9 +127,11 @@ export default function VerbChainTabs({ selected, onSelect }: Props) {
 function AddVerb({
   unused,
   onAdd,
+  disabled,
 }: {
   unused: VerbStep[];
   onAdd: (v: VerbStep) => void;
+  disabled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   if (unused.length === 0) return null;
@@ -137,12 +140,13 @@ function AddVerb({
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        disabled={disabled}
         className="ba-btn ba-btn--sm"
         style={{ padding: "3px 9px", fontSize: "var(--fs-xs)" }}
       >
         + add step
       </button>
-      {open && (
+      {open && !disabled && (
         <div
           style={{
             position: "absolute",

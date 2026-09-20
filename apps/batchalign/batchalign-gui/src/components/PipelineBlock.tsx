@@ -1,13 +1,14 @@
 // Block 2 (pipeline): verb chain tabs + the active verb's panel.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { scanFolder } from "../discovery";
 import { useStore, type VerbStep } from "../store";
 import BlockHeader from "./BlockHeader";
 import VerbChainTabs from "./VerbChainTabs";
 import { panelFor } from "../panels/registry";
 
 export default function PipelineBlock() {
-  const { activeBatchId, batches } = useStore();
+  const { activeBatchId, batches, dispatch } = useStore();
   const batch = activeBatchId ? batches[activeBatchId] : null;
   // `null` = empty pipeline, nothing selectable. The VerbChainTabs
   // renders only the "+ add step" affordance in that state, and the
@@ -15,6 +16,17 @@ export default function PipelineBlock() {
   const [selected, setSelected] = useState<VerbStep | null>(
     batch?.pipeline[0] ?? null,
   );
+  // A previous run can create new CHAT files and leaves only its selected
+  // rows in the progress table. Refresh discovery when the input verb changes.
+  useEffect(() => {
+    if (!batch?.needsDiscovery || batch.state === "running") return;
+    let active = true;
+    void scanFolder(batch.folderPath).then(files => {
+      if (active) dispatch({ type: "FILES_REDISCOVERED", batchId: batch.id,
+        firstStep: batch.pipeline[0] ?? null, jobId: batch.jobId, files });
+    }).catch(error => console.error("folder refresh failed", error));
+    return () => { active = false; };
+  }, [batch?.id, batch?.folderPath, batch?.pipeline[0], batch?.needsDiscovery, dispatch]);
   if (!batch) return null;
 
   // Reconcile selection when the chain changes underneath us

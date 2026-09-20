@@ -2,23 +2,12 @@
 // Tauri dialog plugin; the parent then dispatches BATCH_OPENED.
 
 import { open } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
+import { scanFolder } from "../discovery";
 import { useStore, type Batch, type FileRow } from "../store";
 
 // No default pipeline — the user chooses every step themselves so the
 // chain reflects exactly what they intend to run. PipelineBlock renders
 // an "+ add step" affordance for the empty case.
-
-interface FolderSummary {
-  files: Array<{
-    source_id: string;
-    stem: string;
-    filename: string;
-    size_bytes: number;
-    duration_ms: number | null;
-    kind: "media" | "chat";
-  }>;
-}
 
 export default function DropZone() {
   const { dispatch } = useStore();
@@ -30,32 +19,11 @@ export default function DropZone() {
   };
 
   const openFolder = async (path: string) => {
-    let summary: FolderSummary | null = null;
-    try {
-      summary = (await invoke("list_folder_files", {
-        path,
-      })) as FolderSummary;
-    } catch (err) {
-      console.error("list_folder_files failed", err);
-    }
-    const files: Record<string, FileRow> = {};
-    const fileOrder: string[] = [];
-    for (const f of summary?.files ?? []) {
-      files[f.source_id] = {
-        source_id: f.source_id,
-        stem: f.stem,
-        filename: f.filename,
-        sizeBytes: f.size_bytes,
-        durationMs: f.duration_ms,
-        kind: f.kind,
-        status: "queued",
-        // Pipeline stages are materialized when the user picks verbs
-        // — empty until then so the row doesn't display ghost stages.
-        stages: [],
-        log: [],
-      };
-      fileOrder.push(f.source_id);
-    }
+    let rows: FileRow[] = [];
+    try { rows = await scanFolder(path); }
+    catch (err) { console.error("list_folder_files failed", err); }
+    const files = Object.fromEntries(rows.map(file => [file.source_id, file]));
+    const fileOrder = rows.map(file => file.source_id);
 
     const batchId = `b-${Date.now().toString(36)}-${Math.random()
       .toString(36)

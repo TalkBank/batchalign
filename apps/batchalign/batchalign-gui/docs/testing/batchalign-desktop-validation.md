@@ -141,8 +141,12 @@ installations on GitHub runners; local tests use one worker.
   request that captured a daemon handle immediately before exit cannot miss
   the failure when it subscribes afterward. Added a native late-subscriber
   regression; full native unit execution remains pending package CI.
-- Re-run behavior: BATCH_STARTED replaces discovery rows with selected inputs;
-  changing pipeline type after a run may require re-scanning the folder.
+- Changing the first pipeline step now refreshes folder discovery, so completed
+  transcription can be followed by alignment of newly created CHAT files.
+  Stale scans are ignored and pipeline edits are rejected during running jobs.
+  Local validation passes: 17 unit/property tests, 11 Chromium GUI tests, and
+  the production frontend build. The new GUI regression uses mocked native IPC;
+  installed-app inference remains a separate CI gate.
 - Settings still need complete mapping: memory/adaptive-worker controls,
   stored Rev.AI key, and skip-code-switching semantics. Stanza now accepts
   device selection, forwards it to single/multilingual pipelines, and includes

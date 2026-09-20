@@ -79,6 +79,7 @@ export interface Batch {
   config: Record<VerbStep, VerbConfig>;
   files: Record<string, FileRow>;
   fileOrder: string[];
+  needsDiscovery?: boolean;
   state: BatchState;
   jobId: string | null;
   startedAt: number | null;
@@ -146,6 +147,7 @@ export type Action =
   | { type: "BATCH_INPLACE_CHANGED"; batchId: string; inPlace: boolean }
   | { type: "BATCH_OUTPUT_CHANGED"; batchId: string; outputPath: string | null }
   | { type: "PIPELINE_CHANGED"; batchId: string; pipeline: VerbStep[] }
+  | { type: "FILES_REDISCOVERED"; batchId: string; firstStep: VerbStep | null; jobId: string | null; files: FileRow[] }
   | {
       type: "VERB_CONFIG_CHANGED";
       batchId: string;
@@ -306,9 +308,23 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case "FILES_REDISCOVERED": {
+      const batch = state.batches[action.batchId];
+      if (!batch || batch.state === "running" || batch.jobId !== action.jobId ||
+          (batch.pipeline[0] ?? null) !== action.firstStep) return state;
+      const files = Object.fromEntries(action.files.map(file => [file.source_id, {
+        ...file, stages: makeStages(batch.pipeline),
+      }]));
+      return { ...state, batches: { ...state.batches, [batch.id]: {
+        ...batch, files, fileOrder: action.files.map(file => file.source_id),
+        state: "idle", jobId: null, startedAt: null, finishedAt: null, expandedFileId: null,
+        needsDiscovery: false,
+      } } };
+    }
+
     case "PIPELINE_CHANGED": {
       const batch = state.batches[action.batchId];
-      if (!batch) return state;
+      if (!batch || batch.state === "running") return state;
       // Reset stage rows on every file to mirror the new pipeline.
       const files: Record<string, FileRow> = {};
       for (const id of batch.fileOrder) {
@@ -321,6 +337,7 @@ export function reducer(state: AppState, action: Action): AppState {
           [action.batchId]: {
             ...batch,
             pipeline: action.pipeline,
+            needsDiscovery: batch.needsDiscovery || batch.pipeline[0] !== action.pipeline[0],
             files,
           },
         },
