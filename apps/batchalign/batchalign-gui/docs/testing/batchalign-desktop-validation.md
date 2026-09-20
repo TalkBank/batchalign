@@ -234,5 +234,19 @@ comparison, app exit, and warm relaunch using that same environment. Native
 steps allow 30 minutes for this additional cleanroom install. Syntax checks
 pass; actual cold-webview execution is still due in CI.
 
+Windows WebKit diagnostic job 106162969667 in run 35542394739 passed
+all 14 GUI tests and clean teardown. Browser logs show graceful close started
+at 22:48:29.770Z and finished at 22:48:29.782Z, process exit code 0. Earlier
+non-diagnostic runs hung at worker shutdown; the root cause is not established
+by this passing run. Keep browser logging and preserved-running-job CI policy.
+
+Run 35541484100 macOS ARM job 106159916202 compiled the complete Tauri
+release app successfully, then failed in bundle_dmg.sh after four seconds.
+Default Tauri logging hid the script stdout/stderr; CI now enables --verbose
+and retains partial bundles/scripts on failure. The DMG failure remains
+unresolved until detailed diagnostics or a successful installer run exists.
+Native unit/model gates were skipped in that failed job; do not count them
+as passing. Other platform jobs in this run remain live.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.
