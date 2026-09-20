@@ -75,9 +75,12 @@ installations on GitHub runners; local tests use one worker.
   cleanup). New environment isolation leaves old versions available; their
   disk usage needs an explicit, safe retention policy if automatic pruning is
   introduced later.
-- Existing gui.spec.ts remains stale: 60-second bootstrap budget, old overlay
-  selectors, and tolerated recipe/capability errors. Replace it with real
-  pipeline/output assertions using the new orchestration endpoint.
+- Replaced stale gui.spec.ts with an actual morphotag → compare GUI workflow,
+  requiring real CHAT morphology/dependency/comparison tiers and WER=0 /
+  accuracy=1. The packaged-sidecar harness runs it against its live warm daemon
+  when BATCHALIGN_SMOKE_GUI=1; bundle CI installs Chromium and retains output
+  attachments/screenshots/traces. Test discovery passes; real-model execution
+  remains due in CI. This still stubs native IPC and the OS folder picker.
 - Status polling now retries transient failures without resubmitting the job;
   two tests verify recovery and bounded persistent-failure diagnosis.
 - Native SSE relay now observes replacement and daemon shutdown while connecting

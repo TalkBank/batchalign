@@ -108,6 +108,17 @@ try {
   assert.equal(Number(row[header.indexOf('accuracy')]), 1);
   assert.equal(await readFile(join(input, 'é.cha'), 'utf8'), transcript);
   results.comparison = { status, chat, csv, events: eventText };
+  if (process.env.BATCHALIGN_SMOKE_GUI === '1') {
+    const gui = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const browser = spawn(process.execPath, [join(gui, 'node_modules/playwright/cli.js'),
+      'test', 'e2e/gui.spec.ts', '--project=chromium'], {
+      cwd: gui, stdio: 'inherit',
+      env: { ...process.env, BATCHALIGN_E2E_DAEMON_PORT: String(new URL(base).port) },
+    });
+    const [code] = await once(browser, 'exit');
+    assert.equal(code, 0, 'real-daemon GUI pipeline test failed');
+    results.gui = 'passed: morphotag → compare with real outputs';
+  }
 } catch (error) {
   results.error = String(error);
   results.tail = tail;

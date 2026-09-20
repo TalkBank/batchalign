@@ -40,7 +40,8 @@ on:
 
 concurrency:
   group: bazel-tauri-batchalign-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve costly cleanroom evidence when a follow-up fix is pushed.
+  cancel-in-progress: false
 
 env:
   BAZELISK_SKIP_WRAPPER: true
@@ -149,10 +150,15 @@ jobs:
       - name: Native startup and process-lifetime regression tests
         run: just batchalign gui native-unit --target ${{ matrix.runner.target }}
 
+      - name: Install browser for real packaged-daemon GUI pipeline tests
+        working-directory: apps/batchalign/batchalign-gui
+        run: npx playwright install --with-deps chromium
+
       - name: Cold and warm bootstrap from packaged sidecar, with native output checks
         timeout-minutes: 45
         env:
           BATCHALIGN_SMOKE_REPORT: ${{ github.workspace }}/packaged-sidecar-report.json
+          BATCHALIGN_SMOKE_GUI: "1"
         run: |
           set -euo pipefail
           bundle_root="target/${{ matrix.runner.target }}/release/bundle"
@@ -178,6 +184,14 @@ jobs:
         with:
           name: packaged-runtime-${{ matrix.runner.target }}
           path: packaged-sidecar-report.json
+          retention-days: 7
+
+      - name: Upload real-daemon GUI evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-daemon-gui-${{ matrix.runner.target }}
+          path: apps/batchalign/batchalign-gui/test-results/
           retention-days: 7
 
       - name: upload bundle artifact

@@ -43,7 +43,7 @@ openapi:
 # the same wire format the production Tauri shell uses.
 test:
     bazel build //python/batchalign:sidecar
-    cd {{ justfile_directory() }}/apps/batchalign/batchalign-gui && npx playwright test e2e/gui.spec.ts --reporter=list
+    BATCHALIGN_SMOKE_GUI=1 node {{ justfile_directory() }}/apps/batchalign/batchalign-gui/scripts/packaged-sidecar-smoke.mjs {{ justfile_directory() }}/bazel-bin/python/batchalign/sidecar
 
 # Lightweight GUI unit/property tests; one worker keeps local memory bounded.
 unit:
