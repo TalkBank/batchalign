@@ -271,3 +271,22 @@ translation remains unverified and must still be achieved. Reports are in
 
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.
+
+Follow-up fixes awaiting installed CI evidence:
+- Pin the public dia-fork pipeline to pyannote.audio 3.4.x and torch/torchaudio
+  below 2.9. Pyannote 4 eagerly fetches community-1 PLDA even though this
+  agglomerative pipeline does not use it (upstream issue 2044); Pyannote 3
+  requires the AudioMetaData/info APIs removed in TorchAudio 2.9.
+- The missing final %gra is intentional: compare.rs strips grammar tiers to
+  match BA2. The real GUI test now checks standalone morphology's %mor/%gra
+  first, then reruns the ordered morphotag→compare chain and verifies its
+  %mor/%xs output, absent %gra, preserved gold, and exact comparison metrics.
+- Windows run 35541484100 built the MSI, but native unit execution failed
+  before any test with STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139). Add the
+  Common Controls v6 manifest to native test executables, following Tauri's
+  upstream issue 13419/workaround. This is not yet verified on Windows.
+- Independent installed/runtime checks now execute after unrelated native
+  unit or model failures when packaging succeeded; failures still fail CI.
+Local validation: 20 focused desktop/translation Python tests and 18 GUI
+unit/property tests passed; frontend production build passed. No local ML
+models or full desktop build were downloaded/run for these changes.

@@ -36,10 +36,19 @@ test('real morphotag → compare writes valid CHAT and correct metrics', async (
     await page.goto('/');
     await expect(page.getByRole('dialog', { name: 'Loading', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'open folder…' }).click();
-    for (const verb of ['morphotag', 'compare']) {
-      await page.getByRole('button', { name: '+ add step', exact: true }).click();
-      await page.locator('div').filter({ hasText: new RegExp(`^${verb}$`) }).last().click();
-    }
+    await page.getByRole('button', { name: '+ add step', exact: true }).click();
+    await page.locator('div').filter({ hasText: /^morphotag$/ }).last().click();
+    const morphologySubmitted = page.waitForRequest(request => request.url().endsWith('/desktop/jobs') && request.method() === 'POST');
+    await page.getByRole('button', { name: 'start batch', exact: true }).click();
+    expect((await morphologySubmitted).postDataJSON().steps.map((step: any) => step.recipe)).toEqual(['morphotag']);
+    await expect(page.locator('tbody > tr').getByText('done', { exact: true }).first()).toBeVisible({ timeout: 14 * 60_000 });
+    const morphology = readFileSync(source, 'utf8');
+    expect(morphology).toContain('%mor:');
+    expect(morphology).toContain('%gra:');
+    await testInfo.attach('morphology.cha', { body: morphology, contentType: 'text/plain' });
+
+    await page.getByRole('button', { name: '+ add step', exact: true }).click();
+    await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
     const submitted = page.waitForRequest(request => request.url().endsWith('/desktop/jobs') && request.method() === 'POST');
     await page.getByRole('button', { name: 'start batch', exact: true }).click();
     const request = (await submitted).postDataJSON();
@@ -48,7 +57,9 @@ test('real morphotag → compare writes valid CHAT and correct metrics', async (
     await expect(page.locator('tbody > tr').getByText('done', { exact: true }).first()).toBeVisible({ timeout: 14 * 60_000 });
     const output = readFileSync(source, 'utf8');
     expect(output).toContain('%mor:');
-    expect(output).toContain('%gra:');
+    // Compare intentionally retains morphology but strips grammar tiers,
+    // matching the BA2 output contract. Verify grammar before this step.
+    expect(output).not.toContain('%gra:');
     expect(output).toContain('%xs');
     const csv = readFileSync(join(nested, 'é.compare.csv'), 'utf8');
     const [header, row] = csv.trim().split(/\r?\n/).map(line => line.split(','));

@@ -33,5 +33,24 @@ fn main() {
         "cargo:rustc-env=BATCHALIGN_SIDECAR_ID={:x}",
         hash.finalize()
     );
-    tauri_build::build();
+    println!("cargo:rerun-if-env-changed=BATCHALIGN_TAURI_TEST");
+    if target.ends_with("windows-msvc") && std::env::var_os("BATCHALIGN_TAURI_TEST").is_some() {
+        // Tauri normally embeds Common Controls v6 only in the application
+        // resource. lib test executables also need it: mock_builder otherwise
+        // fails in the Windows loader with STATUS_ENTRYPOINT_NOT_FOUND.
+        // https://github.com/tauri-apps/tauri/issues/13419
+        let manifest = std::env::current_dir()
+            .expect("crate directory")
+            .join("tests.manifest");
+        println!("cargo:rerun-if-changed=tests.manifest");
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+        tauri_build::try_build(
+            tauri_build::Attributes::new()
+                .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest()),
+        )
+        .expect("build native test resources");
+    } else {
+        tauri_build::build();
+    }
 }

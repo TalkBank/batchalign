@@ -79,7 +79,10 @@ dependencies = [
 whisper      = ["transformers>=4.57,<5", "torch>=2.0", "torchaudio>=2.0", "nltk>=3.8", "openai-whisper", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'", "pycountry", "num2words"]
 malayalam    = ["transformers>=4.57,<5", "torch>=2.0", "torchaudio>=2.0", "wtpsplit"]
 stanza       = ["stanza>=1.12.2,<1.13", "transformers>=4.57,<5", "torch>=2.0,<2.13"]
-pyannote     = ["pyannote.audio>=3.0", "onnxruntime>=1.16", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'"]
+# The public dia-fork checkpoint uses the 3.x pipeline. 4.x eagerly loads
+# gated community-1 PLDA weights even for its agglomerative clustering.
+# 3.x also uses torchaudio APIs removed in 2.9.
+pyannote     = ["pyannote.audio>=3.4,<4", "torch>=2.0,<2.9", "torchaudio>=2.0,<2.9", "onnxruntime>=1.16", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'"]
 revai        = ["rev-ai"]
 google       = ["google-genai"]
 cantonese    = ["pycantonese>=4.2,<5", "tencentcloud-sdk-python-asr", "tencentcloud-sdk-python-tmt", "aliyun-python-sdk-core>=2.13", "aliyun-python-sdk-alimt", "funasr==1.3.1", "opencc", "cos-python-sdk-v5"]
@@ -94,10 +97,10 @@ ai           = ["dspy-ai"]
 # Server-Sent Events.
 api          = ["fastapi>=0.110", "uvicorn[standard]>=0.27", "sse-starlette>=2.0", "python-multipart>=0.0.9"]
 all = [
-    "transformers>=4.57,<5", "torch>=2.0,<2.13", "torchaudio>=2.0,<2.13", "nltk>=3.8",
+    "transformers>=4.57,<5", "torch>=2.0,<2.9", "torchaudio>=2.0,<2.9", "nltk>=3.8",
     "openai-whisper", "numba>=0.62.1,<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'", "pycountry", "num2words",
     "stanza>=1.12.2,<1.13",
-    "pyannote.audio>=3.0", "onnxruntime>=1.16",
+    "pyannote.audio>=3.4,<4", "onnxruntime>=1.16",
     "rev-ai",
     "google-genai",
     "pycantonese>=4.2,<5", "tencentcloud-sdk-python-asr", "tencentcloud-sdk-python-tmt", "aliyun-python-sdk-core>=2.13", "aliyun-python-sdk-alimt", "funasr==1.3.1", "opencc", "cos-python-sdk-v5",
