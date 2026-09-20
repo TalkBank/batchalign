@@ -102,6 +102,13 @@ jobs:
         with:
           targets: ${{ matrix.runner.target }}
 
+      # Tauri's Cargo build escapes the Bazel action cache. Retain dependency
+      # compilation even when a later installer or runtime assertion fails.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop-${{ matrix.runner.target }}
+          cache-on-failure: true
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

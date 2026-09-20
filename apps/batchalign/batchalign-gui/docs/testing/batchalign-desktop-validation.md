@@ -322,3 +322,16 @@ model repo's SFconvertbot PR 5 is based on current main and contains the
 converted weights; Transformers 4.57 resolves this existing conversion. This
 avoids its pickle fallback, which Intel macOS's Torch cannot load through
 current Transformers. Successful cross-platform NLLB inference still pending.
+
+Full local Python suite at 3af90b52: 469 passed, 3 skipped (9.78s test time,
+one Bazel worker). GUI run 35544106045 passed all ten jobs, but subsequent
+35544327930 again failed only Windows WebKit teardown after all 14 assertions
+passed. With browser diagnostics, host PID 716 was already absent when
+Playwright tried taskkill; its child-process close event never arrived, and
+runner cleanup found orphan conhost processes. This is an intermittent test
+browser lifecycle problem, not an assertion pass. Upgrade Playwright 1.60 to
+1.63 and add read-only Windows WebKit exit/close/stdio/process diagnostics;
+do not suppress teardown failures. Updated tooling passes 18 unit tests,
+production frontend build, and test discovery locally; no new local browser
+binaries downloaded. CI now caches Cargo dependencies (including on later
+runtime failure), because the Tauri Cargo build is outside Bazel's cache.
