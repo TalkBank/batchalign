@@ -231,3 +231,54 @@ def test_in_place_chat_suffix_is_preserved(desktop, monkeypatch):
     assert state['state'] == 'completed', state
     assert renamed.read_text() == 'original/morphotag/translate'
     assert not source.exists()
+
+
+def test_seeded_native_input_smash_preserves_sources_and_recovers(tmp_path, monkeypatch):
+    """Bounded byte mutations exercise the real parser, jobs, and atomic writer."""
+    import json
+    import random
+    rng = random.Random(20260920)
+    monkeypatch.setenv('BATCHALIGN_API_ALLOW_PATHS', '1')
+    folder = tmp_path / 'input'
+    output = tmp_path / 'output'
+    folder.mkdir()
+    output.mkdir()
+    valid = (b'@UTF8\n@Begin\n@Languages:\teng\n@Participants:\tPAR Participant\n'
+             b'@ID:\teng|test|PAR|||||Participant|||\n*PAR:\thello world .\n@End\n')
+    samples = [valid, b'not CHAT', b'\xff\xfe\x00']
+    tokens = [b'\x00', b'\xff', b'\x15-1_0\x15', b'\n@End\n', b'\n%mor:\t', b'[', b']', b'\r\n']
+    for _ in range(48):
+        data = valid
+        for _ in range(rng.randint(1, 8)):
+            start = rng.randrange(len(data) + 1)
+            end = min(len(data), start + rng.randrange(20))
+            data = data[:start] + rng.choice(tokens) + data[end:]
+        samples.append(data)
+    originals = {}
+    for i, data in enumerate(samples):
+        name = f'case-{i}.cha'
+        originals[name] = data
+        (folder / name).write_bytes(data)
+        (folder / f'case-{i}.gold.cha').write_bytes(valid)
+        (output / name).write_bytes(b'existing output')
+    request = {'folder': str(folder), 'source_ids': list(originals),
+               'output_path': str(output), 'workers': 2,
+               'steps': [{'recipe': 'compare', 'kwargs': {}, 'use_cache': False}]}
+    with TestClient(api.app) as client:
+        state, events, _ = run(client, request)
+        assert state['state'] == 'failed', state  # known-invalid members
+        assert 'StageFailed' in events and 'SourceCompleted' in events
+        progress = [json.loads(line[6:]) for line in events.splitlines() if line.startswith('data: {')]
+        completed = {event['source_id'] for event in progress if event['kind'] == 'SourceCompleted'}
+        assert 'case-0.cha' in completed
+        assert not {'case-1.cha', 'case-2.cha'} & completed
+        for name, data in originals.items():
+            assert (folder / name).read_bytes() == data, name
+            if name not in completed:
+                assert (output / name).read_bytes() == b'existing output', name
+        assert b'%xcmp:' in (output / 'case-0.cha').read_bytes()
+        # Parser failures must not poison the daemon's next valid submission.
+        request['source_ids'] = ['case-0.cha']
+        state, _, _ = run(client, request)
+        assert state['state'] == 'completed', state
+        assert (folder / 'case-0.cha').read_bytes() == valid

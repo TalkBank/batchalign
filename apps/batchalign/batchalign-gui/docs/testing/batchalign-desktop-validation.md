@@ -211,5 +211,20 @@ macOS-x86_64-only Numba <0.63 constraint to speech extras and NumPy <2
 for the available Torch 2.2 wheel ABI. Regenerated Python locks via just;
 focused desktop_jobs Bazel tests pass. Intel cleanroom bootstrap needs rerun.
 
+Expanded browser matrix run 35541484110 (29f4828b): nine jobs passed.
+Windows WebKit completed all 14 tests successfully (including all three
+stress seeds), but its Playwright worker failed to exit within 300 seconds,
+so the job is correctly red. Re-ran only the failed job with GitHub runner
+diagnostics; teardown outcome is pending. Native run 35541484100 is live
+on all five targets and must not be restarted just because builds are slow.
+
+Added a bounded native malformed-input smash test: 51 valid/corrupted CHAT
+inputs (seed 20260920, byte splicing including invalid UTF-8, NULs, tier and
+timing fragments) run through the real desktop endpoint, compiled comparison
+parser, and writer with two workers. It passes: every source is preserved,
+every non-completed output retains its previous contents, valid members
+complete, and a subsequent clean job succeeds. No ML models are downloaded
+for this test; it is parser/orchestration evidence, not inference accuracy.
+
 Do not mark the goal complete until all required platform/pipeline gates have
 passing evidence. Existing tests and new configuration alone are insufficient.
