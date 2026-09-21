@@ -420,3 +420,39 @@ Require all three utterances and words preserved, three word-timing tiers,
 ordered bounds inside the recording, more than 15 seconds of recovered
 coverage, linked media, and byte-preserved source. Script syntax checked;
 actual inference result remains pending on GitHub CI.
+
+GUI matrix 35546446892 at cba9aba0 passed all ten OS/browser jobs, including
+macOS 14 WebKit with its compatible 1.60 driver: 19 unit/property and 15 GUI
+tests per job. Windows native loader fix also passes all ten native tests
+in 35545849846. Apple Silicon DMG packaging passed this run; the older
+transient DMG failure did not recur, so its precise old cause remains unknown.
+
+Linux ARM64 installed runtime 35545849846: cold bootstrap 134898 ms, warm
+564 ms; comparison, all 259 smash samples (65 complete / 194 preserved
+failures), malformed-request rejection and following-job recovery pass.
+Real FA, single-speaker diarization, two-speaker diarization (98.765% word
+speaker agreement), Google translation, NLLB translation, and real GUI
+morphology then morphology-to-compare all pass. Transcription fails CHAT
+validation E704: one speaker's consecutive utterances overlap by 1000 ms.
+A local native ASR-to-CHAT regression reproduces the same failure from a
+small synthetic Whisper response, without downloading model weights.
+Whisper now projects its ordered word boundaries to the closest monotonic
+sequence, preserving text and already-valid timings. This repair is local
+to Whisper, not concurrent speakers from other providers. Clamp to the
+recording bounds, reject non-finite timestamps, and invalidate both ASR
+and desktop timing-recovery caches. The native regression now passes;
+real repaired large-model inference remains a required CI result.
+
+Linux ARM64 native webview step installed the Debian package successfully
+but exited before invoking the driver: its tar-listing parser required a
+'./' path prefix, while Tauri's tar builder writes relative paths without
+it. Query dpkg's installed file list for the absolute GUI executable,
+excluding the sidecar, instead of parsing dpkg-deb display output.
+Evidence: /tmp/batchalign-arm-runtime-35545849846/packaged-sidecar-report.json
+and /tmp/batchalign-arm-native-35545849846.log. Native webview still pending.
+
+Timestamp validation: all 27 Whisper-related tests pass, including the
+real native serialization regression, an exhaustive four-boundary
+least-squares oracle, and 1000 seeded ordering/bounds/idempotence checks.
+Full Python suite after the repair: 479 passed, 3 skipped. No model weights
+were downloaded for these checks.

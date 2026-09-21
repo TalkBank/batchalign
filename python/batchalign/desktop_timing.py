@@ -19,7 +19,7 @@ class DesktopTimingRecovery(UTR):
 
     @property
     def name(self) -> str:
-        return "desktop-utr:whisper:openai/whisper-large-v3:v1"
+        return "desktop-utr:whisper:openai/whisper-large-v3:v2"
 
     @property
     def batch_policy(self) -> BatchPolicy:

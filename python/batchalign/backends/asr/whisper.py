@@ -15,10 +15,35 @@ or :class:`WhisperXBackend` for that.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from batchalign.backends.base import ASR, UTR, BatchPolicy
 from batchalign.lang import LanguageCode
+
+
+def _monotonic_boundaries(boundaries: list[int]) -> list[int]:
+    """Least-squares nondecreasing fit, without reordering spoken words.
+
+    Whisper's overlapping audio chunks can produce a word starting before
+    the preceding word ends. Pool adjacent violations so both estimates
+    share the correction instead of pushing every later word forward.
+    Already ordered timestamps are unchanged. This is local to Whisper's
+    single word sequence; concurrent speakers in other ASR providers are
+    deliberately not flattened.
+    """
+    blocks: list[tuple[int, int]] = []
+    for value in boundaries:
+        total, count = value, 1
+        while blocks and blocks[-1][0] * count > total * blocks[-1][1]:
+            previous, size = blocks.pop()
+            total += previous
+            count += size
+        blocks.append((total, count))
+    return [
+        (total + count // 2) // count
+        for total, count in blocks for _ in range(count)
+    ]
 
 
 class WhisperBackend(ASR, UTR):
@@ -72,7 +97,7 @@ class WhisperBackend(ASR, UTR):
     @property
     def name(self) -> str:
         # Auto-language inputs still use the constructor's language hint.
-        return f"whisper:{self._model}:{self._language}:v2"
+        return f"whisper:{self._model}:{self._language}:v3"
 
     @property
     def batch_policy(self) -> BatchPolicy:
@@ -122,19 +147,33 @@ class WhisperBackend(ASR, UTR):
 
         # HF returns
         #   {"text": "...", "chunks": [{"timestamp": (s, e), "text": "..."}, ...]}
-        # We package every word as its own segment. The Rust UtSeg runner
-        # later merges these into utterances; emitting word-level is the
-        # most faithful shape we can produce from a single Whisper pass.
+        # Keep the ordered words in one segment. Native post-processing
+        # recovers utterances from its text and word boundaries.
+        chunks = result.get("chunks", [])
+        duration_ms = round(len(wave) * 1000 / item.audio.sample_rate)
+        boundaries: list[int] = []
+        for index, chunk in enumerate(chunks):
+            ts = chunk.get("timestamp") or (None, None)
+            start_s = ts[0] if ts[0] is not None else (
+                boundaries[-1] / 1000 if boundaries else 0
+            )
+            end_s = ts[1] if ts[1] is not None else (
+                duration_ms / 1000 if index == len(chunks) - 1 else start_s
+            )
+            if not math.isfinite(start_s) or not math.isfinite(end_s):
+                raise ValueError("Whisper returned a non-finite word timestamp")
+            boundaries.extend(
+                max(0, min(duration_ms, round(value * 1000)))
+                for value in (start_s, end_s)
+            )
+        boundaries = _monotonic_boundaries(boundaries)
         words: list[Any] = []
-        for chunk in result.get("chunks", []):
-            ts = chunk.get("timestamp") or (0.0, 0.0)
-            start_s = ts[0] or 0.0
-            end_s = ts[1] or start_s
+        for index, chunk in enumerate(chunks):
             words.append(
                 AsrWord(
                     text=(chunk.get("text") or "").strip(),
-                    start_ms=int(start_s * 1000),
-                    end_ms=int(end_s * 1000),
+                    start_ms=boundaries[2 * index],
+                    end_ms=boundaries[2 * index + 1],
                     confidence=None,
                 )
             )
