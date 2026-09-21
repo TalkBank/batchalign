@@ -463,6 +463,14 @@ python.toolchain(
 # `all_requirements` from this hub gives BUILD files a wildcard
 # import — no hand-listed names.
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+# Bazel puts each NVIDIA wheel in a separate runfiles directory. Torch 2.3's
+# loader omits nvJitLink and loads cuSOLVER before cuSPARSE; backport the
+# dependency order used by newer Torch without changing the locked runtime.
+pip.override(
+    file = "torch-2.3.1-cp312-cp312-manylinux1_x86_64.whl",
+    patches = ["//bazel/patches:torch-2.3.1-cuda-runfiles.patch"],
+    patch_strip = 1,
+)
 pip.parse(
     hub_name = "pypi",
     python_version = "3.12",

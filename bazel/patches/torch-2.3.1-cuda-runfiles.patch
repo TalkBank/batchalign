@@ -1,0 +1,18 @@
+Bazel separates NVIDIA wheels into different site-packages roots, so their
+sibling-relative RPATHs cannot locate one another. Backport the explicit
+nvJitLink / cuSPARSE / cuSOLVER preload ordering from Torch 2.8's loader.
+This applies only to the pinned Linux x86_64 Python 3.12 Torch wheel.
+
+--- a/site-packages/torch/__init__.py
++++ b/site-packages/torch/__init__.py
+@@ -188,8 +188,9 @@
+             'cuda_cupti': 'libcupti.so.*[0-9]',
+             'cufft': 'libcufft.so.*[0-9]',
+             'curand': 'libcurand.so.*[0-9]',
+-            'cusolver': 'libcusolver.so.*[0-9]',
++            'nvjitlink': 'libnvJitLink.so.*[0-9]',
+             'cusparse': 'libcusparse.so.*[0-9]',
++            'cusolver': 'libcusolver.so.*[0-9]',
+             'nccl': 'libnccl.so.*[0-9]',
+             'nvtx': 'libnvToolsExt.so.*[0-9]',
+         }
