@@ -59,6 +59,30 @@ async function screenshot(name) {
   const image = await command('GET', `/session/${session}/screenshot`);
   await writeFile(join(evidence, name), Buffer.from(image, 'base64'));
 }
+async function closeWindowsApplication() {
+  // Edge's WebDriver window is the WebView2 target, not necessarily the host
+  // HWND. Send the same WM_CLOSE as the native title-bar button and establish
+  // that the host exited before asserting daemon cleanup.
+  const closer = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `
+    $ErrorActionPreference = 'Stop'
+    $name = [IO.Path]::GetFileNameWithoutExtension($env:BATCHALIGN_NATIVE_APPLICATION)
+    $apps = @(Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object {
+      $_.Path -and [String]::Equals($_.Path, $env:BATCHALIGN_NATIVE_APPLICATION,
+        [StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($apps.Count -ne 1) { throw "Expected one installed app process, found $($apps.Count)" }
+    $app = $apps[0]
+    if (!$app.CloseMainWindow()) { throw "Could not request native window close for $($app.Id)" }
+    if (!$app.WaitForExit(10000)) { throw "Native app survived WM_CLOSE: $($app.Id)" }
+    Write-Output "Native app exited after WM_CLOSE: $($app.Id)"
+  `], { env: { ...process.env, BATCHALIGN_NATIVE_APPLICATION: application },
+    stdio: ['ignore', 'pipe', 'pipe'] });
+  let output = '';
+  for (const pipe of [closer.stdout, closer.stderr]) pipe.on('data', data => { output += data; });
+  const [code] = await once(closer, 'exit');
+  (report.nativeCloses ||= []).push({ code, output });
+  assert.equal(code, 0, output);
+}
 async function waitForDriver() {
   for (let i = 0; i < 100; i++) {
     if (driverError) throw driverError;
@@ -148,6 +172,9 @@ try {
       await command('DELETE', `/session/${session}/window`).catch(() => {});
       if (driver.exitCode === null) await Promise.race([once(driver, 'exit'), delay(5000)]);
       assert(driver.exitCode !== null, 'macOS app survived closing its last window');
+    } else if (process.platform === 'win32') {
+      await closeWindowsApplication();
+      await command('DELETE', `/session/${session}`).catch(() => {});
     } else {
       // End the app through its window lifecycle. Deleting a driver session
       // may kill/detach its process without delivering Tauri's normal exit.
