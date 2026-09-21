@@ -3,8 +3,8 @@ sibling-relative RPATHs cannot locate one another. Backport the explicit
 nvJitLink / cuSPARSE / cuSOLVER preload ordering from Torch 2.8's loader.
 This applies only to the pinned Linux x86_64 Python 3.12 Torch wheel.
 
---- a/site-packages/torch/__init__.py
-+++ b/site-packages/torch/__init__.py
+--- a/torch/__init__.py
++++ b/torch/__init__.py
 @@ -188,8 +188,9 @@
              'cuda_cupti': 'libcupti.so.*[0-9]',
              'cufft': 'libcufft.so.*[0-9]',
