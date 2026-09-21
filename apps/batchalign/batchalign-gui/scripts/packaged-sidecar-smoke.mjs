@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { testRealPipelines } from './real-runtime-pipelines.mjs';
 import { testPackagedInputSmash } from './packaged-input-smash.mjs';
+import { monitorRuntimeResources } from './runtime-resources.mjs';
 
 const cli = process.argv[2] === '--cli';
 const binary = cli ? 'just' : resolve(process.argv[2] || '');
@@ -126,7 +127,9 @@ try {
   await testPackagedInputSmash(base, root, results);
   await checkpoint();
   if (process.env.BATCHALIGN_SMOKE_MODELS === '1') {
-    await testRealPipelines(base, root, repository, results, checkpoint);
+    const stopMonitoring = await monitorRuntimeResources(results);
+    try { await testRealPipelines(base, root, repository, results, checkpoint); }
+    finally { await stopMonitoring(); }
   }
   if (process.env.BATCHALIGN_SMOKE_GUI === '1') {
     const gui = resolve(dirname(fileURLToPath(import.meta.url)), '..');

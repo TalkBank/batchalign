@@ -786,3 +786,24 @@ production process boundary. Real-model verification of isolation is pending.
 Local validation via `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest` passes
 507 tests (3 skipped). It caught and now covers supervisor buffered-stdin
 shutdown and descendant-cleanup races. The laptop's Bazel server is stopped.
+
+Run 35578979755 (46510445, process isolation) passes both complete Linux jobs.
+Linux ARM passes transcription (222310 ms), timed/untimed alignment
+(14158/173249 ms), both diarization fixtures, default translation through
+NLLB fallback, explicit NLLB, real GUI morphotag → compare, and 259 smash
+inputs with recovery. Its unmodified installed app passes cold/warm launch
+(144326/31000 ms), 56 visible progress updates and both native shutdown checks.
+Linux x64 passes the same pipeline and smash gates, with transcription
+233138 ms (WER 0.2222), timed/untimed alignment 14125/217862 ms, two-speaker
+word agreement 0.9877, actual Google translation and explicit NLLB. Neither
+runtime report records status retries. The x64 unmodified installed app
+passes cold/warm launch (257932/31556 ms), 79 visible progress updates,
+comparison and both native close/daemon checks. WebDriver launch timings
+include driver overhead; direct packaged daemon warm starts are 541 ms on
+ARM and 603 ms on x64. Python CI on Linux/macOS and all ten Chromium/WebKit
+GUI jobs pass at this commit. Apple Silicon's packaged runtime subsequently
+fails the unchanged 30-minute transcription deadline: the job remains running,
+status requests stay responsive with no retries, and diagnostic stacks remain
+inside Whisper inference. This is an inference-duration failure rather than
+the earlier daemon status stall. Its native checks and the Intel Mac/Windows
+packaged checks remain live; the complete five-target goal is not yet verified.
