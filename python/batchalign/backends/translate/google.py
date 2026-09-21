@@ -125,7 +125,15 @@ class GoogleTranslateBackend(Translate):
 
         # googletrans otherwise fabricates an unchanged translation for HTTP
         # errors. Never publish that fallback as successful pipeline output.
-        return Translator(raise_exception=True, timeout=httpx.Timeout(30.0))
+        translator = Translator(raise_exception=True, timeout=httpx.Timeout(30.0))
+
+        async def check_response(response: httpx.Response) -> None:
+            # Preserve status and Retry-After; googletrans otherwise raises a
+            # generic exception that discards the response headers.
+            response.raise_for_status()
+
+        translator.client.event_hooks['response'].append(check_response)
+        return translator
 
     @property
     def name(self) -> str:
@@ -201,8 +209,33 @@ class GoogleTranslateBackend(Translate):
                 kwargs["dest"] = dest
             if src_code:
                 kwargs["src"] = src_code
-            async with self._make_free_client() as translator:
-                return await translator.translate(t, **kwargs)
+            import httpx
+            from datetime import datetime, timezone
+            from email.utils import parsedate_to_datetime
+
+            for attempt in range(3):
+                try:
+                    async with self._make_free_client() as translator:
+                        return await translator.translate(t, **kwargs)
+                except httpx.HTTPStatusError as error:
+                    if attempt == 2 or error.response.status_code not in (429, 502, 503, 504):
+                        raise
+                    wait = (5.0, 15.0)[attempt]
+                    retry_after = error.response.headers.get('Retry-After')
+                    if retry_after:
+                        try:
+                            wait = max(wait, float(retry_after))
+                        except ValueError:
+                            try:
+                                date = parsedate_to_datetime(retry_after)
+                                wait = max(wait, (date - datetime.now(timezone.utc)).total_seconds())
+                            except (ValueError, TypeError, OverflowError):
+                                pass
+                    # Respect long provider cooldowns by failing visibly;
+                    # never retry earlier or leave the job waiting indefinitely.
+                    if wait > 60:
+                        raise
+                    await asyncio.sleep(wait)
 
         out = []
         for text in texts:

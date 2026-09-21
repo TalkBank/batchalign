@@ -78,28 +78,12 @@ use crate::base::{Dispatcher, TaskRunner};
 use crate::decisions::{ReviewLevel, inject_decision_tiers};
 use crate::proto::asr::{AsrInput, AsrOptions, AsrOutput, LanguageSpec};
 use crate::proto::utr::UtrInput;
-use crate::utils::{BAError, BAResult, MediaInput, SourceId, clear_media_unlinked, prepare_pcm};
+use crate::utils::{BAError, BAResult, clear_media_unlinked, prepare_pcm};
 use async_trait::async_trait;
 use smol_str::SmolStr;
-use std::path::Path;
 use talkbank_model::Line;
 
-/// Audio extensions to probe for a CHAT file's sibling media, in priority
-/// order. Same list as the FA runner.
-const SIBLING_AUDIO_EXTS: &[&str] = &[
-    "wav", "mp3", "mp4", "m4a", "flac", "ogg", "aac", "wma", "mov", "avi", "mpg", "mpeg",
-];
-
-fn sibling_media(source_id: &SourceId) -> Option<MediaInput> {
-    let cha_path = Path::new(source_id.as_str());
-    for ext in SIBLING_AUDIO_EXTS {
-        let candidate = cha_path.with_extension(ext);
-        if candidate.is_file() {
-            return Some(MediaInput::new(source_id.clone(), candidate));
-        }
-    }
-    None
-}
+use super::media::sibling_media;
 
 /// `true` when *any* utterance carries a non-zero bullet.
 ///
@@ -201,7 +185,7 @@ impl TaskRunner for UtrTaskRunner {
 
         let media = match chat.media().cloned() {
             Some(m) => m,
-            None => sibling_media(chat.source_id()).ok_or_else(|| {
+            None => sibling_media(chat).ok_or_else(|| {
                 BAError::Internal(
                     "UtrTaskRunner: chat has no attached media and no sibling audio file found"
                         .into(),

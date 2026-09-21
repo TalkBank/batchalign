@@ -9,6 +9,7 @@ pub mod compare;
 pub mod convert;
 pub mod coref;
 pub mod fa;
+mod media;
 pub mod morphosyntax;
 pub mod speaker;
 pub mod translate;

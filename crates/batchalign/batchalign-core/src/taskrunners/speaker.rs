@@ -9,10 +9,9 @@ use crate::base::TaskInput;
 use crate::base::{Dispatcher, TaskRunner};
 use crate::proto::speaker::{DiarizationSegment, SpeakerInput, SpeakerOutput};
 use crate::segmentation::split_utterance;
-use crate::utils::{BAError, BAResult, MediaInput, prepare_pcm};
+use crate::utils::{BAError, BAResult, prepare_pcm};
 use async_trait::async_trait;
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
 use talkbank_model::alignment::helpers::{TierDomain, WordItem, walk_words};
 use talkbank_model::model::{
     Bullet, Header, IDHeader, Participant, ParticipantEntries, ParticipantEntry, ParticipantRole,
@@ -20,32 +19,7 @@ use talkbank_model::model::{
 };
 use talkbank_model::{Line, SpeakerCode};
 
-const SIBLING_MEDIA_EXTS: &[&str] = &[
-    "wav", "mp3", "mp4", "m4a", "flac", "ogg", "aac", "wma", "mov", "m4v", "avi", "mpg", "mpeg",
-];
-
-/// Resolve media for CHAT loaded from disk. Prefer the typed `@Media`
-/// basename, then fall back to the transcript's own stem.
-fn sibling_media(chat: &Chat) -> Option<MediaInput> {
-    let chat_path = Path::new(chat.source_id().as_str());
-    let mut stems = Vec::new();
-    if let (Some(parent), Some(header)) = (chat_path.parent(), chat.ast().media.as_deref()) {
-        stems.push(parent.join(header.filename.as_str()));
-    }
-    stems.push(chat_path.with_extension(""));
-
-    for stem in stems {
-        for ext in SIBLING_MEDIA_EXTS {
-            for candidate_ext in [ext.to_string(), ext.to_ascii_uppercase()] {
-                let candidate = stem.with_extension(candidate_ext);
-                if candidate.is_file() {
-                    return Some(MediaInput::new(chat.source_id().clone(), candidate));
-                }
-            }
-        }
-    }
-    None
-}
+use super::media::sibling_media;
 
 pub struct SpeakerTaskRunner;
 

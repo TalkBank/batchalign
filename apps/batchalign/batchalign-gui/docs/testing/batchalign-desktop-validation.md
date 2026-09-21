@@ -538,3 +538,29 @@ PowerShell launcher, confirms it is reachable, stops the managed launcher,
 and requires the descendant socket to close within five seconds. This
 regression and actual installed-app shutdown still require Windows CI;
 local formatting is not execution evidence.
+
+Linux ARM64 native run 35549839635 (44b12355): cold sidecar bootstrap
+131567 ms, warm 549 ms; all 259 smash inputs and recovery pass. Repaired
+Whisper-large-v3 transcription now passes native serialization and WER
+0.2222. FA, both diarization fixtures (98.765% word agreement), NLLB and
+the real GUI morphology-to-compare flow pass. Untimed alignment exposes
+another defect: UTR and FA only probe the transcript stem, unlike the
+speaker runner's @Media-aware lookup. Share that lookup across all three
+audio tasks and preserve dots in the media basename. A native Python
+regression with recording.wav beside clip.cha reproduces the failure and
+passes after the change. The updated full Python suite passes 482 tests,
+with 3 existing skips; real repaired untimed inference remains pending.
+
+Google translation in that run returns HTTP 429. Add bounded retries for
+429/502/503/504, retain HTTP response headers, honor Retry-After, and fail
+visibly after three attempts or a provider cooldown over 60 seconds.
+Controlled HTTP tests prove eventual translation, delay handling, closed
+clients, immediate 403 failure, and persistent errors never becoming echoes.
+
+The unmodified installed Debian app now shows real installer progress and
+completes native comparison correctly. Its shutdown gate fails after DELETE
+session: that driver operation does not establish a normal window close.
+The harness now explicitly closes the real window before session cleanup;
+daemon shutdown and the following warm launch still require actual CI proof.
+Evidence: /tmp/batchalign-arm-runtime-35549839635 and
+/tmp/batchalign-arm-native-35549839635. No complete native-platform pass yet.

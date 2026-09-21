@@ -9,6 +9,8 @@ from batchalign.backends.translate.google import GoogleTranslateBackend
 
 @pytest.mark.parametrize('status', [403, 429, 503])
 def test_free_translation_http_errors_never_become_successful_echoes(monkeypatch, status):
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr('batchalign.backends.translate.google.asyncio.sleep', AsyncMock())
     clients = []
     original = httpx.AsyncClient
 
@@ -22,8 +24,39 @@ def test_free_translation_http_errors_never_become_successful_echoes(monkeypatch
     backend = GoogleTranslateBackend(force_free=True)
     with pytest.raises(Exception, match=str(status)):
         backend._translate_many(['hola mundo'], source='spa', target='eng')
-    assert len(clients) == 1
-    assert clients[0].is_closed
+    assert len(clients) == (1 if status == 403 else 3)
+    assert all(client.is_closed for client in clients)
+
+
+def test_rate_limit_retry_respects_provider_delay_and_then_translates(monkeypatch):
+    from unittest.mock import AsyncMock
+    from googletrans.constants import DUMMY_DATA
+    sleep = AsyncMock()
+    monkeypatch.setattr('batchalign.backends.translate.google.asyncio.sleep', sleep)
+    original = httpx.AsyncClient
+    requests = []
+    clients = []
+
+    def respond(request):
+        requests.append(request)
+        if len(requests) == 1:
+            return httpx.Response(429, headers={'Retry-After': '12'})
+        data = deepcopy(DUMMY_DATA)
+        data[0][0][0] = 'hello world'
+        data[2] = 'es'
+        return httpx.Response(200, json=data)
+
+    def client(**kwargs):
+        value = original(**kwargs, transport=httpx.MockTransport(respond))
+        clients.append(value)
+        return value
+
+    monkeypatch.setattr(httpx, 'AsyncClient', client)
+    backend = GoogleTranslateBackend(force_free=True)
+    assert backend._translate_many(['hola mundo'], source='spa', target='eng') == ['hello world']
+    sleep.assert_awaited_once_with(12.0)
+    assert len(requests) == 2
+    assert all(client.is_closed for client in clients)
 
 
 def test_free_translation_parses_response_and_closes_each_client(monkeypatch):

@@ -149,7 +149,10 @@ try {
       if (driver.exitCode === null) await Promise.race([once(driver, 'exit'), delay(5000)]);
       assert(driver.exitCode !== null, 'macOS app survived closing its last window');
     } else {
-      await command('DELETE', `/session/${session}`);
+      // End the app through its window lifecycle. Deleting a driver session
+      // may kill/detach its process without delivering Tauri's normal exit.
+      await command('DELETE', `/session/${session}/window`);
+      await command('DELETE', `/session/${session}`).catch(() => {});
     }
     session = undefined;
     // Closing the real window must terminate its daemon, not just its webview.

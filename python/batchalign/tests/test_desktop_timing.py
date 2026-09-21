@@ -35,7 +35,8 @@ def test_failed_model_load_remains_retryable_and_is_not_a_success():
 
 
 @pytest.mark.parametrize("timed", [True, False])
-def test_native_recovery_dispatch_depends_on_existing_timing(tmp_path, timed):
+@pytest.mark.parametrize("media_stem", ["clip", "recording", "recording.part"])
+def test_native_recovery_dispatch_depends_on_existing_timing(tmp_path, timed, media_stem):
     import wave
     from batchalign._core import Pipeline, Task, CacheSpec
     from batchalign.inputs import chat_from_path
@@ -44,9 +45,9 @@ def test_native_recovery_dispatch_depends_on_existing_timing(tmp_path, timed):
     source.write_text('@UTF8\n@Begin\n@Languages:\teng\n'
                       '@Participants:\tPAR Participant\n'
                       '@ID:\teng|test|PAR|||||Participant|||\n'
-                      '@Media:\tclip, audio' + ('' if timed else ', unlinked') + '\n'
+                      f'@Media:\t{media_stem}, audio' + ('' if timed else ', unlinked') + '\n'
                       + '*PAR:\thello world . ' + ('\x15200_900\x15' if timed else '') + '\n@End\n', encoding='utf8')
-    with wave.open(str(tmp_path / 'clip.wav'), 'wb') as audio:
+    with wave.open(str(tmp_path / f'{media_stem}.wav'), 'wb') as audio:
         audio.setnchannels(1)
         audio.setsampwidth(2)
         audio.setframerate(16000)

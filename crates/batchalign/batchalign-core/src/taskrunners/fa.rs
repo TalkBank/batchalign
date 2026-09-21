@@ -28,22 +28,17 @@ use crate::base::{Dispatcher, TaskRunner};
 use crate::proto::asr::{AsrSegment, AsrWord, LanguageSpec};
 use crate::proto::fa::{FaInput, FaOutput};
 use crate::utils::{
-    BAError, BAResult, MediaInput, SourceId, SpeakerLabel, clear_media_unlinked, prepare_pcm,
+    BAError, BAResult, SpeakerLabel, clear_media_unlinked, prepare_pcm,
 };
 use async_trait::async_trait;
 use smol_str::SmolStr;
-use std::path::Path;
 use talkbank_model::Line;
 use talkbank_model::alignment::helpers::{TierDomain, WordItem, counts_for_tier, walk_words};
 use talkbank_model::model::UtteranceContent;
 
 use super::utr::extraction::split_compound_filler;
 
-/// Audio container extensions to probe for a transcript's sibling media,
-/// in priority order (BA2/ffmpeg accept all of these).
-const SIBLING_AUDIO_EXTS: &[&str] = &[
-    "wav", "mp3", "mp4", "m4a", "flac", "ogg", "aac", "wma", "mov", "avi", "mpg", "mpeg",
-];
+use super::media::sibling_media;
 
 #[cfg(debug_assertions)]
 fn fa_debug_trace(label: &str, payload: impl std::fmt::Display) {
@@ -54,21 +49,6 @@ fn fa_debug_trace(label: &str, payload: impl std::fmt::Display) {
 
 #[cfg(not(debug_assertions))]
 fn fa_debug_trace(_label: &str, _payload: impl std::fmt::Display) {}
-
-/// Locate an audio file sitting next to a transcript whose `source_id` is its
-/// absolute path. The CLI loads `.cha` files by path without scanning for
-/// media siblings (and the engine's loader is frozen), so the audio task
-/// resolves them here — the same sibling-audio resolution BA2 does at load.
-fn sibling_media(source_id: &SourceId) -> Option<MediaInput> {
-    let cha_path = Path::new(source_id.as_str());
-    for ext in SIBLING_AUDIO_EXTS {
-        let candidate = cha_path.with_extension(ext);
-        if candidate.is_file() {
-            return Some(MediaInput::new(source_id.clone(), candidate));
-        }
-    }
-    None
-}
 
 pub struct FaTaskRunner;
 
@@ -121,7 +101,7 @@ impl TaskRunner for FaTaskRunner {
             Some(m) => m,
             // No media attached at load — resolve the transcript's sibling
             // audio (its `source_id` is the absolute `.cha` path).
-            None => sibling_media(chat.source_id()).ok_or_else(|| {
+            None => sibling_media(chat).ok_or_else(|| {
                 BAError::Internal(
                     "FaTaskRunner: chat has no attached media and no sibling audio file found"
                         .into(),
@@ -950,6 +930,7 @@ fn rebalance_near_zero_words_from_preceding(words: &mut [talkbank_model::model::
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::SourceId;
 
     struct PanicDispatcher;
 
