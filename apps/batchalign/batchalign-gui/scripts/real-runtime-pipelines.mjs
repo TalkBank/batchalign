@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { freemem, totalmem } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
 
 function words(chat) {
@@ -20,7 +21,7 @@ function wordErrorRate(gold, actual) {
   return previous[actual.length] / gold.length;
 }
 
-export async function testRealPipelines(base, root, repository, results) {
+export async function testRealPipelines(base, root, repository, results, checkpoint = async () => {}) {
   const input = join(root, 'real-model-input');
   await mkdir(input, { recursive: true });
   for (const name of ['en.cha', 'en.wav']) await copyFile(join(repository, 'scripts/parity/fixtures/align', name), join(input, name));
@@ -63,6 +64,10 @@ export async function testRealPipelines(base, root, repository, results) {
   }
 
   async function check(recipe, test) {
+    results.activePipeline = recipe;
+    console.log(`[real-pipeline] ${JSON.stringify({ recipe, phase: 'start',
+      at: new Date().toISOString(), freeMemoryBytes: freemem(), totalMemoryBytes: totalmem() })}`);
+    await checkpoint();
     try { await test(); }
     catch (error) {
       results.realPipelines[recipe] = { ...results.realPipelines[recipe], error: String(error) };
@@ -73,6 +78,13 @@ export async function testRealPipelines(base, root, repository, results) {
       if (workerMayBeRunning) throw new Error(
         `${recipe}: worker termination is unconfirmed; stopping daemon before further model tests`,
         { cause: error });
+    }
+    finally {
+      console.log(`[real-pipeline] ${JSON.stringify({ recipe,
+        phase: results.realPipelines[recipe]?.error ? 'failed' : 'passed',
+        at: new Date().toISOString(), durationMs: results.realPipelines[recipe]?.durationMs })}`);
+      results.activePipeline = null;
+      await checkpoint();
     }
   }
 

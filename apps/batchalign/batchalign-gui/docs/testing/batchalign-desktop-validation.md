@@ -564,3 +564,26 @@ The harness now explicitly closes the real window before session cleanup;
 daemon shutdown and the following warm launch still require actual CI proof.
 Evidence: /tmp/batchalign-arm-runtime-35549839635 and
 /tmp/batchalign-arm-native-35549839635. No complete native-platform pass yet.
+
+Windows runtime 35552384706 (e5272755): cold bootstrap 429391 ms,
+warm 585 ms, all 259 smash inputs, transcription (WER 0.2222), and timed
+alignment pass. Untimed alignment times out while fetching job status
+after 30 seconds; the harness stops the daemon and does not run subsequent
+model tests with an unconfirmed worker. The post-test Windows diagnostics
+contain no crash or low-memory events. The timeout alone does not prove OOM.
+
+The same run's installed MSI shows bootstrap progress and produces correct
+comparison output, but still leaves its daemon alive on window close.
+The Windows descendant cleanup unit test passes, exposing a lifecycle gap:
+Tauri invokes plugin event handlers before the application callback, and
+the shell plugin kills direct children on Exit. Move application cleanup
+to ExitRequested so taskkill /T can still reach Python through its live
+PyApp parent; retain idempotent Exit fallback and log taskkill failures.
+Actual installed-app shutdown with this ordering still requires CI proof.
+
+The runtime harness now checkpoints partial reports after bootstrap,
+comparison, smash testing, and each real pipeline. Per-pipeline log markers
+record start/outcome and system memory at start, so interrupted runs retain
+more diagnostic evidence. These changes do not relax output assertions or
+status deadlines. Evidence: /tmp/batchalign-windows-runtime-35552384706 and
+/tmp/batchalign-windows-native-35552384706.

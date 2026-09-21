@@ -1,7 +1,7 @@
 // Run on disposable CI runners against the sidecar extracted from a bundle.
 // This proves cold/warm bootstrap + native comparison/output, not webview UI.
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { once } from 'node:events';
@@ -17,6 +17,11 @@ assert(process.argv[2], 'usage: node packaged-sidecar-smoke.mjs /path/to/package
 const root = await mkdtemp(join(tmpdir(), 'batchalign-packaged-'));
 const reportPath = resolve(process.env.BATCHALIGN_SMOKE_REPORT || 'packaged-sidecar-report.json');
 const results = { mode: cli ? 'cli-harness' : 'packaged-sidecar', binary, root, launches: [], processes: [], comparison: null };
+async function checkpoint() {
+  const temporary = `${reportPath}.tmp`;
+  await writeFile(temporary, JSON.stringify(results, null, 2));
+  await rename(temporary, reportPath);
+}
 let child;
 let exited;
 let tail = '';
@@ -80,6 +85,7 @@ async function boot() {
     assert(verb in caps.recipes, `missing recipe ${verb}`);
   }
   results.launches.push({ durationMs: Date.now() - started, port });
+  await checkpoint();
   return base;
 }
 
@@ -116,9 +122,11 @@ try {
   assert.equal(Number(row[header.indexOf('accuracy')]), 1);
   assert.equal(await readFile(join(input, 'é.cha'), 'utf8'), transcript);
   results.comparison = { status, chat, csv, events: eventText };
+  await checkpoint();
   await testPackagedInputSmash(base, root, results);
+  await checkpoint();
   if (process.env.BATCHALIGN_SMOKE_MODELS === '1') {
-    await testRealPipelines(base, root, repository, results);
+    await testRealPipelines(base, root, repository, results, checkpoint);
   }
   if (process.env.BATCHALIGN_SMOKE_GUI === '1') {
     const gui = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -141,6 +149,6 @@ try {
   process.exitCode = 1;
 } finally {
   await stop();
-  await writeFile(reportPath, JSON.stringify(results, null, 2));
+  await checkpoint();
   console.log(`Smoke report: ${reportPath}`);
 }

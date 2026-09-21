@@ -83,8 +83,15 @@ impl AppState {
                     .args(["/PID", &child.pid().to_string(), "/T", "/F"])
                     .creation_flags(0x08000000) // CREATE_NO_WINDOW
                     .output();
-                if let Err(error) = result {
-                    eprintln!("failed to stop daemon process tree: {error}");
+                match result {
+                    Ok(output) if !output.status.success() => eprintln!(
+                        "failed to stop daemon process tree ({}): {} {}",
+                        output.status,
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr),
+                    ),
+                    Err(error) => eprintln!("failed to stop daemon process tree: {error}"),
+                    _ => {}
                 }
             }
             let _ = child.kill();

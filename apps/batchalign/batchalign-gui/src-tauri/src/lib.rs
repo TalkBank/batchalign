@@ -46,7 +46,14 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building batchalign desktop")
         .run(|app, event| {
-            if matches!(event, tauri::RunEvent::Exit) {
+            // Shell's Exit hook runs before the application callback and kills
+            // the direct launcher. On Windows that orphans PyApp's Python
+            // child before taskkill /T can find its tree. Stop at the preceding
+            // ExitRequested event; keep Exit as an idempotent fallback.
+            if matches!(
+                event,
+                tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+            ) {
                 use tauri::Manager;
                 app.state::<AppState>().stop_child();
             }
