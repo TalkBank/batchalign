@@ -39,11 +39,47 @@ on:
       - "scripts/gen_openapi.py"
       - ".github/workflows/bazel-tauri-batchalign.yml"
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Platform to validate (pushes always test all platforms)"
+        type: choice
+        default: all
+        options:
+          - all
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
 
 env:
   BAZELISK_SKIP_WRAPPER: true
 
 jobs:
+  matrix:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      runners: ${{ steps.select.outputs.runners }}
+    steps:
+      - id: select
+        env:
+          REQUESTED_TARGET: ${{ inputs.target || 'all' }}
+        run: |
+          node <<'JS'
+          const runners = [
+            { os: 'macos-14', target: 'aarch64-apple-darwin' },
+            { os: 'macos-15-intel', target: 'x86_64-apple-darwin' },
+            { os: 'ubuntu-latest', target: 'x86_64-unknown-linux-gnu' },
+            { os: 'ubuntu-24.04-arm', target: 'aarch64-unknown-linux-gnu' },
+            { os: 'windows-2022', target: 'x86_64-pc-windows-msvc' },
+          ];
+          const selected = runners.filter(runner =>
+            process.env.REQUESTED_TARGET === 'all' || runner.target === process.env.REQUESTED_TARGET);
+          if (!selected.length) throw new Error('Unknown platform selection');
+          require('node:fs').appendFileSync(process.env.GITHUB_OUTPUT, `runners=${JSON.stringify(selected)}\n`);
+          JS
+
   # Cheap host-platform smoke that runs on every PR. The full matrix
   # (next job) only triggers on `main` / dispatch so PR CI stays fast.
   smoke:
@@ -71,6 +107,7 @@ jobs:
 
   bundle:
     if: github.event_name != 'pull_request'
+    needs: matrix
     name: bundle (${{ matrix.runner.target }})
     runs-on: ${{ matrix.runner.os }}
     concurrency:
@@ -85,12 +122,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner:
-          - { os: macos-14,       target: aarch64-apple-darwin }
-          - { os: macos-15-intel, target: x86_64-apple-darwin }
-          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
-          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
-          - { os: windows-2022, target: x86_64-pc-windows-msvc }
+        runner: ${{ fromJSON(needs.matrix.outputs.runners) }}
     steps:
       - uses: actions/checkout@v4
 
