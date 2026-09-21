@@ -9,6 +9,23 @@ from batchalign import api
 from batchalign.desktop import DesktopRequest, _sources
 
 
+@pytest.mark.parametrize("missing", [False, True])
+def test_model_cleanup_collects_before_optional_linux_allocator_trim(monkeypatch, missing):
+    import ctypes
+    import batchalign.desktop as desktop_module
+
+    calls = []
+    monkeypatch.setattr(desktop_module.sys, "platform", "linux")
+    monkeypatch.setattr(desktop_module.gc, "collect", lambda: calls.append("collect"))
+    monkeypatch.setenv("BATCHALIGN_DIAGNOSTIC_TRACEBACKS", "0")
+    def trim(pad):
+        assert pad == 0
+        calls.append("trim")
+    monkeypatch.setattr(ctypes, "CDLL", lambda _: SimpleNamespace() if missing else SimpleNamespace(malloc_trim=trim))
+    desktop_module._release_models()
+    assert calls == (["collect"] if missing else ["collect", "trim"])
+
+
 @pytest.mark.parametrize("enabled", [False, True])
 @pytest.mark.parametrize("fails", [False, True])
 def test_diagnostic_phase_is_opt_in_and_always_cancels_watchdog(monkeypatch, enabled, fails):

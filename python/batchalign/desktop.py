@@ -13,6 +13,7 @@ import inspect
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 import time
 from typing import Any, Literal
@@ -27,6 +28,40 @@ router = APIRouter()
 Verb = Literal["transcribe", "diarize", "align", "morphotag", "translate", "compare"]
 TASKS = {"transcribe": "Asr", "diarize": "Speaker", "align": "Fa",
          "morphotag": "Morphosyntax", "translate": "Translate", "compare": "Compare"}
+
+
+def _release_models() -> None:
+    """Collect model cycles and return unused Linux allocator pages to the OS.
+
+    Each native pipeline uses new worker threads. glibc can retain freed
+    tensor buffers in their arenas, so collecting Python objects alone need
+    not make that memory available before the next model starts.
+    """
+    diagnostics = os.environ.get("BATCHALIGN_DIAGNOSTIC_TRACEBACKS") == "1"
+
+    def report(phase):
+        if diagnostics and sys.platform == "linux":
+            try:
+                fields = Path("/proc/self/status").read_text().splitlines()
+                memory = "; ".join(line for line in fields if line.startswith(("VmRSS:", "VmHWM:")))
+                print(f"[desktop-memory] {phase}: {memory}", flush=True)
+            except OSError:
+                pass
+
+    report("before collection")
+    gc.collect()
+    report("after collection")
+    if sys.platform == "linux":
+        import ctypes
+        try:
+            trim = ctypes.CDLL(None).malloc_trim
+        except (OSError, AttributeError):
+            # Non-glibc Linux allocators do not expose this optional hook.
+            return
+        trim.argtypes = [ctypes.c_size_t]
+        trim.restype = ctypes.c_int
+        trim(0)
+        report("after allocator trim")
 
 
 @contextmanager
@@ -256,7 +291,7 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
             value = None
             # Transformer models can contain Python reference cycles. Native
             # teardown alone does not reclaim those before the next model load.
-            gc.collect()
+            _release_models()
             for sid in current:
                 if sid not in pending and sid not in errors and job.state != api.JobState.CANCELLED:
                     errors[sid] = "pipeline returned no outcome"
@@ -290,7 +325,7 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
         pipeline = None
         kwargs.clear()
         value = None
-        gc.collect()
+        _release_models()
         job.finished_at = time.time()
         shutil.rmtree(job.workdir, ignore_errors=True)
         asyncio.run_coroutine_threadsafe(job.events.put(None), loop)

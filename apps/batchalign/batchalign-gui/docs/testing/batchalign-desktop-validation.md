@@ -664,7 +664,7 @@ opt-in behavior and watchdog cancellation on success and exceptions. They
 pass through the repository pytest recipe; runtime deadlines stay unchanged.
 
 Runtime 35562533393 (937ca54c) proves that cyclic-model cleanup is helpful
-but insufficient: Linux x64 has 9257877504 bytes available before untimed
+but insufficient: Linux x64 reports 9257877504 free bytes before untimed
 alignment, versus roughly 5.2 GB before cleanup, yet its runner still shuts
 down during that stage. Windows passes transcription (WER 0.2222), timed
 alignment and 259 smash inputs, then loses its daemon during Whisper timing
@@ -676,3 +676,22 @@ outputs. Model-free regressions cover release before FA construction and
 recovery failure preserving the source and skipping FA. Real-model results
 for this sequencing change remain required; memory snapshots alone do not
 prove the cause of the runner shutdowns.
+
+Windows native run 35562533393 (937ca54c) passes the stronger installed-MSI
+gate: cold launch 283735 ms with 68 bootstrap progress updates, correct
+comparison output, actual WM_CLOSE host exit and daemon shutdown, warm
+launch 2563 ms, and a second clean host/daemon shutdown. Apple Silicon
+native run 35559727899 (a03aab19) also passes cold/warm launch and both
+shutdown checks with the QA app (189155/4928 ms, 60 progress updates).
+These passes do not imply that their real-model runtime failures passed.
+
+Linux ARM run 35566034597 (78189a17) passes transcription in 203625 ms and
+timed alignment in 12058 ms, then receives runner shutdown/exit 143 during
+the separate UTR Whisper encoder pass. Its system free-memory figure is
+8985124864 bytes before UTR; that figure does not distinguish resident
+models from reclaimable file cache. Add process VmRSS/VmHWM diagnostics
+around collection and Linux malloc_trim to distinguish allocator retention
+from live allocations. The trim hook returns unused glibc arena pages
+between models; unsupported allocators retain ordinary collection. This
+does not change model size, inference precision, or the correctness gates.
+CI must still establish whether it resolves the failure.
