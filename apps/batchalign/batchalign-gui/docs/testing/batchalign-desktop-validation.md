@@ -511,3 +511,30 @@ across reads. No interface redesign or fake percentage was added.
 Native evidence: /tmp/batchalign-windows-native-35545849846, including the
 initial loading screenshot and the ready screen at failure. Updated real
 native bootstrap and cross-platform browser results are still required.
+
+Updated browser matrix 35549760205 (1ae02f0c): all ten jobs pass, each with
+20 unit/property tests and 16 GUI tests. This includes the second-batch
+race regression on Chromium and WebKit across all five native targets.
+The PyApp patch also accepts CRLF source files while retaining exact
+call-site checks (44b12355). Native matrix 35549839635 is still running.
+
+macOS ARM runtime 35545849846: DMG packaging passes; cold bootstrap
+117339 ms, warm 397 ms. Comparison, 259 smash inputs, FA, both diarization
+fixtures, Google and NLLB translation pass. Transcription has the same
+known timestamp overlap; real GUI fails before its second submission.
+The instrumented native app reaches readiness but fails the cold-progress
+gate, confirming the same PyApp buffering problem seen on Windows.
+These older failures require actual passes with the repairs; they do not
+count as successful native validation.
+
+Windows process-tree audit: pinned PyApp's Windows exec implementation
+waits on Python with command.status(), whereas Tauri shell CommandChild
+kill terminates only the direct process. Stop the owned launcher with
+taskkill /PID <pid> /T /F before the direct-child fallback, hiding the
+utility's console window. Microsoft documents /T as including children:
+https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/taskkill
+A Windows native regression starts a TCP listener beneath a separate
+PowerShell launcher, confirms it is reachable, stops the managed launcher,
+and requires the descendant socket to close within five seconds. This
+regression and actual installed-app shutdown still require Windows CI;
+local formatting is not execution evidence.

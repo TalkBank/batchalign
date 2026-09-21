@@ -74,6 +74,19 @@ impl AppState {
 
     pub fn stop_child(&self) {
         if let Some(child) = self.child.lock().unwrap_or_else(|e| e.into_inner()).take() {
+            // On Windows PyApp waits for Python rather than replacing itself
+            // with exec(). Killing only the launcher leaves the daemon alive.
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                let result = std::process::Command::new("taskkill.exe")
+                    .args(["/PID", &child.pid().to_string(), "/T", "/F"])
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                    .output();
+                if let Err(error) = result {
+                    eprintln!("failed to stop daemon process tree: {error}");
+                }
+            }
             let _ = child.kill();
         }
     }
@@ -173,7 +186,7 @@ mod tests {
 
     #[test]
     fn stopping_a_managed_child_reaps_the_process() {
-        use tauri_plugin_shell::{process::CommandEvent, ShellExt};
+        use tauri_plugin_shell::{ShellExt, process::CommandEvent};
         let app = tauri::test::mock_builder()
             .plugin(tauri_plugin_shell::init())
             .build(tauri::test::mock_context(tauri::test::noop_assets()))
@@ -199,5 +212,99 @@ mod tests {
             .await
             .expect("managed child must terminate promptly");
         });
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn stopping_a_launcher_closes_its_descendants_socket() {
+        use tauri_plugin_shell::{ShellExt, process::CommandEvent};
+        let app = tauri::test::mock_builder()
+            .plugin(tauri_plugin_shell::init())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .expect("build shell test app");
+        let root = std::env::temp_dir().join(format!(
+            "batchalign-child-tree-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let parent = root.join("parent.ps1");
+        let listener = root.join("listener.ps1");
+        std::fs::write(
+            &parent,
+            "& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $args[0]\n",
+        )
+        .unwrap();
+        std::fs::write(
+            &listener,
+            r#"
+$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+$listener.Start()
+[Console]::WriteLine("LISTENING=" + $listener.LocalEndpoint.Port)
+Start-Sleep -Seconds 30
+$listener.Stop()
+"#,
+        )
+        .unwrap();
+        let (mut events, child) = app
+            .shell()
+            .command("powershell.exe")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+            ])
+            .arg(&parent)
+            .arg(&listener)
+            .spawn()
+            .expect("spawn launcher and descendant");
+        let state = AppState::new();
+        state.set_child(child);
+        let port = tauri::async_runtime::block_on(async {
+            tokio::time::timeout(std::time::Duration::from_secs(15), async {
+                while let Some(event) = events.recv().await {
+                    if let CommandEvent::Stdout(bytes) = event {
+                        if let Some(port) = String::from_utf8_lossy(&bytes)
+                            .trim()
+                            .strip_prefix("LISTENING=")
+                        {
+                            return port.parse::<u16>().ok();
+                        }
+                    }
+                }
+                None
+            })
+            .await
+            .ok()
+            .flatten()
+        });
+        let address = port.map(|port| std::net::SocketAddr::from(([127, 0, 0, 1], port)));
+        let listening = address.is_some_and(|address| {
+            std::net::TcpStream::connect_timeout(&address, std::time::Duration::from_millis(500))
+                .is_ok()
+        });
+        state.stop_child();
+        state.stop_child();
+        let _ = std::fs::remove_dir_all(root);
+        assert!(
+            listening,
+            "descendant must be listening before launcher shutdown"
+        );
+        let address = address.unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while std::net::TcpStream::connect_timeout(&address, std::time::Duration::from_millis(100))
+            .is_ok()
+        {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "daemon descendant survived launcher shutdown"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
     }
 }
