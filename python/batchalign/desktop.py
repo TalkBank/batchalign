@@ -353,5 +353,6 @@ async def start_desktop_job(req: DesktopRequest) -> dict[str, str]:
     job.state = api.JobState.RUNNING
     job.started_at = time.time()
     api.JOBS[job_id] = job
-    asyncio.create_task(asyncio.to_thread(_run, job, req, root, sources, asyncio.get_running_loop()))
+    from batchalign.desktop_process import run_job
+    asyncio.create_task(run_job(job, req, root, sources))
     return {"job_id": job_id}

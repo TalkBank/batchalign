@@ -750,3 +750,39 @@ provenance on both fresh and cached results. Error regressions check disabled
 fallback, HTTP 403/503, unsupported languages and unknown source language.
 All 25 GUI unit tests and the production frontend build pass locally without
 downloading models. The local Bazel server is shut down after validation.
+
+Run 35574216943 (78d8d975) passes the complete Linux ARM packaged runtime:
+transcription (189242 ms), timed/untimed alignment (11046/165069 ms), both
+diarization fixtures, default translation through real NLLB fallback (47857
+ms), explicit NLLB, GUI morphotag → compare, and 259 smash inputs. CHAT records
+the actual NLLB provider and contains the expected red-apple/song translations.
+Its installed native app also passes cold/warm launches (144193/31350 ms), 52
+visible progress updates, comparison, and both native close/daemon checks.
+All ten Chromium/WebKit GUI jobs, Rust CI and Linux/macOS Python CI pass.
+
+Repeated model execution is still unreliable on other targets. Windows
+35568671058 loses its connection during untimed alignment after transcription
+and timed alignment pass; available memory fell to 1.3 GB. Its installed MSI
+passes startup, comparison, warm relaunch and shutdown; Windows event logs
+provide no matching crash/low-memory event. Linux x64 35571786621 times out on
+three status requests during untimed alignment and requires forced shutdown.
+Allocator cleanup had reduced RSS to 567 MB and the runner had 14.8 GB free
+before that job, so retained memory alone does not explain the failure. Intel
+Mac 35566034597 also loses status responses during untimed alignment after
+passing transcription (823601 ms) and timed alignment (83124 ms).
+
+Desktop jobs now run in fresh model-worker interpreters. The daemon relays
+progress and results without executing model code, and process exit releases
+each job's native allocator/thread-pool state. A lightweight supervisor watches
+an owner pipe and stops the worker tree on cancellation or abrupt daemon exit;
+native model code cannot hold this supervisor's GIL. Unix workers own a separate
+process group; Windows uses taskkill /T and creates no console windows. Existing
+recipe staging, validation, atomic publishing and output assertions remain in
+use. Native no-model tests cover a worker holding the GIL, a descendant ignoring
+SIGTERM, owner-pipe closure, API responsiveness, cancellation, crashes, source
+preservation and recovery through real comparison in a new process. Fake-backend
+unit tests explicitly keep their in-process harness; native API tests use the
+production process boundary. Real-model verification of isolation is pending.
+Local validation via `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest` passes
+507 tests (3 skipped). It caught and now covers supervisor buffered-stdin
+shutdown and descendant-cleanup races. The laptop's Bazel server is stopped.

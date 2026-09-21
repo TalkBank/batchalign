@@ -54,6 +54,14 @@ def test_diagnostic_phase_is_opt_in_and_always_cancels_watchdog(monkeypatch, ena
 
 @pytest.fixture
 def desktop(tmp_path, monkeypatch):
+    # These orchestration unit tests inject fake backends in this interpreter.
+    # Native/API tests below exercise the production process boundary.
+    import asyncio
+    from batchalign import desktop_process
+    from batchalign.desktop import _run
+    async def run_inline(job, request, root, sources):
+        await asyncio.to_thread(_run, job, request, root, sources, asyncio.get_running_loop())
+    monkeypatch.setattr(desktop_process, "run_job", run_inline)
     monkeypatch.setenv("BATCHALIGN_API_ALLOW_PATHS", "1")
     source = tmp_path / "input" / "nested space" / "é.cha"
     source.parent.mkdir(parents=True)

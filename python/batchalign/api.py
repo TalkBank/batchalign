@@ -864,8 +864,8 @@ def get_result(job_id: str) -> Any:
 def cancel_job(job_id: str) -> dict[str, bool]:
     job = _job_or_404(job_id)
     if job.state in (JobState.PENDING, JobState.RUNNING):
-        # We can't yank a thread out of native Rust code. Mark as
-        # cancelled; the result will still arrive (and be discarded).
+        # Desktop supervisors stop their model process on cancellation.
+        # Other native thread jobs discard any result that arrives later.
         job.state = JobState.CANCELLED
     # The worker owns its input/output staging directory until it exits.
     # Deleting it while native inference is still running corrupts the job.
