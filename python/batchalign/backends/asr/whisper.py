@@ -46,13 +46,11 @@ class WhisperBackend(ASR, UTR):
         from batchalign.backends.asr._torch_audio import disable_torchcodec
 
         disable_torchcodec()
-        kwargs: dict[str, Any] = {"chunk_length_s": chunk_length_s}
-        if device is not None:
-            kwargs["device"] = device
-        cpu = torch.device(device).type == "cpu" if device is not None else not (
-            torch.cuda.is_available()
-            or (hasattr(torch.backends, "mps") and torch.backends.mps.is_available())
-        )
+        # Match the CLI's explicit MPS opt-in policy. HF's ambient default
+        # otherwise silently selects MPS even without --allow-mps.
+        device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        kwargs: dict[str, Any] = {"chunk_length_s": chunk_length_s, "device": device}
+        cpu = torch.device(device).type == "cpu"
         if cpu:
             # The checkpoint's auto dtype is float16. Intel macOS is pinned
             # to torch 2.2, whose CPU LayerNorm has no half-precision kernel.

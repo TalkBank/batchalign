@@ -10,7 +10,7 @@ import pytest
     ('cpu:0', False, True, True),
     (None, False, False, True),
     (None, True, False, False),
-    (None, False, True, False),
+    (None, False, True, True),
     ('cuda:0', True, False, False),
     ('mps', False, True, False),
 ])
@@ -29,6 +29,7 @@ def test_whisper_cpu_loads_float32_before_inference(monkeypatch, device, cuda, m
         # A tiny real CPU kernel checks the selected loading dtype without
         # downloading Whisper or allocating its weights.
         if cpu:
+            assert kwargs['device'].startswith('cpu')
             assert kwargs.get('dtype') == torch.float32
             torch.nn.functional.layer_norm(torch.ones(1, 4, dtype=kwargs['dtype']), (4,))
         else:

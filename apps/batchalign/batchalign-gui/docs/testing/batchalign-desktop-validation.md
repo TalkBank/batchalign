@@ -376,3 +376,39 @@ already replaced by separate standalone-morphology and comparison checks.
 Report: /tmp/batchalign-mac-intel-runtime-35541484100/packaged-sidecar-report.json.
 Run 35545692852 (483ec5b8) has begun the expanded matrix, predating this CPU
 fix; retain its independent native/model evidence and build caches.
+
+Run scheduling correction: after confirming CPU fix 6c8397f1 and its seven
+focused tests, 35545692852 was still entirely in setup/sidecar compilation
+(no new runtime evidence). Cancelled that early run so queued 35545849846 can
+validate the fixed revision across all targets. Preserve the completed
+35541484100 reports; the cancellation was for the confirmed CPU defect,
+not a build timeout or local resource shortage.
+
+Playwright 1.63 macOS 14 WebKit job 106169519499 failed before page creation:
+Page.overrideSetting rejected Unknown setting: PushAPIEnabled. macOS 14 uses
+frozen WebKit 2251; this is a driver/browser mismatch, not an application
+assertion. Evidence includes trace/error-context artifacts at
+/tmp/batchalign-macos14-webkit-163-evidence and the full job log locally.
+CI-only commit cba9aba0 retains all ten platform/browser jobs but installs
+Playwright 1.60.0 for macOS 14 WebKit, the pairing that previously passed.
+All other jobs use 1.63. The installed-app matrix 35545849846 stays on
+6c8397f1 (same application source as cba9aba0) and is not restarted.
+Full local Python suite with CPU fix: 476 passed, 3 skipped (9.80s test time).
+
+GUI run 35545849839 (CPU-fixed app) completed all six Linux/Windows jobs
+successfully, including 19 unit/property + 15 GUI tests and a second clean
+Windows WebKit run (job 106172891647). Its four macOS jobs were still queued.
+Cancelled only this stale GUI run to advance corrected pairing run
+35546446892; no running macOS GUI test evidence was discarded and installed
+matrix 35545849846 continues unchanged.
+
+Real local bounded Whisper inference: default CPU and explicit Apple MPS both
+completed the committed 20-second English fixture with Whisper-tiny, correct
+future-leaders content and word/utterance timing (22.3s CPU, 11.1s MPS).
+Ran via just batchalign cli daemon and the real desktop job API, no provider
+mocks. Default device now explicitly selects CUDA when available, otherwise
+CPU; MPS remains opt-in as documented by the CLI. Seven device tests pass.
+The isolated 148 MB model cache was deleted after stopping the daemon and
+verifying its PID/listening port were gone. This tiny-model check does not
+replace default large-model or packaged native-webview CI. Evidence retained
+at /tmp/batchalign-whisper-device-check/report.json.
