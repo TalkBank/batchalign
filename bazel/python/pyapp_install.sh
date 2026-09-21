@@ -101,6 +101,7 @@ PYAPP_SRC_DIR="$build_src"
 cp "$ws/bazel/python/pyapp_bootstrap_progress.rs" "$build_src/src/pyapp_bootstrap_progress.rs"
 awk '
     BEGIN { print "include!(\"pyapp_bootstrap_progress.rs\");" }
+    { sub(/\r$/, "") }
     $0 == "    let spinner = terminal::spinner(message);" {
         print "    eprintln!(\"{message}\");"
         phases++
