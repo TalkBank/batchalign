@@ -1,5 +1,6 @@
 """Real process ownership and daemon responsiveness without downloading models."""
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -75,6 +76,53 @@ def test_owner_pipe_closure_stops_native_worker_tree(tmp_path, native_blocker):
         supervisor.wait(timeout=15)
         if pid and psutil.pid_exists(pid):
             psutil.Process(pid).kill()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix process-group shutdown")
+def test_daemon_group_sigterm_preserves_supervisor_cleanup(tmp_path, native_blocker):
+    directory = tmp_path / "work"
+    directory.mkdir()
+    launcher = tmp_path / "daemon.py"
+    launcher.write_text(
+        "import asyncio\nfrom pathlib import Path\n"
+        "from batchalign import api, desktop_process as p\n"
+        "from batchalign.desktop import DesktopRequest\n"
+        f"directory = Path({str(directory)!r})\n"
+        f"p._command = lambda mode, directory: {supervisor_command(directory, native_blocker)!r}\n"
+        "job = api.Job(id='group-test', recipe='compare', workdir=directory)\n"
+        "job.state = api.JobState.RUNNING\n"
+        "request = DesktopRequest(folder=str(directory), source_ids=['sample.cha'], "
+        "output_path=str(directory / 'output'), steps=[{'recipe': 'compare'}])\n"
+        "asyncio.run(p.run_job(job, request, directory, {}))\n")
+    daemon = subprocess.Popen([sys.executable, str(launcher)], start_new_session=True,
+                              env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
+    owned = []
+    worker_pid = None
+    try:
+        wait_for(lambda: (directory / "ready").exists())
+        worker_pid = int((directory / "worker.pid").read_text())
+        descendant = int((directory / "grandchild.pid").read_text())
+        owned = [child.pid for child in psutil.Process(daemon.pid).children(recursive=True)]
+        time.sleep(0.1)
+        # Matches the packaged harness and process-group based app shutdown.
+        os.killpg(daemon.pid, signal.SIGTERM)
+        daemon.wait(timeout=10)
+        wait_for(lambda: process_stopped(worker_pid), timeout=10)
+        wait_for(lambda: process_stopped(descendant), timeout=10)
+        for pid in owned:
+            wait_for(lambda: process_stopped(pid), timeout=10)
+    finally:
+        if daemon.poll() is None:
+            os.killpg(daemon.pid, signal.SIGKILL)
+            daemon.wait(timeout=10)
+        if worker_pid:
+            try:
+                os.killpg(worker_pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        for pid in owned:
+            if not process_stopped(pid):
+                psutil.Process(pid).kill()
 
 
 @pytest.mark.parametrize("crash", [False, True])

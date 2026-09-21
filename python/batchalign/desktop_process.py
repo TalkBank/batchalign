@@ -134,6 +134,9 @@ async def run_job(job, request, root: Path, sources: dict[str, Path]) -> None:
         process = await asyncio.create_subprocess_exec(
             *_command("--supervise", directory), stdin=asyncio.subprocess.PIPE,
             env=environment,
+            # A daemon-group SIGTERM must close the owner pipe, not kill the
+            # supervisor before it has stopped the separately grouped worker.
+            start_new_session=os.name != "nt",
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         while process.returncode is None and job.state != api.JobState.CANCELLED:
             await drain_events()

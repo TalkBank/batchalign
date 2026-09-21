@@ -807,3 +807,19 @@ status requests stay responsive with no retries, and diagnostic stacks remain
 inside Whisper inference. This is an inference-duration failure rather than
 the earlier daemon status stall. Its native checks and the Intel Mac/Windows
 packaged checks remain live; the complete five-target goal is not yet verified.
+
+The completed Apple Silicon log shows model loading took about 106 seconds;
+the remaining transcription deadline was spent in inference. It also exposes
+a shutdown gap: after the harness stopped the daemon process group, worker
+stack dumps continued for over two minutes. The supervisor shared the daemon's
+process group and received SIGTERM before it could clean up the independently
+grouped worker. A native regression reproduces this with a GIL-holding worker
+and a SIGTERM-ignoring descendant: daemon-group termination leaves the worker
+alive. The supervisor now starts in its own Unix session so owner-pipe closure
+can drive cleanup even when the daemon's entire group is signalled. Windows
+continues to use taskkill /T. Apple Silicon's native QA app at 46510445 passes
+cold/warm launch (126456/4064 ms), 43 visible progress updates and comparison;
+this does not make its failed real-inference suite a pass.
+With the supervisor-session fix, `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`
+passes 508 tests (3 skipped), including the previously failing group-shutdown
+regression. The local Bazel server is stopped after validation.
