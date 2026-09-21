@@ -243,7 +243,7 @@ jobs:
       - name: Install native WebKit test driver
         if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'Linux' }}
         run: |
-          sudo apt-get install -y webkit2gtk-driver xvfb
+          sudo apt-get install -y webkit2gtk-driver xvfb openbox wmctrl
           cargo install tauri-driver --version 2.0.6 --locked
 
       - name: Install package and test the real native webview

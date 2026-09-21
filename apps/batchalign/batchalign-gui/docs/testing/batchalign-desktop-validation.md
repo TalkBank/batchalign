@@ -716,3 +716,12 @@ the original pipeline deadline. It never resubmits jobs or retries HTTP
 errors. Each retry is recorded in the report. Real local HTTP-server tests
 cover one dropped socket, persistent disconnection, HTTP failure and expired
 deadline; all 24 GUI unit tests pass. Full model verification is still required.
+
+The same ARM run's native test bootstraps in 139455 ms with 44 progress
+updates and produces correct comparison output, but the daemon survives
+WebDriver window close. This harness previously ran bare Xvfb without a
+window manager and did not establish host termination. Linux native tests
+now start Openbox and use wmctrl's graceful close request, selecting exactly
+one window whose PID resolves to the installed executable. The host must
+exit within ten seconds before session cleanup and daemon checks. This
+strengthens the lifecycle gate; it is not yet proof of a native pass.

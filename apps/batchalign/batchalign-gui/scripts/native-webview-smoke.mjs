@@ -2,11 +2,14 @@
 // First launch bootstraps a fresh environment; the second reuses it.
 // No Tauri IPC mocks or test hooks are injected into the production bundle.
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readlink, realpath, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { promisify } from 'node:util';
+
+const execute = promisify(execFile);
 
 const application = resolve(process.argv[2] || '');
 const embedded = process.argv[4] === '--embedded';
@@ -18,6 +21,10 @@ const environment = join(await mkdtemp(join(sidecarReport.root, 'native-cleanroo
 const report = { application, environment, launches: [], startupProgress: [] };
 let tail = '';
 let driverError;
+// Xvfb supplies a display, but no title-bar/window-manager lifecycle.
+const windowManager = process.platform === 'linux'
+  ? spawn('openbox', [], { stdio: 'ignore' }) : null;
+windowManager?.on('error', error => { driverError = error; });
 function startDriver() {
   const child = spawn(embedded ? application : process.platform === 'win32' ? 'tauri-driver.exe' : 'tauri-driver', [], {
     stdio: ['ignore', 'pipe', 'pipe'], env: {
@@ -82,6 +89,37 @@ async function closeWindowsApplication() {
   const [code] = await once(closer, 'exit');
   (report.nativeCloses ||= []).push({ code, output });
   assert.equal(code, 0, output);
+}
+async function closeLinuxApplication() {
+  const { stdout } = await execute('wmctrl', ['-lp'], { timeout: 10000 });
+  const executable = await realpath(application);
+  const matches = [];
+  for (const line of stdout.trim().split('\n')) {
+    const [window, , pid] = line.trim().split(/\s+/);
+    if (!/^\d+$/.test(pid || '')) continue;
+    try {
+      if (await readlink(`/proc/${pid}/exe`) === executable) matches.push({ window, pid });
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+  assert.equal(matches.length, 1, `expected one installed app window: ${JSON.stringify(matches)}`);
+  const { window, pid } = matches[0];
+  // Ask the window manager to deliver the native close protocol, then prove
+  // host exit before ending the WebDriver session or checking the daemon.
+  await execute('wmctrl', ['-ic', window], { timeout: 10000 });
+  let exited = false;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    try { await readlink(`/proc/${pid}/exe`); }
+    catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      exited = true;
+      break;
+    }
+    await delay(100);
+  }
+  (report.nativeCloses ||= []).push({ pid, window, exited });
+  assert(exited, `native app ${pid} survived window-manager close`);
 }
 async function waitForDriver() {
   for (let i = 0; i < 100; i++) {
@@ -176,9 +214,7 @@ try {
       await closeWindowsApplication();
       await command('DELETE', `/session/${session}`).catch(() => {});
     } else {
-      // End the app through its window lifecycle. Deleting a driver session
-      // may kill/detach its process without delivering Tauri's normal exit.
-      await command('DELETE', `/session/${session}/window`);
+      await closeLinuxApplication();
       await command('DELETE', `/session/${session}`).catch(() => {});
     }
     session = undefined;
@@ -197,6 +233,7 @@ try {
   process.exitCode = 1;
 } finally {
   if (session) await command('DELETE', `/session/${session}`).catch(() => {});
+  windowManager?.kill();
   driver.kill();
   await Promise.race([once(driver, 'exit').catch(() => {}), delay(5000)]);
   report.driverLog = tail;
