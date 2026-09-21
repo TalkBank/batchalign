@@ -695,3 +695,24 @@ from live allocations. The trim hook returns unused glibc arena pages
 between models; unsupported allocators retain ordinary collection. This
 does not change model size, inference precision, or the correctness gates.
 CI must still establish whether it resolves the failure.
+
+Run 35566034597 (78189a17) now provides complete local-model evidence on
+Windows and Apple Silicon: transcription WER 0.2222, timed and untimed
+alignment, both diarization fixtures, NLLB translation, and real GUI
+morphotag → compare all pass. Untimed alignment takes 243266 ms on Windows
+and 1528312 ms on Apple Silicon. Both retain a failing Google translation
+gate because the free service returns HTTP 429 after all three attempts.
+Windows also passes native MSI cold/warm launch (293894/2288 ms), 64 visible
+bootstrap progress updates, comparison output, and both WM_CLOSE host and
+daemon shutdown checks. Linux x64 on that revision reproduces ARM's runner
+shutdown during the separate UTR pass after transcription and timed FA pass.
+
+Linux ARM run 35568671058 (5a82f18a) passes bootstrap, comparison and the 259
+smash inputs, but loses one status socket while loading the first Whisper
+model. The harness then stops the daemon, so this is not evidence that the
+daemon died or that allocator cleanup failed. Status polling now retries
+transport failures at most twice, using fresh connections and preserving
+the original pipeline deadline. It never resubmits jobs or retries HTTP
+errors. Each retry is recorded in the report. Real local HTTP-server tests
+cover one dropped socket, persistent disconnection, HTTP failure and expired
+deadline; all 24 GUI unit tests pass. Full model verification is still required.

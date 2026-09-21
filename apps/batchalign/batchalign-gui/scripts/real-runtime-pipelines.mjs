@@ -5,6 +5,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { freemem, totalmem } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
+import { readRuntimeStatus } from './runtime-status.mjs';
 
 function words(chat) {
   return [...chat.matchAll(/^\*[^:]+:\s*(.*)$/gm)].flatMap(match =>
@@ -46,9 +47,10 @@ export async function testRealPipelines(base, root, repository, results, checkpo
     const deadline = Date.now() + 30 * 60_000;
     let status;
     while (Date.now() < deadline) {
-      const response = await fetch(`${base}/jobs/${job.job_id}`, { signal: AbortSignal.timeout(30_000) });
-      assert(response.ok, `status ${response.status}`);
-      status = await response.json();
+      status = await readRuntimeStatus(`${base}/jobs/${job.job_id}`, deadline, retry => {
+        (results.statusRetries ||= []).push({ recipe: evidenceKey, ...retry });
+        console.warn(`[status-retry] ${JSON.stringify({ recipe: evidenceKey, ...retry })}`);
+      });
       if (['completed', 'failed', 'cancelled'].includes(status.state)) {
         workerMayBeRunning = false;
         break;
