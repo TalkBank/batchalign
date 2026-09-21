@@ -39,19 +39,46 @@ function install() {
   w.__TAURI_INTERNALS__.invoke = async (cmd: string, args: any) => {
     if (cmd === 'list_folder_files' && w.__SCAN_FAILURE__) throw new Error('folder unavailable');
     if (cmd === 'ensure_daemon') return 43210;
-    if (cmd === 'start_batch_pump') return;
+    if (cmd === 'start_batch_pump') { w.__CURRENT_JOB__ = args; return; }
     if (cmd === 'daemon_request') {
       if (args.path === '/capabilities') return { recipes: {}, backends_by_task: {} };
       if (args.path === '/desktop/jobs') {
         w.__DESKTOP_REQUEST__ = args.body;
+        w.__SUBMISSIONS__ = (w.__SUBMISSIONS__ || 0) + 1;
         return { job_id: 'test-job' };
       }
-      if (args.path === '/jobs/test-job') return { state: 'completed', error: null };
+      if (args.path === '/jobs/test-job') return { state: w.__JOB_STATE__ || 'completed', error: null };
       throw new Error('unexpected request: ' + args.path);
     }
     return original(cmd, args);
 };
 }
+
+test('completed file waits for terminal job status before the next batch', async ({ page }) => {
+  await page.addInitScript({ content: stub + `\n(${install.toString()})();\nwindow.__JOB_STATE__ = 'running';` });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'open folder…' }).click();
+  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.locator('div').filter({ hasText: /^morphotag$/ }).last().click();
+  await page.getByRole('button', { name: 'start batch', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => Boolean((window as any).__CURRENT_JOB__))).toBe(true);
+  await page.evaluate(() => {
+    const w = window as any;
+    w.__E2E_EMIT__('progress-v2', { ...w.__CURRENT_JOB__, event: {
+      source_id: 'nested/é.cha', kind: 'SourceCompleted', task: 'Morphosyntax',
+      completed: 1, total: 1, label: null,
+    } });
+  });
+  await expect(page.locator('tbody > tr').getByText('done', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'running…', exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as any).__JOB_STATE__ = 'completed');
+  await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
+  await page.getByRole('button', { name: 'start batch', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__SUBMISSIONS__)).toBe(2);
+  await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeEnabled();
+});
 
 test('switching pipeline after transcription discovers newly created CHAT files', async ({ page }) => {
   await page.addInitScript({ content: stub + `\n(${install.toString()})();\nwindow.__E2E_FILES__ = window.__E2E_FILES__.filter(file => file.kind === 'media');` });

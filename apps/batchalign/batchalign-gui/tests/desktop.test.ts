@@ -80,6 +80,42 @@ test('double-click submits once and polling recovers terminal status without SSE
   expect(useStore.getState().batches.batch.files['nested space/é.cha'].stages.map(stage => stage.state)).toEqual(['done', 'done']);
 });
 
+test('file completion cannot enable a new batch before terminal job status', async () => {
+  const value = batch(['morphotag']);
+  const store = useStore.getState();
+  store.dispatch({ type: 'BATCH_OPENED', batch: value });
+  let finish!: (status: unknown) => void;
+  let submissions = 0;
+  native.invoke.mockImplementation(async (command, args) => {
+    if (command === 'start_batch_pump') return;
+    if (args.path === '/desktop/jobs') return { job_id: `job-${++submissions}` };
+    if (submissions === 1) return new Promise(resolve => { finish = resolve; });
+    return { state: 'completed' };
+  });
+  const running = startBatch(value.id);
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  store.dispatch({ type: 'PROGRESS_V2', batchId: value.id, jobId: 'job-1', event: {
+    source_id: 'nested space/é.cha', kind: 'SourceCompleted', task: 'Morphosyntax',
+    completed: 1, total: 1, label: null,
+  } });
+  try {
+    const current = useStore.getState().batches.batch;
+    expect(current.files['nested space/é.cha'].status).toBe('done');
+    expect(current.state).toBe('running');
+    expect(current.finishedAt).toBeNull();
+    await startBatch(value.id);
+    expect(submissions).toBe(1);
+  } finally {
+    finish({ state: 'completed' });
+    await running;
+  }
+  expect(useStore.getState().batches.batch.state).toBe('done');
+  store.dispatch({ type: 'PIPELINE_CHANGED', batchId: value.id, pipeline: ['morphotag', 'compare'] });
+  await startBatch(value.id);
+  expect(submissions).toBe(2);
+  expect(useStore.getState().batches.batch.state).toBe('done');
+});
+
 test('submission rejection appears in the existing file error log and supports retry', async () => {
   const value = batch();
   useStore.getState().dispatch({ type: 'BATCH_OPENED', batch: value });

@@ -46,6 +46,7 @@ test('real morphotag → compare writes valid CHAT and correct metrics', async (
     expect(morphology).toContain('%mor:');
     expect(morphology).toContain('%gra:');
     await testInfo.attach('morphology.cha', { body: morphology, contentType: 'text/plain' });
+    await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeEnabled();
 
     await page.getByRole('button', { name: '+ add step', exact: true }).click();
     await page.locator('div').filter({ hasText: /^compare$/ }).last().click();

@@ -484,3 +484,30 @@ The local test daemon and Bazel server are stopped; no local ML download.
 Shutdown audit: current native tests prove direct daemon termination after
 readiness. They do not yet prove termination of every installer descendant
 when closing during bootstrap; no unsupported claim of that coverage.
+
+Linux x64 runtime 35545849846 also passes FA, both diarization fixtures,
+Google/NLLB translation, comparison and the 259-input smash. Transcription
+has the same known overlap. The real GUI test exposes a separate race:
+SourceCompleted marks the entire batch done before terminal status polling
+releases its submission latch. A quick second click is ignored. Reproduced
+locally (expected running, got done), then fixed by letting only
+BATCH_FINISHED conclude a job; file events update file rows only. The new
+unit regression and deterministic GUI case verify completed-file / still-
+running-job behavior and a successful second batch. Twenty GUI unit tests
+and all 16 local browser cases pass using cached Chromium 1234 (12 pipeline
+cases, 3 startup cases, and the new race case run separately).
+
+Windows native 35545849846 installed its MSI and opened the unmodified
+native WebView2 app into a ready screen, but cold startup showed no progress
+for four minutes. Inspection of pinned PyApp 0.27 process::wait_for confirms
+it captures all installer output until EOF, while indicatif hides its spinner
+on pipes. This is an application packaging defect, not a reason to relax the
+progress assertion. The Bazel PyApp source staging now announces the phase
+and forwards installer bytes immediately while preserving captured error
+output and UTF-8 decoding. The patch checks both exact pinned call sites
+and fails if upstream changes. Two lightweight Bazel Rust tests pass,
+proving output arrives before installer EOF and preserving Unicode split
+across reads. No interface redesign or fake percentage was added.
+Native evidence: /tmp/batchalign-windows-native-35545849846, including the
+initial loading screenshot and the ready screen at failure. Updated real
+native bootstrap and cross-platform browser results are still required.

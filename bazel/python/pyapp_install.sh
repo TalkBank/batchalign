@@ -95,6 +95,26 @@ cp -R "$PYAPP_SRC_DIR/." "$build_src/"
 chmod -R u+w "$build_src"
 PYAPP_SRC_DIR="$build_src"
 
+# PyApp 0.27 captures installer output until exit and hides its spinner on
+# pipes. Forward the bytes during read_to_string so a GUI can show real
+# progress. Fail closed if the pinned upstream call sites change.
+cp "$ws/bazel/python/pyapp_bootstrap_progress.rs" "$build_src/src/pyapp_bootstrap_progress.rs"
+awk '
+    BEGIN { print "include!(\"pyapp_bootstrap_progress.rs\");" }
+    $0 == "    let spinner = terminal::spinner(message);" {
+        print "    eprintln!(\"{message}\");"
+        phases++
+    }
+    $0 == "        reader.read_to_string(&mut output)?;" {
+        print "        BootstrapProgressReader::new(&mut reader, std::io::stderr()).read_to_string(&mut output)?;"
+        readers++
+        next
+    }
+    { print }
+    END { if (phases != 1 || readers != 1) exit 1 }
+' "$build_src/src/process.rs" > "$build_src/src/process.rs.progress"
+mv "$build_src/src/process.rs.progress" "$build_src/src/process.rs"
+
 # PyApp's build.rs parses the wheel filename per PEP 427
 # (`{name}-{version}(-{build})?-{python}-{abi}-{platform}.whl`). The
 # Bazel genrule output is a fixed `batchalign.whl` — Bazel doesn't

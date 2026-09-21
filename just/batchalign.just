@@ -71,6 +71,10 @@ set positional-arguments := true
 shutdown:
     bazel shutdown
 
+# Verify streaming installer output without building a sidecar or ML env.
+bootstrap-progress:
+    bazel test --jobs=1 //bazel/python:bootstrap_progress_test
+
 # Use Bazel's host-adaptive parallelism for normal builds. Resource-constrained
 # automation can set BATCHALIGN_BAZEL_JOBS without changing user defaults.
 bazel_jobs := env_var_or_default("BATCHALIGN_BAZEL_JOBS", "auto")

@@ -13,10 +13,18 @@ no local twine wrapper ships from here.
 """
 
 load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_rust//rust:defs.bzl", "rust_test")
 load(":llvm_tool.bzl", "llvm_tool_file")
 
 # Only the //python package needs these scripts.
 package(default_visibility = ["//python:__subpackages__"])
+
+rust_test(
+    name = "bootstrap_progress_test",
+    srcs = ["pyapp_bootstrap_progress.rs"],
+    crate_root = "pyapp_bootstrap_progress.rs",
+    edition = "2021",
+)
 
 llvm_tool_file(
     name = "llvm_clang",
@@ -42,6 +50,7 @@ exports_files([
     "maturin_genrule.sh",
     "pyapp_build.sh",
     "pyapp_install.sh",
+    "pyapp_bootstrap_progress.rs",
     "pytest.sh",
     "lint.sh",
     "hermeticity_guard.sh",

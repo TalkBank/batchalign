@@ -161,7 +161,9 @@ jobs:
         run: just batchalign gui build release --target ${{ matrix.runner.target }} --verbose
 
       - name: Native startup and process-lifetime regression tests
-        run: just batchalign gui native-unit --target ${{ matrix.runner.target }}
+        run: |
+          just batchalign bootstrap-progress
+          just batchalign gui native-unit --target ${{ matrix.runner.target }}
 
       - name: Release build-server memory before model inference
         if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' }}

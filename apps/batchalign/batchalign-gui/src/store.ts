@@ -209,21 +209,6 @@ function recomputeFileStatus(file: FileRow): FileStatus {
   return "queued";
 }
 
-function recomputeBatchState(batch: Batch): BatchState {
-  const files = Object.values(batch.files);
-  if (files.length === 0) return "idle";
-  if (files.every((f) => f.status === "done")) return "done";
-  if (files.some((f) => f.status === "failed")) {
-    if (files.every((f) => f.status === "done" || f.status === "failed")) {
-      return "failed";
-    }
-  }
-  if (files.some((f) => f.status === "running" || f.status === "queued")) {
-    return "running";
-  }
-  return batch.state;
-}
-
 // --- reducer --------------------------------------------------------
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -504,12 +489,9 @@ export function reducer(state: AppState, action: Action): AppState {
       const newBatch: Batch = {
         ...batch,
         files: newFiles,
-        state: recomputeBatchState({ ...batch, files: newFiles }),
-        finishedAt:
-          recomputeBatchState({ ...batch, files: newFiles }) === "done" ||
-          recomputeBatchState({ ...batch, files: newFiles }) === "failed"
-            ? (batch.finishedAt ?? Date.now())
-            : batch.finishedAt,
+        // File events can precede terminal job status. Only BATCH_FINISHED
+        // may enable another run; otherwise a click races the active monitor
+        // and its submission latch silently drops the user's next batch.
       };
       return {
         ...state,
