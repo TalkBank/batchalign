@@ -412,3 +412,11 @@ The isolated 148 MB model cache was deleted after stopping the daemon and
 verifying its PID/listening port were gone. This tiny-model check does not
 replace default large-model or packaged native-webview CI. Evidence retained
 at /tmp/batchalign-whisper-device-check/report.json.
+
+Expanded installed-model gate also submits a timestamp-free copy of the
+English alignment fixture with unlinked media. It uses the actual default
+Whisper-large-v3 timing recovery followed by Wav2Vec2 forced alignment.
+Require all three utterances and words preserved, three word-timing tiers,
+ordered bounds inside the recording, more than 15 seconds of recovered
+coverage, linked media, and byte-preserved source. Script syntax checked;
+actual inference result remains pending on GitHub CI.

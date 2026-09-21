@@ -99,6 +99,26 @@ export async function testRealPipelines(base, root, repository, results) {
 
   });
 
+  await check('align-untimed', async () => {
+    const untimed = gold.replace(/\x15[^\x15]*\x15/g, '')
+      .replace(/(@Media:[^\n]+)/, '$1, unlinked');
+    await writeFile(join(input, 'untimed.cha'), untimed);
+    const aligned = await run('align', 'untimed.cha', {
+      fa_backend: { kind: 'Wav2Vec2FaBackend', kwargs: {} },
+    }, 'align-untimed');
+    assert.deepEqual(words(aligned), words(gold), 'timing recovery changed the spoken words');
+    assert.doesNotMatch(aligned, /^@Media:.*unlinked/m, 'recovered media is still unlinked');
+    const turns = [...aligned.matchAll(/^\*[^:]+:[^\n]*\x15(\d+)_(\d+)\x15/gm)];
+    assert.equal(turns.length, 3, 'timing recovery must timestamp all three utterances');
+    assert.equal([...aligned.matchAll(/^%wor:/gm)].length, 3, 'recovered utterances need word timing');
+    for (const [, start, end] of aligned.matchAll(/\x15(\d+)_(\d+)\x15/g)) {
+      assert(Number(end) >= Number(start), `reversed recovered timing ${start}_${end}`);
+      assert(Number(end) <= 20500, `recovered timing exceeds fixture duration: ${end}`);
+    }
+    assert(Number(turns[2][2]) - Number(turns[0][1]) > 15000, 'recovered timing collapsed the recording');
+    assert.equal(await readFile(join(input, 'untimed.cha'), 'utf8'), untimed);
+  });
+
   await check('diarize', async () => {
   const diarized = await run('diarize', 'en.cha', {
     speaker_backend: { kind: 'PyannoteBackend', kwargs: { num_speakers: 1 } },
