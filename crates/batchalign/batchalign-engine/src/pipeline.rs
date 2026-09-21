@@ -42,7 +42,9 @@ const DEFAULT_WORKERS: usize = 8;
 /// The Python-facing pipeline object.
 #[pyclass]
 pub struct Pipeline {
-    inner: Arc<PipelineInner>,
+    // Taken during Drop so runtime teardown completes before we reattach to
+    // Python and flush worker-thread deferred backend reference releases.
+    inner: Option<Arc<PipelineInner>>,
 }
 
 struct PipelineInner {
@@ -127,14 +129,14 @@ impl Pipeline {
         let sem = Arc::new(Semaphore::new(workers));
 
         Ok(Pipeline {
-            inner: Arc::new(PipelineInner {
+            inner: Some(Arc::new(PipelineInner {
                 order,
                 runners,
                 engine,
                 runtime,
                 sem,
                 dispatch_window: workers,
-            }),
+            })),
         })
     }
 
@@ -168,7 +170,7 @@ impl Pipeline {
         }
         let sink = Arc::new(crate::progress_sink::CallbackSink::from_pairs(sink_pairs))
             as Arc<dyn ProgressSink>;
-        let inner = self.inner.clone();
+        let inner = self.inner.as_ref().expect("live pipeline").clone();
 
         // Release the GIL while the runtime drives async work; runners that
         // need it reacquire via `Python::attach`.
@@ -271,7 +273,7 @@ impl Pipeline {
     /// a `spawn_blocking` task that's inside Python code or a subprocess).
     /// `Drop` does the harder teardown (`engine.shutdown`).
     fn cancel(&self) {
-        self.inner.engine.cancel();
+        self.inner.as_ref().expect("live pipeline").engine.cancel();
     }
 }
 
@@ -504,7 +506,17 @@ fn load_chat_at(path: &std::path::Path, sid: &SourceId) -> PyResult<Chat> {
 
 impl Drop for Pipeline {
     fn drop(&mut self) {
-        self.inner.engine.shutdown();
+        if let Some(inner) = self.inner.take() {
+            inner.engine.shutdown();
+            let mut pending = Some(inner);
+            // Worker threads drop Py<Backend> without the GIL, queuing their
+            // decrefs in PyO3. Joining the runtime while detached avoids GIL
+            // deadlocks; reattaching flushes those decrefs immediately rather
+            // than retaining a multi-GB model until a later native call.
+            // If Python is shutting down, leave ordinary field cleanup as the
+            // fallback instead of attempting to attach to a dead interpreter.
+            let _ = Python::try_attach(|py| py.detach(|| drop(pending.take())));
+        }
     }
 }
 

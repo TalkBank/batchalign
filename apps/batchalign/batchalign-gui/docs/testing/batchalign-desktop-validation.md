@@ -601,3 +601,29 @@ The ARM retry 35554671549 again receives a runner shutdown signal shortly
 after the MMS_FA download. Linux x64 job 106189398537 is terminal with a
 GitHub annotation that its hosted runner lost communication; its log blob
 is missing. These observations do not establish a memory-exhaustion cause.
+
+Windows runtime 35557008512 (2c823add) passes transcription, timed and
+untimed alignment, both diarization cases, and Google translation. Untimed
+alignment takes 332086 ms and passes all preserved-word, media-header,
+utterance/word-timing, duration, and source-preservation assertions. NLLB
+then loses the daemon connection (ECONNREFUSED), so real GUI testing is not
+run. This is the first real repaired untimed-alignment pass, not a full pass.
+Evidence: /tmp/batchalign-windows-runtime-35557008512.
+
+ARM runtime 35557008512 checkpoints show available memory falling from
+15628283904 bytes before transcription to 8726319104 before timed FA and
+6229377024 before untimed alignment. It receives another runner shutdown
+signal 30 seconds into untimed alignment. The log is preserved at
+/tmp/batchalign-arm-job-35557008512.log.
+
+A model-free weak-reference regression establishes a native pipeline
+lifetime defect: after deleting a pipeline and collecting Python garbage,
+its backend remains alive. Rust runtime workers drop Py<Backend> without
+the GIL; PyO3 queues the decrefs, retaining models until a later native
+attachment. Pipeline Drop now takes its inner state, closes routes, and
+joins the runtime while detached from Python. Reattachment flushes those
+deferred references before the next Python model constructor can run.
+Use try_attach for interpreter-shutdown fallback. The regression fails
+before this repair and passes after it; the full Python suite passes
+488 tests with 3 existing skips. Real cross-platform inference must still
+prove that this repair resolves the observed runtime failures.

@@ -63,6 +63,25 @@ class _StubEverything(
     pass
 
 
+@pytest.mark.parametrize("run", [False, True])
+def test_native_pipeline_releases_backend_before_next_model_load(run):
+    import gc
+    import weakref
+    from batchalign._core import Pipeline, CacheSpec
+
+    backend = _StubAsr()
+    reference = weakref.ref(backend)
+    pipeline = Pipeline(tasks=[Task.Asr], backends=[backend], workers=1,
+                        cache=CacheSpec.bypass())
+    del backend
+    assert reference() is not None
+    if run:
+        assert pipeline.run([]) == []
+    del pipeline
+    gc.collect()
+    assert reference() is None, 'completed pipeline retains its Python backend'
+
+
 def test_ai_marker():
     b = _StubAi()
     assert declared_tasks(b) == [Task.Ai]
