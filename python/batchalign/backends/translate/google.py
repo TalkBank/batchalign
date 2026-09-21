@@ -12,6 +12,11 @@ is taken from either:
 If the official client is unavailable we fall back to the ``googletrans``
 free-tier wrapper that BA2 originally used — handy for research
 workloads but rate-limited.
+
+Desktop requests opt into ``fallback_on_rate_limit``: after bounded free-service
+HTTP 429 retries, known NLLB source/target languages use the existing local
+NLLB-1.3B model. Outputs carry their actual provider for CHAT provenance.
+Other errors and explicit Google-only calls retain their original behavior.
 """
 
 from __future__ import annotations
@@ -91,12 +96,15 @@ class GoogleTranslateBackend(Translate):
         batch_size: int = 16,
         batch_window_ms: int = 50,
         force_free: bool = False,
+        fallback_on_rate_limit: bool = False,
     ) -> None:
         # Target language pin. The runner ships a default `"eng"` on the
         # input; we honour our own constructor arg over it so callers can
         # do `GoogleTranslateBackend(target="zho")` without touching the
         # task wiring.
         self._target = target
+        self._fallback_on_rate_limit = fallback_on_rate_limit
+        self._fallback: Any = None
         key = api_key if api_key is not None else config.get_api_key("google_translate", interactive=True)
         self._client: Any = None
         self._mode: str
@@ -138,7 +146,9 @@ class GoogleTranslateBackend(Translate):
     @property
     def name(self) -> str:
         # The constructor target overrides the runner's default eng hint.
-        return f"{self._mode}:target-{self._target}"
+        fallback = (":nllb-rate-limit-fallback:v1"
+                    if self._fallback_on_rate_limit and self._mode.startswith("googletrans:free") else "")
+        return f"{self._mode}:target-{self._target}{fallback}"
 
     @property
     def batch_policy(self) -> BatchPolicy:
@@ -146,6 +156,7 @@ class GoogleTranslateBackend(Translate):
 
     def call(self, batch: list[Any], *, progress: Any = None, **_kwargs: Any) -> list[Any]:
         from batchalign._core.proto import TranslateInput, TranslateOutput
+        import httpx
 
         outputs: list[Any] = []
         for item in batch:
@@ -153,15 +164,43 @@ class GoogleTranslateBackend(Translate):
                 raise TypeError(
                     f"GoogleTranslateBackend does not handle: {type(item).__name__}"
                 )
-            translations = self._translate_many(
-                item.utterances,
-                source=item.source.value if item.source.kind == "code" else None,
-                target=self._target,
-            )
+            if self._fallback is not None and self._can_fallback(item):
+                outputs.extend(self._fallback_output(item, progress))
+                continue
+            try:
+                translations = self._translate_many(
+                    item.utterances,
+                    source=item.source.value if item.source.kind == "code" else None,
+                    target=self._target,
+                )
+            except httpx.HTTPStatusError as error:
+                if (not self._fallback_on_rate_limit or
+                        not self._mode.startswith("googletrans:free") or
+                        error.response.status_code != 429):
+                    raise
+                # Only a known language can be translated locally without
+                # guessing. Validate before downloading/loading any weights.
+                from batchalign.backends.translate.nllb import NllbTranslateBackend
+                if not self._can_fallback(item):
+                    raise
+                self._fallback = NllbTranslateBackend(target=self._target, device="cpu")
+                outputs.extend(self._fallback_output(item, progress))
+                continue
             outputs.append(
-                TranslateOutput(source_id=item.source_id, utterances=translations)
+                TranslateOutput(source_id=item.source_id, utterances=translations,
+                                provider=f"{self._mode}:target-{self._target}" if self._fallback_on_rate_limit else None)
             )
         return outputs
+
+    def _can_fallback(self, item: Any) -> bool:
+        from batchalign.backends.translate.nllb import _ISO_639_3_TO_FLORES_200
+        return (item.source.kind == "code" and
+                item.source.value in _ISO_639_3_TO_FLORES_200 and
+                self._target in _ISO_639_3_TO_FLORES_200)
+
+    def _fallback_output(self, item: Any, progress: Any) -> list[Any]:
+        outputs = self._fallback.call([item], progress=progress)
+        return [output.model_copy(update={"provider": self._fallback.name}) for output in outputs]
 
     # ----- helpers -------------------------------------------------------
 

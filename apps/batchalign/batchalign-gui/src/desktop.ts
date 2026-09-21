@@ -54,7 +54,11 @@ export function buildRecipeKwargs(
       return {
         translate_backend: {
           kind: (config.engine as string) || "GoogleTranslateBackend",
-          kwargs: { target: (config.target as string) || "eng" },
+          kwargs: {
+            target: (config.target as string) || "eng",
+            ...(!config.engine || config.engine === "GoogleTranslateBackend"
+              ? { fallback_on_rate_limit: true } : {}),
+          },
         },
       };
     case "compare":

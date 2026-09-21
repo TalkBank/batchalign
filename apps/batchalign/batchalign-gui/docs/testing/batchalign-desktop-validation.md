@@ -725,3 +725,28 @@ now start Openbox and use wmctrl's graceful close request, selecting exactly
 one window whose PID resolves to the installed executable. The host must
 exit within ten seconds before session cleanup and daemon checks. This
 strengthens the lifecycle gate; it is not yet proof of a native pass.
+
+Linux x64 run 35568671058 (5a82f18a) passes transcription (263788 ms, WER
+0.2222), timed alignment (11063 ms), untimed alignment (208439 ms), both
+diarization fixtures, NLLB, 259 smash inputs and real GUI morphotag → compare.
+It no longer shuts down during repeated Whisper inference with allocator
+cleanup enabled. Its only pipeline failure is Google HTTP 429 after retries,
+matching the Windows and Apple Silicon failures. Apple Silicon native QA
+testing on 78189a17 also passes cold/warm launch (132754/3582 ms), 51 visible
+progress updates, comparison and both shutdown checks.
+
+Desktop Google requests now opt into local NLLB fallback after exhausted
+free-service rate-limit retries. Direct library calls remain Google-only by
+default. Only explicit source/target languages in NLLB's supported mapping
+can fall back; other HTTP failures retain their errors. A translation output
+can carry its actual provider, stamped as translate-provider in CHAT and
+retained through the cache. This preserves provenance when the configured
+backend and actual provider differ. The fallback uses the existing NLLB-1.3B
+model, including its first-use download; it does not reduce model size or
+relax translation assertions. Packaged CI must verify the integrated path.
+The full Python suite passes via `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`.
+The native regression checks partial Google output replacement and provider
+provenance on both fresh and cached results. Error regressions check disabled
+fallback, HTTP 403/503, unsupported languages and unknown source language.
+All 25 GUI unit tests and the production frontend build pass locally without
+downloading models. The local Bazel server is shut down after validation.

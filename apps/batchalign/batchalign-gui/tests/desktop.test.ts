@@ -49,6 +49,15 @@ test('alignment uses the choice actually stored by its panel', () => {
   });
 });
 
+test('desktop Google translation enables rate-limit fallback without changing other providers', () => {
+  expect(buildRecipeKwargs('translate', {})).toEqual({
+    translate_backend: { kind: 'GoogleTranslateBackend', kwargs: { target: 'eng', fallback_on_rate_limit: true } },
+  });
+  expect(buildRecipeKwargs('translate', { engine: 'NllbTranslateBackend', target: 'fra' })).toEqual({
+    translate_backend: { kind: 'NllbTranslateBackend', kwargs: { target: 'fra' } },
+  });
+});
+
 test('gold references, output options, cache, and worker settings reach the daemon', () => {
   const value = batch(['align', 'compare']);
   value.config.align = { write_wor: false, use_cache: false };

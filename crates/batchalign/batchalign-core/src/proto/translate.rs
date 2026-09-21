@@ -52,6 +52,9 @@ pub struct TranslateOutput {
     pub source_id: SourceId,
     /// Translated utterances, same length as input.
     pub utterances: Vec<String>,
+    /// Actual provider when a backend supports more than one provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
 }
 
 register_proto_schema!(TranslateInput);

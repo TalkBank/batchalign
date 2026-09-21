@@ -195,10 +195,12 @@ export async function testRealPipelines(base, root, repository, results, checkpo
 
   await check('translate', async () => {
   const translated = await run('translate', 'es.cha', {
-    translate_backend: { kind: 'GoogleTranslateBackend', kwargs: { target: 'eng' } },
+    translate_backend: { kind: 'GoogleTranslateBackend', kwargs: { target: 'eng', fallback_on_rate_limit: true } },
   });
   assert.match(translated.toLowerCase(), /red apple/, 'missing translated sentence meaning');
   assert.match(translated.toLowerCase(), /song/, 'second utterance was not translated');
+  assert.match(translated, /translate-provider: (?:googletrans:free:v2|google-cloud-translate:v2|nllb:)/,
+    'translation must record the provider that produced the output');
   });
   await check('translate-nllb', async () => {
   const translated = await run('translate', 'es.cha', {

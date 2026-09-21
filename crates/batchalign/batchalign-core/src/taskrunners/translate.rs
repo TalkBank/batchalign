@@ -72,6 +72,13 @@ impl TaskRunner for TranslateTaskRunner {
         let output: TranslateOutput = output_raw.try_into()?;
 
         inject_translation_tiers(chat, &output.utterances, &*sink)?;
+        if let Some(provider) = output.provider.as_deref() {
+            crate::utils::stamp_provenance(
+                &mut chat.ast_mut().lines,
+                "translate-provider",
+                Some(provider),
+            );
+        }
 
         sink.emit(ProgressEvent::stage_injected(
             chat.source_id(),
