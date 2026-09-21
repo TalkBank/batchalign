@@ -16,17 +16,18 @@ const repository = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..
 assert(process.argv[2], 'usage: node packaged-sidecar-smoke.mjs /path/to/packaged/sidecar (or --cli to validate the harness)');
 const root = await mkdtemp(join(tmpdir(), 'batchalign-packaged-'));
 const reportPath = resolve(process.env.BATCHALIGN_SMOKE_REPORT || 'packaged-sidecar-report.json');
-const results = { mode: cli ? 'cli-harness' : 'packaged-sidecar', binary, root, launches: [], comparison: null };
+const results = { mode: cli ? 'cli-harness' : 'packaged-sidecar', binary, root, launches: [], processes: [], comparison: null };
 let child;
 let exited;
 let tail = '';
 const env = { ...process.env, BATCHALIGN_API_ALLOW_PATHS: '1',
   PYAPP_INSTALL_DIR_BATCHALIGN: join(root, 'environment'),
   XDG_CACHE_HOME: join(root, 'cache'), HF_HOME: join(root, 'models'),
-  PYTHONNOUSERSITE: '1' };
+  PYTHONNOUSERSITE: '1', PYTHONFAULTHANDLER: '1' };
 
 async function stop() {
   if (!child?.pid || child.exitCode !== null) return;
+  results.processes.findLast(process => process.pid === child.pid).requestedStop = true;
   if (process.platform === 'win32') {
     const killer = spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']);
     await once(killer, 'exit');
@@ -47,6 +48,11 @@ async function boot() {
   child = spawn(binary, [...prefix, '--port', '0', '--host', '127.0.0.1', '--no-access-log'], {
     env, cwd: root, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'],
   });
+  const processRecord = { pid: child.pid, startedAt: new Date().toISOString(), requestedStop: false };
+  results.processes.push(processRecord);
+  child.once('exit', (code, signal) => Object.assign(processRecord, {
+    code, signal, exitedAt: new Date().toISOString(),
+  }));
   exited = once(child, 'exit');
   // Install error handlers immediately, including executable/spawn failures.
   exited.catch(() => {});
@@ -130,6 +136,7 @@ try {
   }
 } catch (error) {
   results.error = String(error);
+  results.errorDetail = { stack: error.stack, cause: error.cause?.stack || String(error.cause || '') };
   results.tail = tail;
   process.exitCode = 1;
 } finally {

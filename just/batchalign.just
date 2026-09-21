@@ -10,6 +10,7 @@
 #   lint              mypy (+ ruff if present)
 #   wheel             host-platform wheel into python/target/wheels/
 #   sidecar           self-contained daemon binary via PyApp
+#   shutdown          release the idle Bazel server's memory, preserving outputs
 #
 # Profile is `release` (default) or `debug` for Bazel compilation. Published
 # wheels always use Maturin's release profile; editable installs use dev.
@@ -64,6 +65,11 @@
 
 set shell := ["bash", "-c"]
 set positional-arguments := true
+
+# Release compiler-server memory before running large models. Cached build
+# outputs remain available; a later build starts a new server automatically.
+shutdown:
+    bazel shutdown
 
 # Use Bazel's host-adaptive parallelism for normal builds. Resource-constrained
 # automation can set BATCHALIGN_BAZEL_JOBS without changing user defaults.

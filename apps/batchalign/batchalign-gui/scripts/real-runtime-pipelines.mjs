@@ -66,6 +66,9 @@ export async function testRealPipelines(base, root, repository, results) {
     try { await test(); }
     catch (error) {
       results.realPipelines[recipe] = { ...results.realPipelines[recipe], error: String(error) };
+      results.realPipelines[recipe].errorDetail = {
+        stack: error.stack, cause: error.cause?.stack || String(error.cause || ''),
+      };
       console.error(`${recipe}: ${error}`);
       if (workerMayBeRunning) throw new Error(
         `${recipe}: worker termination is unconfirmed; stopping daemon before further model tests`,

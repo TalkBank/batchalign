@@ -163,6 +163,10 @@ jobs:
       - name: Native startup and process-lifetime regression tests
         run: just batchalign gui native-unit --target ${{ matrix.runner.target }}
 
+      - name: Release build-server memory before model inference
+        if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' }}
+        run: just batchalign shutdown
+
       - name: Install browser for real packaged-daemon GUI pipeline tests
         if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' }}
         working-directory: apps/batchalign/batchalign-gui
@@ -253,6 +257,7 @@ jobs:
         if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'macOS' }}
         run: |
           just batchalign gui build release --target ${{ matrix.runner.target }} --features webdriver --no-bundle --config src-tauri/tauri.webdriver.conf.json
+          just batchalign shutdown
 
       - name: Install macOS QA app and test its native WKWebView
         if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'macOS' }}
@@ -267,6 +272,18 @@ jobs:
           codesign --force --deep --sign - "$installed"
           node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs "$installed/Contents/MacOS/Batchalign" packaged-sidecar-report.json --embedded
 
+      - name: Record Windows runtime failure diagnostics
+        if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $report = Join-Path $env:GITHUB_WORKSPACE 'windows-runtime-diagnostics.txt'
+          Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory, TotalVirtualMemorySize, FreeVirtualMemory | Format-List | Out-File $report
+          Get-Process python*, sidecar*, java* -ErrorAction SilentlyContinue | Select-Object Name, Id, WorkingSet64, PrivateMemorySize64, VirtualMemorySize64 | Format-Table | Out-File $report -Append
+          foreach ($log in @('Application', 'System')) {
+            Get-WinEvent -FilterHashtable @{LogName=$log; StartTime=(Get-Date).AddHours(-3); Id=1000,1001,2004} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'python|sidecar|Batchalign|virtual memory' } | Select-Object TimeCreated, Id, Message | Format-List | Out-File $report -Append
+          }
+          Get-Content $report
+
       - name: Upload installed native-webview evidence
         uses: actions/upload-artifact@v4
         if: always()
@@ -275,6 +292,7 @@ jobs:
           path: |
             native-webview-evidence/
             native-msi-install.log
+            windows-runtime-diagnostics.txt
           retention-days: 7
 
       - name: Upload real-daemon GUI evidence

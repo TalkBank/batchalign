@@ -456,3 +456,31 @@ real native serialization regression, an exhaustive four-boundary
 least-squares oracle, and 1000 seeded ordering/bounds/idempotence checks.
 Full Python suite after the repair: 479 passed, 3 skipped. No model weights
 were downloaded for these checks.
+
+Scheduling at fe961c7e: installed validation now queues independently per
+target, preserving active jobs while completed targets advance. New run
+35548718605 tests the timestamp/launcher fixes. Superseded pending native
+35548634962 was cancelled before execution. Duplicate GUI runs 35547404872
+and 35548635041 were cancelled; frontend code remains identical to the
+all-ten-passed cba9aba0 matrix, and the cancellations free macOS runner
+slots. Older native 35545849846 continues independently for remaining evidence.
+
+Windows runtime 35545849846: cold bootstrap 330567 ms, warm 817 ms; compare,
+259-input smash and recovery, real FA, both diarization fixtures (98.765%
+word speaker agreement), and Google translation pass. Transcription has
+the same 1000-ms overlap regression now fixed. NLLB loses the HTTP connection
+(TypeError: fetch failed); its worker termination is unconfirmed, so the
+harness correctly stops the daemon before attempting another model or GUI
+job. This is NOT an NLLB pass, and its cause is not yet known. The next run
+records child exit codes, cause chains, Python fatal traces, and Windows
+crash/resource events. Release idle Bazel server memory before model tests
+using just batchalign shutdown; cached outputs remain intact. The updated
+harness passes locally through the authoritative CLI with all 259 samples,
+two requested process stops, and no error. Evidence:
+/tmp/batchalign-process-diagnostics-cli.json and
+/tmp/batchalign-windows-runtime-35545849846/packaged-sidecar-report.json.
+The local test daemon and Bazel server are stopped; no local ML download.
+
+Shutdown audit: current native tests prove direct daemon termination after
+readiness. They do not yet prove termination of every installer descendant
+when closing during bootstrap; no unsupported claim of that coverage.
