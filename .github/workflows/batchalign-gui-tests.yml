@@ -42,6 +42,12 @@ jobs:
           cache: npm
           cache-dependency-path: apps/batchalign/batchalign-gui/package-lock.json
       - run: npm ci
+      # macOS 14 is pinned to WebKit 2251. Playwright >=1.62 sends an
+      # unsupported PushAPIEnabled setting before a page can be created.
+      # Keep this OS/browser covered with its compatible driver pairing.
+      - name: Use the compatible macOS 14 WebKit driver
+        if: matrix.os == 'macos-14' && matrix.browser == 'webkit'
+        run: npm install --no-save --package-lock=false @playwright/test@1.60.0 playwright@1.60.0
       - run: npm run build
       - run: npm run test:unit
       - run: npx playwright install --with-deps ${{ matrix.browser }}
