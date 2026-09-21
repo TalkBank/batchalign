@@ -7,6 +7,7 @@ when an intermediate transcript lives in the job's temporary directory.
 from __future__ import annotations
 
 import asyncio
+import gc
 import inspect
 import os
 from pathlib import Path
@@ -136,6 +137,9 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
     artifacts: list[dict[str, str]] = []
     metrics: dict[str, Path] = {}
     absolute_ids = {str(path): sid for sid, path in sources.items()}
+    pipeline = None
+    kwargs: dict[str, Any] = {}
+    value = None
 
     def emit(sid: str, kind: str, step: DesktopStep, label: str | None = None):
         payload = {"source_id": sid, "kind": kind, "task": TASKS[step.recipe],
@@ -214,7 +218,12 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
 
             pipeline.run(inputs, callbacks=[(str(sources[sid]), progress) for sid in current],
                          outcome_callback=outcome, retain_outcomes=False)
-            del pipeline
+            pipeline = None
+            kwargs.clear()
+            value = None
+            # Transformer models can contain Python reference cycles. Native
+            # teardown alone does not reclaim those before the next model load.
+            gc.collect()
             for sid in current:
                 if sid not in pending and sid not in errors and job.state != api.JobState.CANCELLED:
                     errors[sid] = "pipeline returned no outcome"
@@ -245,6 +254,10 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
             for sid in current:
                 emit(sid, "StageFailed", step, job.error)
     finally:
+        pipeline = None
+        kwargs.clear()
+        value = None
+        gc.collect()
         job.finished_at = time.time()
         shutil.rmtree(job.workdir, ignore_errors=True)
         asyncio.run_coroutine_threadsafe(job.events.put(None), loop)

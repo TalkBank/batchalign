@@ -627,3 +627,27 @@ Use try_attach for interpreter-shutdown fallback. The regression fails
 before this repair and passes after it; the full Python suite passes
 488 tests with 3 existing skips. Real cross-platform inference must still
 prove that this repair resolves the observed runtime failures.
+
+ARM runtime 35559727899 (a03aab19) still receives runner shutdown during
+untimed alignment. The watchdog now locates execution inside Whisper's
+encoder during desktop timing recovery. Available memory before untimed
+alignment is 5149974528 bytes; native reference release alone is insufficient.
+A second model-free regression checks cyclic model objects across desktop
+steps and after construction failure, with automatic GC disabled. Both
+cases fail before explicit cleanup. Desktop jobs now clear pipeline and
+backend argument references and collect cycles after each step and in the
+final cleanup path. Both regressions and the full Python suite pass locally;
+real inference with this additional repair remains a CI gate.
+
+Intel macOS run 35552384706 (e5272755) completes the entire native job:
+all real pipeline checks, the GUI morphology-to-compare flow, and both
+cold/warm native launches pass. Untimed alignment takes 629769 ms; cold
+sidecar bootstrap takes 508165 ms and warm bootstrap 1055 ms. The macOS
+native test uses the documented ad-hoc-signed QA app with embedded driver.
+This is evidence for that revision, not a pass for subsequent changes.
+
+Revision 7c7549fb replaces the Windows driver's window-close command with
+CloseMainWindow on the exact installed executable and requires actual host
+exit within ten seconds before checking daemon shutdown and warm relaunch.
+The older driver operation did not establish native-host termination.
+Actual execution of this stronger Windows gate remains pending.

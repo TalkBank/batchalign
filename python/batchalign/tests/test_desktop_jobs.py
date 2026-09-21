@@ -96,6 +96,45 @@ def test_model_construction_failure_is_a_failed_job(desktop, monkeypatch):
     assert source.read_text() == "original"
 
 
+@pytest.mark.parametrize("fails", [False, True])
+def test_job_releases_cyclic_models_between_steps_and_after_failure(desktop, monkeypatch, fails):
+    import gc
+    import weakref
+
+    client, request, _ = desktop
+    references = []
+
+    class Model:
+        def __init__(self):
+            self.cycle = self
+
+    def build(spec):
+        assert all(ref() is None for ref in references), "previous model remains loaded"
+        model = Model()
+        references.append(weakref.ref(model))
+        return model
+
+    monkeypatch.setattr(api, "build_backend", build)
+    for name in ("morphotag", "translate"):
+        factory = recipe(name, [])
+        def make_pipeline(_factory=factory, **kwargs):
+            if fails:
+                raise RuntimeError("construction failed after loading model")
+            return _factory(**kwargs)
+        monkeypatch.setitem(api.RECIPES, name, make_pipeline)
+    enabled = gc.isenabled()
+    gc.disable()
+    try:
+        state, _, _ = run(client, request)
+        assert state["state"] == ("failed" if fails else "completed"), state
+        assert len(references) == (1 if fails else 2)
+        assert all(ref() is None for ref in references)
+    finally:
+        if enabled:
+            gc.enable()
+        gc.collect()
+
+
 def test_force_cpu_and_worker_count_reach_stanza_pipeline(desktop, monkeypatch):
     client, request, _ = desktop
     request.update(force_cpu=True, workers=1)
