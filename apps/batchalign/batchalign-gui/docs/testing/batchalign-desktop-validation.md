@@ -823,3 +823,52 @@ this does not make its failed real-inference suite a pass.
 With the supervisor-session fix, `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`
 passes 508 tests (3 skipped), including the previously failing group-shutdown
 regression. The local Bazel server is stopped after validation.
+
+Run 35588272202 at d5cd782b (supervisor-session fix) passes the complete Linux
+ARM job. Real transcription takes 196009 ms with WER 0.2222; timed and untimed
+alignment take 12110 and 150470 ms. Both diarization fixtures pass, with
+two-speaker word agreement 0.9877. Default and explicit NLLB translation pass,
+as does the real GUI morphotag → compare flow. All 259 smash cases meet their
+expected outcomes (65 completed, 194 source-preserving failures), five invalid
+requests are rejected, and recovery completes. There are no status retries.
+The unmodified installed app passes cold/warm launches (142474/31403 ms),
+47 visible bootstrap updates, comparison, both native window closes and
+daemon cleanup. Direct packaged-daemon cold/warm starts take 143318/525 ms.
+Linux/macOS Python CI and all ten GUI CI jobs also pass at d5cd782b. Other
+targets are still pending verification; the earlier Mac transcription failure
+remains unresolved. These results do not establish five-target completion.
+
+The same run's Linux x64 packaged runtime passes all pipeline assertions,
+real GUI morphotag → compare and 259 smash cases with recovery, without status
+retries. Transcription takes 235951 ms (WER 0.2222), timed/untimed alignment
+15138/211796 ms, and two-speaker word agreement is 0.9877. Its installed native
+app check is still running. Windows passes transcription (590276 ms), timed
+alignment, both diarization fixtures, both translation paths, GUI and smash
+checks, but untimed alignment fails after 130026 ms with `model worker exited
+with code 4294967295`. The full log identifies a Windows access violation during
+Whisper inference (`torch.nn.Linear.forward`), following model-loading traces.
+The runner had 13.9 GB free before this job. The daemon remains responsive and
+subsequent jobs complete; this is still a pipeline failure. Its unmodified MSI
+passes cold/warm launch (320412/2947 ms), 71 visible progress updates, comparison
+and both native window closes. The Windows event report contains no matching
+crash or low-memory event. Root cause of the access violation remains open.
+
+The Windows access violation interrupts a periodic native traceback dump,
+after it prints a frame with an unknown line number. This makes the diagnostic
+watchdog a suspect, not an established cause. Periodic diagnostics now use a
+Python thread to acquire strong frame references with `sys._current_frames()`
+and print their stacks. It waits when native code holds the GIL; the separate
+daemon/supervisor and external resource sampling remain available then. Fatal
+error reporting and all model/output gates remain enabled. Tests exercise real
+periodic capture and sampler cleanup on both success and exception. Model CI
+must establish whether this changes the Windows failure.
+
+Intel Mac's older 46510445 runtime report passes transcription (472643 ms,
+WER 0.2222), timed alignment (41440 ms) and 259 smash inputs with recovery.
+Untimed alignment exceeds 30 minutes while status remains responsive with no
+retries; later model and GUI checks do not run. This older build lacks the
+supervisor-session fix. Both the inference timeout and current-build native
+validation remain outstanding.
+Local validation of the sampler change passes 509 tests (3 skipped) through
+`BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`; the Bazel server is stopped
+afterward to release laptop resources.

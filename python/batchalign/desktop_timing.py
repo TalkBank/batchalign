@@ -5,11 +5,11 @@ Whisper construction lazy so those files never download or load an ASR model.
 """
 from __future__ import annotations
 
-import os
 from threading import Lock
 from typing import Any
 
 from batchalign.backends.base import UTR, BatchPolicy
+from batchalign.desktop_diagnostics import diagnostic_stacks
 
 
 class DesktopTimingRecovery(UTR):
@@ -29,19 +29,8 @@ class DesktopTimingRecovery(UTR):
     def call(self, batch: list[Any], **kwargs: Any) -> list[Any]:
         if not batch:
             return []
-        # Disposable CI runners opt in when diagnosing model-loading stalls.
-        # faulthandler's native watchdog can dump stacks even with the GIL held.
-        diagnostics = os.environ.get("BATCHALIGN_DIAGNOSTIC_TRACEBACKS") == "1"
-        if diagnostics:
-            import faulthandler
-            faulthandler.dump_traceback_later(15, repeat=True)
-            print("[desktop-utr] loading/inferencing Whisper", flush=True)
-        try:
+        with diagnostic_stacks("Whisper timing recovery", interval=15):
             return self._recover(batch, **kwargs)
-        finally:
-            if diagnostics:
-                faulthandler.cancel_dump_traceback_later()
-                print("[desktop-utr] recovery call finished", flush=True)
 
     def _recover(self, batch: list[Any], **kwargs: Any) -> list[Any]:
         with self._lock:

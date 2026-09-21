@@ -23,6 +23,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from batchalign import inputs as ba_inputs
+from batchalign.desktop_diagnostics import diagnostic_stacks
 
 router = APIRouter()
 Verb = Literal["transcribe", "diarize", "align", "morphotag", "translate", "compare"]
@@ -69,14 +70,12 @@ def _diagnostic_phase(label: str):
     """Opt-in CI stacks for stalled model constructors and native inference."""
     enabled = os.environ.get("BATCHALIGN_DIAGNOSTIC_TRACEBACKS") == "1"
     if enabled:
-        import faulthandler
         print(f"[desktop-phase] start {label}", flush=True)
-        faulthandler.dump_traceback_later(60, repeat=True)
     try:
-        yield
+        with diagnostic_stacks(label):
+            yield
     finally:
         if enabled:
-            faulthandler.cancel_dump_traceback_later()
             print(f"[desktop-phase] finish {label}", flush=True)
 
 

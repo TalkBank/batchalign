@@ -28,28 +28,25 @@ def test_model_cleanup_collects_before_optional_linux_allocator_trim(monkeypatch
 
 @pytest.mark.parametrize("enabled", [False, True])
 @pytest.mark.parametrize("fails", [False, True])
-def test_diagnostic_phase_is_opt_in_and_always_cancels_watchdog(monkeypatch, enabled, fails):
-    from unittest.mock import patch
+def test_diagnostic_phase_is_opt_in_and_joins_sampler(monkeypatch, enabled, fails):
+    import threading
     from batchalign.desktop import _diagnostic_phase
 
     monkeypatch.setenv("BATCHALIGN_DIAGNOSTIC_TRACEBACKS", "1" if enabled else "0")
-    with patch("faulthandler.dump_traceback_later") as start, \
-         patch("faulthandler.cancel_dump_traceback_later") as stop:
-        def execute():
-            with _diagnostic_phase("test"):
-                if fails:
-                    raise RuntimeError("original error")
-        if fails:
-            with pytest.raises(RuntimeError, match="original error"):
-                execute()
-        else:
+    samplers = []
+    def execute():
+        with _diagnostic_phase("test"):
+            samplers.extend(thread for thread in threading.enumerate()
+                            if thread.name == "desktop-stack-sampler")
+            assert len(samplers) == int(enabled)
+            if fails:
+                raise RuntimeError("original error")
+    if fails:
+        with pytest.raises(RuntimeError, match="original error"):
             execute()
-        if enabled:
-            start.assert_called_once_with(60, repeat=True)
-            stop.assert_called_once_with()
-        else:
-            start.assert_not_called()
-            stop.assert_not_called()
+    else:
+        execute()
+    assert all(not thread.is_alive() for thread in samplers)
 
 
 @pytest.fixture
