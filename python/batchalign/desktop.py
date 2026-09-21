@@ -157,6 +157,13 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
     pipeline = None
     kwargs: dict[str, Any] = {}
     value = None
+    stages = []
+    for step in req.steps:
+        # Run UTR over the whole batch before constructing FA. Native pipelines
+        # otherwise retain both models while streaming files between stages.
+        if step.recipe == "align" and step.kwargs.get("utr_backend", True) is not None:
+            stages.append((step, "utr", False))
+        stages.append((step, step.recipe, True))
 
     def emit(sid: str, kind: str, step: DesktopStep, label: str | None = None):
         payload = {"source_id": sid, "kind": kind, "task": TASKS[step.recipe],
@@ -165,10 +172,14 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
         asyncio.run_coroutine_threadsafe(job.events.put(payload), loop)
 
     try:
-        for index, step in enumerate(req.steps):
+        for index, (step, recipe, final_stage) in enumerate(stages):
             if job.state == api.JobState.CANCELLED or not current:
                 break
             kwargs = dict(step.kwargs)
+            if recipe == "utr":
+                kwargs = {"utr_backend": kwargs["utr_backend"]} if "utr_backend" in kwargs else {}
+            elif recipe == "align":
+                kwargs.pop("utr_backend", None)
             for key, value in list(kwargs.items()):
                 if api._is_backend_spec_dict(value):
                     value = {**value, "kwargs": dict(value.get("kwargs") or {})}
@@ -177,14 +188,14 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                         value["kwargs"]["device"] = "cpu"
                     with _diagnostic_phase(f"{step.recipe}: load {value['kind']}"):
                         kwargs[key] = api.build_backend(value)
-            if step.recipe == "align" and "utr_backend" not in kwargs:
+            if recipe == "utr" and "utr_backend" not in kwargs:
                 from batchalign.desktop_timing import DesktopTimingRecovery
                 kwargs["utr_backend"] = DesktopTimingRecovery(device="cpu" if req.force_cpu else None)
             opts: dict[str, Any] = {"workers": req.workers}
             if not step.use_cache:
                 from batchalign._core import CacheSpec
                 opts["cache"] = CacheSpec.bypass()
-            pipeline = api.RECIPES[step.recipe](**kwargs, **opts)
+            pipeline = api.RECIPES[recipe](**kwargs, **opts)
             pending = {}
             inputs = []
             for sid, path in current.items():
@@ -207,6 +218,8 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                 sid = absolute_ids.get(payload.get("source_id"))
                 if sid is None or payload.get("kind") == "SourceCompleted":
                     return
+                if not final_stage and payload.get("kind") == "StageInjected":
+                    return
                 payload["source_id"] = sid
                 if payload.get("kind") == "StageFailed":
                     errors[sid] = payload.get("label") or "pipeline stage failed"
@@ -224,17 +237,18 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                         raise RuntimeError(value.error)
                     target = job.workdir / str(index) / Path(sid).with_suffix(".cha")
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    value.write(str(target), strip_word_timing=step.strip_word_timing)
+                    value.write(str(target), strip_word_timing=step.strip_word_timing if final_stage else False)
                     comparison = target.with_suffix(".compare.csv")
                     if comparison.is_file():
                         metrics[sid] = comparison
                     pending[sid] = target
-                    emit(sid, "StageInjected", step)
+                    if final_stage:
+                        emit(sid, "StageInjected", step)
                 except Exception as exc:
                     errors[sid] = str(exc)
                     emit(sid, "StageFailed", step, str(exc))
 
-            with _diagnostic_phase(f"{step.recipe}: pipeline.run"):
+            with _diagnostic_phase(f"{recipe}: pipeline.run"):
                 pipeline.run(inputs, callbacks=[(str(sources[sid]), progress) for sid in current],
                              outcome_callback=outcome, retain_outcomes=False)
             pipeline = None

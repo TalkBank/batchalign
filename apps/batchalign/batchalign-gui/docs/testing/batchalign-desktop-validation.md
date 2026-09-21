@@ -662,3 +662,17 @@ CI-only diagnostic flag to model constructors and pipeline.run, identifying
 each phase and dumping stacks every 60 seconds. Four model-free cases check
 opt-in behavior and watchdog cancellation on success and exceptions. They
 pass through the repository pytest recipe; runtime deadlines stay unchanged.
+
+Runtime 35562533393 (937ca54c) proves that cyclic-model cleanup is helpful
+but insufficient: Linux x64 has 9257877504 bytes available before untimed
+alignment, versus roughly 5.2 GB before cleanup, yet its runner still shuts
+down during that stage. Windows passes transcription (WER 0.2222), timed
+alignment and 259 smash inputs, then loses its daemon during Whisper timing
+recovery. Desktop alignment now runs its UTR batch before constructing FA,
+stages intermediate CHAT privately, releases UTR and collects cycles, then
+loads FA. Both passes retain original source IDs for media lookup. Recovery
+does not emit the final alignment completion event or publish intermediate
+outputs. Model-free regressions cover release before FA construction and
+recovery failure preserving the source and skipping FA. Real-model results
+for this sequencing change remain required; memory snapshots alone do not
+prove the cause of the runner shutdowns.

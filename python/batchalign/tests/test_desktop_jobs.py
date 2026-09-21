@@ -191,13 +191,59 @@ def test_standalone_alignment_includes_lazy_timing_recovery(desktop, monkeypatch
     def make_pipeline(**kwargs):
         options.append(kwargs)
         return factory(**kwargs)
-    monkeypatch.setitem(api.RECIPES, "align", make_pipeline)
+    monkeypatch.setitem(api.RECIPES, "utr", make_pipeline)
+    monkeypatch.setitem(api.RECIPES, "align", recipe("fa", []))
     state, _, _ = run(client, request)
     assert state["state"] == "completed", state
     recovery = options[0]["utr_backend"]
     assert isinstance(recovery, DesktopTimingRecovery)
     assert recovery._device == "cpu"
     assert recovery._backend is None
+
+
+@pytest.mark.parametrize("recovery_fails", [False, True])
+def test_alignment_releases_recovery_before_loading_fa(desktop, monkeypatch, recovery_fails):
+    import weakref
+
+    client, request, source = desktop
+    request["steps"] = [{"recipe": "align", "strip_word_timing": True,
+                         "kwargs": {"fa_backend": {"kind": "Wav2Vec2FaBackend"}}}]
+    seen = []
+    references = []
+    built = []
+
+    def recovery(**kwargs):
+        backend = kwargs["utr_backend"]
+        backend.cycle = backend
+        references.append(weakref.ref(backend))
+        return recipe("utr", seen, fail=recovery_fails)(**kwargs)
+
+    def build(spec):
+        assert references and all(ref() is None for ref in references)
+        built.append(spec["kind"])
+        return object()
+
+    def align(**kwargs):
+        assert "utr_backend" not in kwargs
+        return recipe("fa", seen)(**kwargs)
+
+    monkeypatch.setattr(api, "build_backend", build)
+    monkeypatch.setitem(api.RECIPES, "utr", recovery)
+    monkeypatch.setitem(api.RECIPES, "align", align)
+    state, events, _ = run(client, request)
+    assert state["state"] == ("failed" if recovery_fails else "completed"), state
+    assert source.read_text() == "original"
+    assert all(ref() is None for ref in references)
+    if recovery_fails:
+        assert built == []
+        assert "SourceCompleted" not in events
+        assert not (Path(request["output_path"]) / request["source_ids"][0]).exists()
+    else:
+        assert built == ["Wav2Vec2FaBackend"]
+        assert seen == [("utr", "original", str(source)),
+                        ("fa", "original/utr", str(source))]
+        assert events.count('"kind": "StageInjected"') == 1
+        assert (Path(request["output_path"]) / request["source_ids"][0]).read_text() == "original/utr/fa"
 
 
 def test_local_access_is_required(desktop, monkeypatch):
