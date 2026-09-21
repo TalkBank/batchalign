@@ -651,3 +651,14 @@ CloseMainWindow on the exact installed executable and requires actual host
 exit within ten seconds before checking daemon shutdown and warm relaunch.
 The older driver operation did not establish native-host termination.
 Actual execution of this stronger Windows gate remains pending.
+
+Apple Silicon runtime 35559727899 (a03aab19) passes cold/warm bootstrap
+(157773/924 ms), comparison and input smash, but transcription remains in
+running state at the 30-minute deadline. The harness stops the daemon and
+does not proceed to other models. Its tail contains no inference traceback.
+Windows on the same revision loses its status socket during transcription;
+its diagnostics contain no explanatory crash event. Extend the existing
+CI-only diagnostic flag to model constructors and pipeline.run, identifying
+each phase and dumping stacks every 60 seconds. Four model-free cases check
+opt-in behavior and watchdog cancellation on success and exceptions. They
+pass through the repository pytest recipe; runtime deadlines stay unchanged.

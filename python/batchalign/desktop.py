@@ -7,6 +7,7 @@ when an intermediate transcript lives in the job's temporary directory.
 from __future__ import annotations
 
 import asyncio
+from contextlib import contextmanager
 import gc
 import inspect
 import os
@@ -26,6 +27,22 @@ router = APIRouter()
 Verb = Literal["transcribe", "diarize", "align", "morphotag", "translate", "compare"]
 TASKS = {"transcribe": "Asr", "diarize": "Speaker", "align": "Fa",
          "morphotag": "Morphosyntax", "translate": "Translate", "compare": "Compare"}
+
+
+@contextmanager
+def _diagnostic_phase(label: str):
+    """Opt-in CI stacks for stalled model constructors and native inference."""
+    enabled = os.environ.get("BATCHALIGN_DIAGNOSTIC_TRACEBACKS") == "1"
+    if enabled:
+        import faulthandler
+        print(f"[desktop-phase] start {label}", flush=True)
+        faulthandler.dump_traceback_later(60, repeat=True)
+    try:
+        yield
+    finally:
+        if enabled:
+            faulthandler.cancel_dump_traceback_later()
+            print(f"[desktop-phase] finish {label}", flush=True)
 
 
 class DesktopStep(BaseModel):
@@ -158,7 +175,8 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                     cls = api.BACKEND_CLASSES.get(value["kind"])
                     if req.force_cpu and cls and "device" in inspect.signature(cls.__init__).parameters:
                         value["kwargs"]["device"] = "cpu"
-                    kwargs[key] = api.build_backend(value)
+                    with _diagnostic_phase(f"{step.recipe}: load {value['kind']}"):
+                        kwargs[key] = api.build_backend(value)
             if step.recipe == "align" and "utr_backend" not in kwargs:
                 from batchalign.desktop_timing import DesktopTimingRecovery
                 kwargs["utr_backend"] = DesktopTimingRecovery(device="cpu" if req.force_cpu else None)
@@ -216,8 +234,9 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                     errors[sid] = str(exc)
                     emit(sid, "StageFailed", step, str(exc))
 
-            pipeline.run(inputs, callbacks=[(str(sources[sid]), progress) for sid in current],
-                         outcome_callback=outcome, retain_outcomes=False)
+            with _diagnostic_phase(f"{step.recipe}: pipeline.run"):
+                pipeline.run(inputs, callbacks=[(str(sources[sid]), progress) for sid in current],
+                             outcome_callback=outcome, retain_outcomes=False)
             pipeline = None
             kwargs.clear()
             value = None

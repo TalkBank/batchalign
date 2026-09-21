@@ -9,6 +9,32 @@ from batchalign import api
 from batchalign.desktop import DesktopRequest, _sources
 
 
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("fails", [False, True])
+def test_diagnostic_phase_is_opt_in_and_always_cancels_watchdog(monkeypatch, enabled, fails):
+    from unittest.mock import patch
+    from batchalign.desktop import _diagnostic_phase
+
+    monkeypatch.setenv("BATCHALIGN_DIAGNOSTIC_TRACEBACKS", "1" if enabled else "0")
+    with patch("faulthandler.dump_traceback_later") as start, \
+         patch("faulthandler.cancel_dump_traceback_later") as stop:
+        def execute():
+            with _diagnostic_phase("test"):
+                if fails:
+                    raise RuntimeError("original error")
+        if fails:
+            with pytest.raises(RuntimeError, match="original error"):
+                execute()
+        else:
+            execute()
+        if enabled:
+            start.assert_called_once_with(60, repeat=True)
+            stop.assert_called_once_with()
+        else:
+            start.assert_not_called()
+            stop.assert_not_called()
+
+
 @pytest.fixture
 def desktop(tmp_path, monkeypatch):
     monkeypatch.setenv("BATCHALIGN_API_ALLOW_PATHS", "1")
