@@ -28,7 +28,7 @@ let tail = '';
 const env = { ...process.env, BATCHALIGN_API_ALLOW_PATHS: '1',
   PYAPP_INSTALL_DIR_BATCHALIGN: join(root, 'environment'),
   XDG_CACHE_HOME: join(root, 'cache'), HF_HOME: join(root, 'models'),
-  PYTHONNOUSERSITE: '1', PYTHONFAULTHANDLER: '1' };
+  PYTHONNOUSERSITE: '1', PYTHONFAULTHANDLER: '1', BATCHALIGN_DIAGNOSTIC_TRACEBACKS: '1' };
 
 async function stop() {
   if (!child?.pid || child.exitCode !== null) return;

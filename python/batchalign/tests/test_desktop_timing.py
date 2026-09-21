@@ -34,6 +34,24 @@ def test_failed_model_load_remains_retryable_and_is_not_a_success():
         assert factory.call_count == 2
 
 
+@pytest.mark.parametrize("fails", [False, True])
+def test_diagnostic_watchdog_is_cancelled_when_recovery_finishes(fails):
+    with patch.dict('os.environ', {'BATCHALIGN_DIAGNOSTIC_TRACEBACKS': '1'}), \
+         patch('faulthandler.dump_traceback_later') as start, \
+         patch('faulthandler.cancel_dump_traceback_later') as stop, \
+         patch('batchalign.backends.asr.whisper.WhisperBackend') as factory:
+        backend = DesktopTimingRecovery(device='cpu')
+        if fails:
+            factory.side_effect = RuntimeError('load failed')
+            with pytest.raises(RuntimeError, match='load failed'):
+                backend.call([Mock()])
+        else:
+            factory.return_value.call.return_value = ['recovered']
+            assert backend.call([Mock()]) == ['recovered']
+        start.assert_called_once_with(15, repeat=True)
+        stop.assert_called_once_with()
+
+
 @pytest.mark.parametrize("timed", [True, False])
 @pytest.mark.parametrize("media_stem", ["clip", "recording", "recording.part"])
 def test_native_recovery_dispatch_depends_on_existing_timing(tmp_path, timed, media_stem):

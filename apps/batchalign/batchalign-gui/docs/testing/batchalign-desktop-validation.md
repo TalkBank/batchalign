@@ -587,3 +587,17 @@ record start/outcome and system memory at start, so interrupted runs retain
 more diagnostic evidence. These changes do not relax output assertions or
 status deadlines. Evidence: /tmp/batchalign-windows-runtime-35552384706 and
 /tmp/batchalign-windows-native-35552384706.
+
+Apple Silicon runtime 35552384706 also fails during untimed alignment:
+transcription passes (WER 0.2222, 1447120 ms), timed FA passes (36743 ms),
+then the job-status connection resets. The harness requests shutdown and
+requires SIGKILL after its grace period. Subsequent pipelines are not run.
+Evidence: /tmp/batchalign-mac-arm-runtime-35552384706. Enable an opt-in
+faulthandler watchdog around desktop timing recovery in the CI harness to
+capture Python stacks during the stall; cancel it on both return and error.
+No timeout or model-output assertion is relaxed.
+
+The ARM retry 35554671549 again receives a runner shutdown signal shortly
+after the MMS_FA download. Linux x64 job 106189398537 is terminal with a
+GitHub annotation that its hosted runner lost communication; its log blob
+is missing. These observations do not establish a memory-exhaustion cause.
