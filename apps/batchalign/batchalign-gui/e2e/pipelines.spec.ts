@@ -39,6 +39,11 @@ function install() {
   w.__TAURI_INTERNALS__.invoke = async (cmd: string, args: any) => {
     if (cmd === 'list_folder_files' && w.__SCAN_FAILURE__) throw new Error('folder unavailable');
     if (cmd === 'ensure_daemon') return 43210;
+    if (cmd === 'reveal_in_file_manager') {
+      if (w.__REVEAL_FAILURE__) throw new Error('folder opener unavailable');
+      w.__REVEALED_PATH__ = args.path;
+      return;
+    }
     if (cmd === 'start_batch_pump') { w.__CURRENT_JOB__ = args; return; }
     if (cmd === 'daemon_request') {
       if (args.path === '/capabilities') return { recipes: {}, backends_by_task: {} };
@@ -52,6 +57,33 @@ function install() {
     }
     return original(cmd, args);
 };
+}
+
+for (const outputPath of [null, '/outputs with spaces/é', 'C:\\Outputs with spaces\\é']) {
+  test(`reveal outputs opens the completed job destination (${outputPath ?? 'in place'})`, async ({ page }) => {
+    await page.addInitScript({ content: stub + `\n(${install.toString()})();` });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'open folder…' }).click();
+    if (outputPath) {
+      await page.getByText('in place', { exact: true }).click();
+      await page.getByRole('textbox').last().fill(outputPath);
+    }
+    await page.getByRole('button', { name: '+ add step', exact: true }).click();
+    await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
+    await page.getByRole('button', { name: 'start batch', exact: true }).click();
+    const reveal = page.getByRole('button', { name: 'reveal outputs', exact: true });
+    await expect(reveal).toBeVisible();
+    // Editing the next job's destination must not change where completed files live.
+    if (!outputPath) await page.getByText('in place', { exact: true }).click();
+    await page.getByRole('textbox').last().fill('/next job');
+    await page.evaluate(() => { (window as any).__REVEAL_FAILURE__ = true; });
+    await reveal.click();
+    await expect(page.getByRole('alert')).toContainText('folder opener unavailable');
+    await page.evaluate(() => { (window as any).__REVEAL_FAILURE__ = false; });
+    await reveal.click();
+    await expect.poll(() => page.evaluate(() => (window as any).__REVEALED_PATH__)).toBe(outputPath ?? '/fixtures');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
 }
 
 test('completed file waits for terminal job status before the next batch', async ({ page }) => {

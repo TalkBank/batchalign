@@ -75,6 +75,8 @@ export interface Batch {
   folderPath: string;
   inPlace: boolean;
   outputPath: string | null;
+  /** Destination of the submitted job, independent of later settings edits. */
+  jobOutputPath?: string | null;
   pipeline: VerbStep[];
   config: Record<VerbStep, VerbConfig>;
   files: Record<string, FileRow>;
@@ -376,6 +378,7 @@ export function reducer(state: AppState, action: Action): AppState {
           [action.batchId]: {
             ...batch,
             jobId: action.jobId,
+            jobOutputPath: batch.inPlace ? batch.folderPath : batch.outputPath,
             files,
             fileOrder,
             state: "running",

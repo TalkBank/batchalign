@@ -1,7 +1,8 @@
 // Right-pane header: "N of M done|processing|queued · eta · elapsed ·
-// workers · cancel|reveal". Pure derivation from the active batch in the
-// store.
+// workers · cancel|reveal". Reads the active batch and opens its output folder.
 
+import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useStore } from "../store";
 import Stat from "./Stat";
 
@@ -20,6 +21,7 @@ function fmtHMS(ms: number): string {
 
 export default function JobsHeader() {
   const { activeBatchId, batches } = useStore();
+  const [revealError, setRevealError] = useState<{ batchId: string; message: string } | null>(null);
   const batch = activeBatchId ? batches[activeBatchId] : null;
   if (!batch) return null;
 
@@ -33,6 +35,16 @@ export default function JobsHeader() {
   const isDone = batch.state === "done";
   const isFailed = batch.state === "failed";
   const isRunning = batch.state === "running";
+  const outputPath = batch.jobOutputPath ?? (batch.inPlace ? batch.folderPath : batch.outputPath);
+  async function revealOutputs() {
+    if (!batch || !outputPath) return;
+    setRevealError(null);
+    try {
+      await invoke("reveal_in_file_manager", { path: outputPath });
+    } catch (error) {
+      setRevealError({ batchId: batch.id, message: String(error) });
+    }
+  }
   const verb = isDone
     ? "done"
     : isFailed
@@ -88,8 +100,13 @@ export default function JobsHeader() {
         {isRunning ? (
           <button className="ba-btn ba-btn--sm">cancel batch</button>
         ) : isDone ? (
-          <button className="ba-btn ba-btn--sm">reveal outputs</button>
+          <button className="ba-btn ba-btn--sm" onClick={revealOutputs} disabled={!outputPath}>reveal outputs</button>
         ) : null}
+        {revealError?.batchId === batch.id && (
+          <span role="alert" style={{ color: "var(--fg-muted)", fontSize: "var(--fs-sm)" }}>
+            Could not reveal outputs: {revealError.message}
+          </span>
+        )}
       </div>
     </div>
   );
