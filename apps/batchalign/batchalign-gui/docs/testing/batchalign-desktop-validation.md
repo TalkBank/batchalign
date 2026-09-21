@@ -20,7 +20,75 @@ installations on GitHub runners; local tests use one worker.
   tests that stub Tauri. Pipeline correctness requires real model/provider tests.
 - Retain CI logs, reports and screenshots/traces for review.
 
-## Evidence and implemented fixes (2026-09-20)
+## Current verification status (2026-09-21)
+
+Revision `61fff110` passes the five-target validation using
+[bundle run 35609354627](https://github.com/TalkBank/batchalign/actions/runs/35609354627).
+Linux arm64, Linux x86_64 and Apple Silicon have passed their complete jobs:
+packaged cold/warm bootstrap, all six default pipeline output checks, real GUI
+morphotag → compare, 259 seeded smash cases with recovery, and native GUI
+startup/comparison/shutdown. All ten Chromium/WebKit matrix jobs pass in
+[GUI run 35609354888](https://github.com/TalkBank/batchalign/actions/runs/35609354888).
+
+Intel Mac has also passed all packaged pipeline output checks at this revision:
+transcription 323183 ms (WER 0.2222), timed/untimed alignment 34247/266889 ms,
+both diarization fixtures (two-speaker word agreement 0.9877), both translation
+paths, real GUI morphotag → compare and all 259 smash cases with recovery.
+Cold/warm daemon starts take 255779/725 ms, without status retries. Its native
+QA GUI test also passes: cold/warm launch 183735/1242 ms, 74 visible bootstrap
+progress updates, correct comparison output and daemon cleanup, with no driver
+error. This verifies the updated macOS callback probes on both architectures.
+
+Windows failed during packaging with a dependency-download HTTP 504; a first
+targeted retry failed downloading just with the same HTTP status. A second
+[Windows-only retry](https://github.com/TalkBank/batchalign/actions/runs/35617064968)
+at the same revision passes packaging, native startup/process-lifetime
+regression tests and all packaged runtime checks. Cold/warm daemon starts take
+634935/471 ms. Transcription takes 1216923 ms (WER 0.2222), timed/untimed
+alignment 53563/1407818 ms, and two-speaker word agreement is 0.9877. Both
+diarization fixtures, both translation paths, real GUI morphotag → compare and
+all 259 smash cases with recovery pass, without status retries. The unmodified
+installed MSI also passes: cold/warm launch 434215/4711 ms, 102 visible bootstrap
+progress updates, correct comparison output, both native WM_CLOSE requests and
+daemon cleanup. The complete Windows-only retry is green.
+
+All five platform jobs and all ten browser matrix jobs have passed at the same
+revision. Native Windows and Linux checks drive the unmodified installed release
+app. macOS checks use
+a separate QA app with embedded WebDriver instrumentation, with xattrs cleared
+and ad-hoc signing; production artifacts remain uninstrumented. Real inference
+covers the six default pipeline steps and the explicitly tested local NLLB
+alternative, not every optional credentialed provider, language or GPU.
+
+The initial bundle workflow remains red because of its Windows download failure;
+the successful Windows-only run supplies that platform's replacement evidence.
+Download Mac/Linux packages from the initial run and the Windows package from
+the successful retry. Package artifacts are named `batchalign-<target>`; runtime
+reports are `packaged-runtime-<target>` and native screenshots/reports are
+`native-webview-<target>`. These are CI artifacts with finite retention, not a
+signed/notarized release.
+
+For the unsigned Mac app copied out of its DMG, the tested bypass is
+`xattr -cr /path/to/Batchalign.app` followed by
+`codesign --force --deep --sign - /path/to/Batchalign.app`.
+The first launch installs the environment and shows streamed progress; the warm
+launch reuses it. Heavy cleanroom builds and model runs stayed on GitHub runners.
+
+The passing frontend matrix includes 100 randomized lifecycle sequences, 500
+tab-action sequences, 1,000 mixed progress sequences, 200 pipeline-request
+sequences, and three browser stress seeds with 80 interactions each. Each
+packaged runtime independently exercises 259 smash cases (65 successful jobs,
+194 expected failures preserving inputs), five rejected requests and a successful
+recovery job. Actual inference assertions check transcription WER, timed and
+untimed alignment, speaker attribution, translation meaning, morphology and
+comparison metrics. Local Python validation passes 518 tests with three skips;
+the local Bazel server was stopped after validation.
+
+## Historical evidence and implemented fixes (starting 2026-09-20)
+
+The following is a chronological investigation log. Statements that a check
+is pending or a failure remains unresolved describe the revision at that point
+in the investigation; the current status above takes precedence.
 
 - Starting worktree: 46be801. Its published build run 34803282092 succeeded for
   macOS arm64/x86_64 and Linux x86_64, but tested no installation or pipelines.
@@ -69,7 +137,7 @@ installations on GitHub runners; local tests use one worker.
   /tmp/batchalign-cleanroom-34803282092. Do not bootstrap its ML dependencies
   locally; use disposable CI runners.
 
-## Remaining work / findings to verify
+## Historical findings and follow-up verification
 
 - Run and fix the expanded CI bundle/bootstrap matrix, including Windows build
   portability. Add installed native-webview automation (not just sidecar tests),
