@@ -40,11 +40,6 @@ on:
       - ".github/workflows/bazel-tauri-batchalign.yml"
   workflow_dispatch:
 
-concurrency:
-  group: bazel-tauri-batchalign-${{ github.ref }}
-  # Preserve costly cleanroom evidence when a follow-up fix is pushed.
-  cancel-in-progress: false
-
 env:
   BAZELISK_SKIP_WRAPPER: true
 
@@ -53,6 +48,9 @@ jobs:
   # (next job) only triggers on `main` / dispatch so PR CI stays fast.
   smoke:
     runs-on: ubuntu-latest
+    concurrency:
+      group: bazel-tauri-batchalign-smoke-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: bazel-contrib/setup-bazel@0.19.0
@@ -75,6 +73,11 @@ jobs:
     if: github.event_name != 'pull_request'
     name: bundle (${{ matrix.runner.target }})
     runs-on: ${{ matrix.runner.os }}
+    concurrency:
+      # Preserve an active platform's costly cleanroom evidence, while
+      # letting completed platforms advance without waiting for the slowest.
+      group: bazel-tauri-batchalign-${{ github.ref }}-${{ matrix.runner.target }}
+      cancel-in-progress: false
     timeout-minutes: 180
     defaults:
       run:
