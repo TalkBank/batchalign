@@ -49,10 +49,28 @@ async function command(method, path, body) {
     signal: AbortSignal.timeout(60_000),
   });
   const result = await response.json();
-  if (!response.ok || result.value?.error) throw new Error(JSON.stringify(result));
+  if (!response.ok || result.error || result.value?.error) {
+    report.failedCommand ||= { method, path, script: body?.script };
+    throw new Error(JSON.stringify(result));
+  }
   return result.value;
 }
 async function script(code, args = [], async = false) {
+  if (embedded && !async) {
+    // The macOS plugin's synchronous endpoint stores results in a page global
+    // and polls evaluateJavaScript. Its direct-eval endpoint instead keeps the
+    // headless WebKit run loop active and delivers results through a native
+    // message handler. Restrict that endpoint's re-dispatch to read-only probes:
+    // application IPC (including job submission) keeps the async session path.
+    return command('POST', '/wdio/eval', {
+      timeout_ms: 45000,
+      script: `const done = arguments[arguments.length - 1];
+        try {
+          const value = (function() { ${code} }).apply(null, ${JSON.stringify(args)});
+          done({ ok: true, value: value === undefined ? null : value });
+        } catch (error) { done({ ok: false, error: String(error) }); }`,
+    });
+  }
   return command('POST', `/session/${session}/execute/${async ? 'async' : 'sync'}`, { script: code, args });
 }
 async function invoke(name, args = {}) {

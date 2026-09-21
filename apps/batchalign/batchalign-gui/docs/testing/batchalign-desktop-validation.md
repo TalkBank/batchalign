@@ -895,3 +895,69 @@ Local compatibility/unit validation passes 518 tests (3 skipped) with
 `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`. The local locked PyTorch is
 older than 2.5, so full half-precision inference is deliberately left to the
 packaged Apple Silicon CI runtime rather than claimed from these unit tests.
+
+Apple Silicon run [35597225840](https://github.com/TalkBank/batchalign/actions/runs/35597225840)
+at c78d6eeb passes the real packaged pipeline checks with float16: transcription
+522738 ms (WER 0.2222), timed/untimed alignment 27295/666066 ms, both diarization
+fixtures (two-speaker word agreement 0.9877), both translation paths, real GUI
+morphotag → compare and 259 smash cases with recovery. Cold/warm daemon starts
+take 103418/418 ms, without status retries. Its 24 minute-spaced resource
+snapshots show peak sampled swap use of 1022.94 MB, compared with roughly 9 GB
+in the earlier float32 run. Transcription drops from 29.0 to 8.7 minutes and
+untimed alignment from 25.7 to 11.1 minutes with the same measured transcription
+WER. These are separate CI runs, not a controlled benchmark; snapshots do not
+measure an instantaneous memory maximum. The result verifies this fixture's
+accuracy and substantially lower observed memory pressure. Its installed macOS
+QA app (embedded WebDriver feature) also passes cold/warm launch at
+101796/3926 ms, 36 visible bootstrap progress updates and native comparison.
+The remaining latest-commit platform checks are still running; this is not
+five-target completion.
+
+The same c78d6eeb run's Linux ARM packaged runtime passes all pipeline output
+assertions, real GUI morphotag → compare and 259 smash cases with recovery,
+without status retries. Transcription takes 204574 ms (WER 0.2222), timed and
+untimed alignment 12088/161894 ms, and two-speaker word agreement is 0.9877.
+Cold/warm daemon starts take 138876/643 ms. Its unmodified installed native app
+also passes cold/warm launch (140737/30892 ms), 46 visible bootstrap progress
+updates, comparison, both native window closes and daemon cleanup.
+
+Windows run [35596479887](https://github.com/TalkBank/batchalign/actions/runs/35596479887)
+at cd4fcea5 passes every real pipeline after the Python-safe diagnostic sampler
+change, including untimed alignment (895708 ms), which previously crashed with
+an access violation. Transcription takes 956768 ms (WER 0.2222), timed alignment
+42082 ms, and two-speaker word agreement is 0.9877. Both translation paths,
+real GUI morphotag → compare and 259 smash cases with recovery pass, with no
+status retries. Cold/warm daemon starts take 580679/529 ms. This successful run
+supports the change but does not establish the previous crash's root cause.
+Its unmodified installed MSI also passes cold/warm launch (415169/4563 ms),
+98 visible bootstrap progress updates, native comparison, both WM_CLOSE
+requests and daemon cleanup. The latest-commit Windows rerun remains
+outstanding.
+
+Linux x64 in run 35597225840 (c78d6eeb) passes all real pipeline assertions,
+GUI morphotag → compare and 259 smash cases with recovery, without status
+retries. Transcription takes 326714 ms (WER 0.2222), timed/untimed alignment
+13076/232768 ms, and two-speaker word agreement is 0.9877. Cold/warm daemon
+starts take 263381/598 ms. Its unmodified installed native app also passes
+cold/warm launch (264260/31577 ms), 80 visible bootstrap progress updates,
+comparison, both native window closes and daemon cleanup.
+
+Intel Mac's cd4fcea5 installed QA app check fails before recording its first
+launch, with a WebDriver script timeout. The failure screenshot shows a
+responsive bootstrap overlay at 44 seconds with pip progress; the report has
+no sampled progress, so it does not establish an application bootstrap failure
+or a successful startup. The test now sends read-only macOS UI probes through
+the installed plugin's `/wdio/eval` callback/message-handler path, which keeps
+the headless WebKit run loop active, instead of its synchronous page-global
+polling endpoint. Application IPC and job submission keep the existing async
+session path, avoiding the direct-eval endpoint's possible re-dispatch of
+mutations. Driver errors now retain the failing request path/script. Script
+syntax and diff checks pass; native CI must verify this test-driver change.
+
+Intel Mac run 35596479887 (cd4fcea5) passes all real pipeline assertions,
+GUI morphotag → compare and 259 smash cases with recovery, without status
+retries. Transcription takes 815473 ms (WER 0.2222), timed/untimed alignment
+47499/561048 ms, and two-speaker word agreement is 0.9877. Both translation
+paths pass. Cold/warm daemon starts take 313416/754 ms. Untimed alignment
+finishes within the unchanged 30-minute deadline. Installed macOS QA app
+verification and the latest-commit Intel Mac rerun remain outstanding.
