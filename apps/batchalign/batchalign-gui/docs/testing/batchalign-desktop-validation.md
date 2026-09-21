@@ -872,3 +872,26 @@ validation remain outstanding.
 Local validation of the sampler change passes 509 tests (3 skipped) through
 `BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`; the Bazel server is stopped
 afterward to release laptop resources.
+
+Apple Silicon run 35587491048 (750d525a) passes all real pipeline assertions:
+transcription 1742933 ms (WER 0.2222), timed/untimed alignment 28219/1539638 ms,
+both diarization fixtures (two-speaker agreement 0.9877), both translation
+paths, real GUI morphotag → compare and all 259 smash cases with recovery.
+No status retries occur. Its 59 resource snapshots reveal severe memory
+pressure: swap grows from zero to about 9 GB during transcription, while
+the worker often has low CPU utilization. This explains a concrete resource
+constraint behind the near-deadline result; it does not prove every earlier
+timeout has the same cause.
+
+Whisper now selects float16 when loading on Apple Silicon CPU with PyTorch
+2.5 or newer, reducing model-weight storage by half. PyTorch introduced CPU
+float16 support in [2.5](https://pytorch.org/blog/pytorch2-5/). Other CPU targets
+and older PyTorch keep float32, including Intel macOS with its 2.2 dependency.
+The checkpoint, generation options, word timestamps, output gates and deadlines
+remain unchanged. ASR/UTR cache versions advance for the numerical change.
+Real packaged inference and resource reports must verify accuracy and memory
+improvement before this is considered a successful performance fix.
+Local compatibility/unit validation passes 518 tests (3 skipped) with
+`BATCHALIGN_BAZEL_JOBS=1 just batchalign pytest`. The local locked PyTorch is
+older than 2.5, so full half-precision inference is deliberately left to the
+packaged Apple Silicon CI runtime rather than claimed from these unit tests.

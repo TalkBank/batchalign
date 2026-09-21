@@ -16,10 +16,22 @@ or :class:`WhisperXBackend` for that.
 from __future__ import annotations
 
 import math
+import platform
+import sys
 from typing import Any
 
 from batchalign.backends.base import ASR, UTR, BatchPolicy
 from batchalign.lang import LanguageCode
+
+
+def _cpu_dtype(torch):
+    # CPU float16 kernels are supported from PyTorch 2.5. Apple Silicon's
+    # small unified-memory machines otherwise spend inference swapping the
+    # float32 model and attention buffers. Intel macOS remains on torch 2.2.
+    version = tuple(int(part) for part in torch.__version__.split(".")[:2])
+    if sys.platform == "darwin" and platform.machine() == "arm64" and version >= (2, 5):
+        return torch.float16
+    return torch.float32
 
 
 def _monotonic_boundaries(boundaries: list[int]) -> list[int]:
@@ -77,10 +89,8 @@ class WhisperBackend(ASR, UTR):
         kwargs: dict[str, Any] = {"chunk_length_s": chunk_length_s, "device": device}
         cpu = torch.device(device).type == "cpu"
         if cpu:
-            # The checkpoint's auto dtype is float16. Intel macOS is pinned
-            # to torch 2.2, whose CPU LayerNorm has no half-precision kernel.
-            # Choose the dtype while loading to avoid a second model copy.
-            kwargs["dtype"] = torch.float32
+            # Select while loading, avoiding a second copy of the model.
+            kwargs["dtype"] = _cpu_dtype(torch)
         self._pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -97,7 +107,7 @@ class WhisperBackend(ASR, UTR):
     @property
     def name(self) -> str:
         # Auto-language inputs still use the constructor's language hint.
-        return f"whisper:{self._model}:{self._language}:v3"
+        return f"whisper:{self._model}:{self._language}:v4"
 
     @property
     def batch_policy(self) -> BatchPolicy:
