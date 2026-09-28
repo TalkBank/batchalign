@@ -50,6 +50,7 @@ or over their input as described below. See [Command I/O](../reference/command-i
 |---|---|
 | `transcribe` | Recording to CHAT transcript |
 | `align` | Forced alignment of CHAT against audio |
+| `phonetic` | Add observed IPA to `%pho` using audio and phone-sequence DP |
 | `morphotag` | Add `%mor` and `%gra` |
 | `utseg` | Revise utterance segmentation |
 | `translate` | Add translation tiers |
@@ -142,6 +143,40 @@ Accepts the shared input selection and `-o/--out` options above.
 |---|---|---|
 | `--engine` | pyannote-ai | Choices: `pyannote-ai`, `pyannote`. Diarization engine: pyannote-ai (cloud) or pyannote (local). |
 | `--num-speakers`, `-n` | 0 | Expected speaker count; zero auto-detects. |
+
+## phonetic
+
+Accepts timed CHAT and matching audio, using shared input selection and
+`-o/--out`. Install the `phonetic` extra for PhoneticXeus and packaged
+pronunciation data. The first inference downloads the pinned model revision;
+building the CLI and displaying help do not download model weights.
+
+```bash
+just batchalign cli phonetic recording.cha --out phonetic-output --force-cpu
+```
+
+The command recognizes phones from audio and DP-aligns them against reference
+pronunciations to recover word boundaries. `%pho` retains the observed IPA,
+including pronunciation differences. Existing `%pho` tiers are preserved.
+The input must have utterance timing bullets; use `utr` first when needed.
+Word-level forced alignment is not required.
+
+| Option | Default | Details |
+|---|---|---|
+| `--pronunciations` | None | JSON mapping from words or whole phonological units to IPA strings. Overrides packaged English lookup; required for unknown words and other languages. |
+| `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
+
+For example, an override file can contain `{"wug": "wʌɡ"}`. English lookup uses
+the first CMUdict pronunciation; alternatives and dialect differences can be
+overridden. No system G2P executable is needed. An unknown pronunciation, invalid
+audio window, or alignment leaving a word without phones fails the file without
+overwriting it. Insertions between word anchors attach to the preceding word;
+review inferred boundaries, especially around reduced or atypical speech.
+
+Python pipelines can compose `recipes.phonetic(phonetic_backend=backend,
+utr_backend=...)` with existing tasks. Custom backends implement the `Phonetic`
+marker and typed `PhoneticInput`/`PhoneticOutput` contract; the Rust runner owns
+CHAT extraction, result validation, and tier insertion.
 
 ## ai
 

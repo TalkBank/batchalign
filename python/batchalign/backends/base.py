@@ -47,6 +47,7 @@ except ImportError:
         Ai = "Ai"
         Asr = "Asr"
         Fa = "Fa"
+        Phonetic = "Phonetic"
         Speaker = "Speaker"
         UtSeg = "UtSeg"
         Utr = "Utr"
@@ -158,6 +159,10 @@ class FA(Backend):
     """Marker: this backend handles `Task.Fa` (forced alignment) inputs."""
 
 
+class Phonetic(Backend):
+    """Marker: acoustic phonetic transcription (`Task.Phonetic`)."""
+
+
 class Speaker(Backend):
     """Marker: this backend handles `Task.Speaker` (diarization) inputs."""
 
@@ -202,6 +207,7 @@ _TASK_BY_ABC: dict[type, Task] = {
     AI: Task.Ai,
     ASR: Task.Asr,
     FA: Task.Fa,
+    Phonetic: Task.Phonetic,
     Speaker: Task.Speaker,
     UtSeg: Task.UtSeg,
     UTR: Task.Utr,
@@ -226,6 +232,7 @@ __all__ = [
     "AI",
     "ASR",
     "FA",
+    "Phonetic",
     "Speaker",
     "UtSeg",
     "Morphosyntax",

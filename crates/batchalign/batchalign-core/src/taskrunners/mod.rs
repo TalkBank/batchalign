@@ -10,6 +10,7 @@ pub mod convert;
 pub mod coref;
 pub mod fa;
 mod media;
+pub mod phonetic;
 pub mod morphosyntax;
 pub mod speaker;
 pub mod translate;
@@ -31,6 +32,7 @@ pub fn canonical(task: Task) -> Box<dyn DynTaskRunner> {
         Task::Ai => Box::new(ai::AiTaskRunner::default()),
         Task::Asr => Box::new(asr::AsrTaskRunner),
         Task::Fa => Box::new(fa::FaTaskRunner),
+        Task::Phonetic => Box::new(phonetic::PhoneticTaskRunner),
         Task::Speaker => Box::new(speaker::SpeakerTaskRunner),
         Task::UtSeg => Box::new(utseg::UtSegTaskRunner),
         Task::Morphosyntax => Box::new(morphosyntax::MorphosyntaxTaskRunner),

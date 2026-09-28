@@ -48,6 +48,12 @@ from batchalign._core._proto_generated import (  # noqa: F401
     # Forced alignment
     FaInput,
     FaOutput,
+    # Phonetic transcription
+    PhoneticInput,
+    PhoneticOutput,
+    PhoneticUtterance,
+    PhoneticUnit,
+    PhoneticResult,
     # Speaker diarization
     Diarization,
     DiarizationSegment,
@@ -115,6 +121,7 @@ _TAG_TO_INPUT: dict[str, type] = {
     "Ai": AiInput,
     "Asr": AsrInput,
     "Fa": FaInput,
+    "Phonetic": PhoneticInput,
     "Speaker": SpeakerInput,
     "UtSeg": UtSegInput,
     # UTR's wire payload is byte-identical to AsrInput (Rust-side
@@ -134,6 +141,7 @@ _OUTPUT_TO_TAG: dict[type, str] = {
     AiOutput: "Ai",
     AsrOutput: "Asr",
     FaOutput: "Fa",
+    PhoneticOutput: "Phonetic",
     SpeakerOutput: "Speaker",
     UtSegOutput: "UtSeg",
     MorphosyntaxOutput: "Morphosyntax",

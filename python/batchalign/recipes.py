@@ -127,6 +127,19 @@ def utr(*, utr_backend: Any, **opts: Any) -> Any:
     return Pipeline(tasks=[Task.Utr], backends=[utr_backend], **opts)
 
 
+def phonetic(
+    *, phonetic_backend: Any, utr_backend: Any | None = None, **opts: Any
+) -> Any:
+    """Add observed IPA to `%pho`; optionally recover utterance timing first."""
+    Task, Pipeline = _core()
+    tasks = [Task.Phonetic]
+    backends = [phonetic_backend]
+    if utr_backend is not None:
+        tasks.insert(0, Task.Utr)
+        backends.insert(0, utr_backend)
+    return Pipeline(tasks=tasks, backends=backends, **opts)
+
+
 def morphotag(*, stanza_backend: Any, **opts: Any) -> Any:
     """Morphosyntax tagging via Stanza (UD `%mor` / `%gra`)."""
     Task, Pipeline = _core()
@@ -213,6 +226,7 @@ __all__ = [
     "align",
     "utr",
     "morphotag",
+    "phonetic",
     "translate",
     "ai",
     "coref",
