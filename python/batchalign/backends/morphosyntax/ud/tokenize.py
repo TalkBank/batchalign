@@ -8,7 +8,7 @@ segmentation would otherwise diverge from the main-tier tokenization.
 
 Port of `batchalign2/batchalign/pipelines/morphosyntax/ud.py`:
 `tokenizer_processor`, `conform`, `matches`, `matches_in`, `front_matches`,
-`adlist_postprocessor`. The DP char-aligner lives in `dp.py` (copied verbatim).
+`adlist_postprocessor`. Character alignment uses the shared `batchalign.utils.dp` wrapper.
 
 A Stanza `tokenize_postprocessor` receives a list of sentences, each a list of
 tokens (a token is a `str`, or a `(text, is_mwt)` tuple). We rewrite each
@@ -21,7 +21,7 @@ import copy
 import re
 from itertools import groupby
 
-from .dp import PayloadTarget, ReferenceTarget, align
+from batchalign.utils.dp import PayloadTarget, ReferenceTarget, align
 from .it.workarounds import NATIVE_MWT_SURFACES
 
 

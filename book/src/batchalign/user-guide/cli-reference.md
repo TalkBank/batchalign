@@ -163,7 +163,7 @@ Word-level forced alignment is not required.
 
 | Option | Default | Details |
 |---|---|---|
-| `--pronunciations` | None | JSON mapping from words or whole phonological units to IPA strings, overriding Epitran. |
+| `--pronunciations` | None | UTF-8 CSV with header `word,ipa`; one word or whole phonological unit and its IPA per row, overriding Epitran. |
 | `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
 
 The task runner passes the primary `@Languages` code from CHAT. Its default
@@ -178,8 +178,19 @@ determine grouping and never replace observed phones.
 Language coverage follows [Epitran](https://github.com/dmort27/epitran).
 English requires Flite's `lex_lookup` on PATH. Some Epitran backends, including
 Chinese, download additional dictionaries on first use.
-An override file can contain `{"wug": "wʌɡ"}`; this also supports dialect forms
-and words in unsupported languages. An unknown pronunciation, invalid
+Pass `--pronunciations pronunciations.csv` to supply dialect forms or words
+in unsupported languages. For example:
+
+```csv
+word,ipa
+wug,wʌɡ
+bonjour,bɔ̃ʒuʁ
+the cat,ðəkæt
+```
+
+The header is required. Use standard CSV quoting for cells containing commas.
+Words are matched without case; empty cells and duplicate words are errors.
+An unknown pronunciation, invalid
 audio window, or alignment leaving a word without phones fails the file without
 overwriting it. Insertions between word anchors attach to the preceding word;
 review inferred boundaries, especially around reduced or atypical speech.

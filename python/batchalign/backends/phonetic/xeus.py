@@ -8,8 +8,8 @@ import threading
 from typing import Any, Mapping
 
 from batchalign.backends.base import BatchPolicy, Phonetic
-from .pronunciation import Pronunciations
-from .projection import project_phones
+from .utils.pronunciation import Pronunciations
+from .utils.projection import project_phones
 
 MODEL = "changelinglab/PhoneticXeus"
 REVISION = "3a8d860fa68f8936ceb4196651221215bab9dae4"

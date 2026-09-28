@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import typer
@@ -32,7 +31,8 @@ def register(app: typer.Typer) -> None:
             "--pronunciations",
             exists=True,
             dir_okay=False,
-            help="JSON word-to-IPA overrides for pronunciations Epitran cannot supply.",
+            help="UTF-8 CSV overrides with header word,ipa and one word or CHAT unit "
+            "per row. Example row: wug,wʌɡ. Replaces Epitran's pronunciation for that unit.",
         ),
         force_cpu: bool = typer.Option(False, "--force-cpu", help="Use CPU inference."),
     ) -> None:
@@ -40,20 +40,24 @@ def register(app: typer.Typer) -> None:
 
         Requires utterance timing bullets (run utr first if absent).
         Reference IPA uses Epitran for the CHAT language; English requires Flite.
+
+        Override example: --pronunciations pronunciations.csv
+
+        CSV contents (header required):
+        \b
+        word,ipa
+        wug,wʌɡ
+        bonjour,bɔ̃ʒuʁ
         """
         import batchalign as ba
+        from batchalign.backends.phonetic.utils.pronunciation import load_pronunciations
 
         selection = resolve_inputs(paths, input_list, CHAT_EXTENSIONS)
         opts = cli_options(ctx)
         overrides = None
         if pronunciations is not None:
             try:
-                overrides = json.loads(pronunciations.read_text(encoding="utf-8"))
-                if not isinstance(overrides, dict) or any(
-                    not isinstance(word, str) or not isinstance(ipa, str)
-                    for word, ipa in overrides.items()
-                ):
-                    raise ValueError("expected an object mapping words to IPA strings")
+                overrides = load_pronunciations(pronunciations)
             except (ValueError, OSError) as error:
                 raise typer.BadParameter(
                     str(error), param_hint="--pronunciations"

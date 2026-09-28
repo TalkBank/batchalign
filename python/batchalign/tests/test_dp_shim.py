@@ -7,7 +7,7 @@ runs. Both paths return the same shape (`Match` / `Extra`).
 
 from __future__ import annotations
 
-from batchalign.backends.morphosyntax.ud.dp import (
+from batchalign.utils.dp import (
     Extra,
     ExtraType,
     Match,

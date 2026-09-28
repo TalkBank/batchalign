@@ -9,8 +9,10 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
-from batchalign.backends.phonetic.pronunciation import Pronunciations, epitran_code
-from batchalign.backends.phonetic.projection import comparison_symbols, project_phones
+from batchalign.backends.phonetic.utils.pronunciation import (
+    Pronunciations, epitran_code, load_pronunciations,
+)
+from batchalign.backends.phonetic.utils.projection import comparison_symbols, project_phones
 from batchalign.cli import app
 
 
@@ -82,6 +84,31 @@ def test_lookup_overrides_and_chat_markers():
         lookup("word", "ell")  # A valid CHAT language without an Epitran map.
     with pytest.raises(ValueError, match="Incomplete IPA"):
         lookup("gato猫", "spa")
+
+
+def test_pronunciation_csv(tmp_path):
+    path = tmp_path / "pronunciations.csv"
+    path.write_text('\ufeffword,ipa\nWug,wʌɡ\n"the cat",ðəkæt\n"a,b",ab\n\n')
+    overrides = load_pronunciations(path)
+    assert overrides == {"wug": "wʌɡ", "the cat": "ðəkæt", "a,b": "ab"}
+    assert Pronunciations(overrides)("WUG", "eng") == "wʌɡ"
+
+
+@pytest.mark.parametrize(
+    "contents,error",
+    [
+        ('{"wug": "wʌɡ"}', "header word,ipa"),
+        ("word,ipa\nwug,\n", "nonempty"),
+        ("word,ipa\nwug,wʌɡ,extra\n", "nonempty"),
+        ("word,ipa\nwug,wʌɡ\nWUG,wʊɡ\n", "duplicate"),
+        ('word,ipa\n"wug,wʌɡ\n', "Invalid pronunciation CSV"),
+    ],
+)
+def test_pronunciation_csv_rejects_invalid_input(tmp_path, contents, error):
+    path = tmp_path / "pronunciations.csv"
+    path.write_text(contents)
+    with pytest.raises(ValueError, match=error):
+        load_pronunciations(path)
 
 
 def test_english_missing_flite_has_actionable_error(monkeypatch):
@@ -199,7 +226,28 @@ def test_cli_help_is_lazy():
     result = CliRunner().invoke(app, ["phonetic", "--help"])
     assert result.exit_code == 0
     assert "--pronunciations" in result.output
+    assert "word,ipa" in result.output
+    assert "wug,wʌɡ" in result.output
     assert "--g2p-code" not in result.output
+
+
+def test_cli_loads_csv_overrides(transcript, fake_backend, tmp_path, monkeypatch):
+    import batchalign as ba
+
+    path = tmp_path / "pronunciations.csv"
+    path.write_text("word,ipa\ncat,kæt\n")
+    supplied = {}
+
+    def backend(**kwargs):
+        supplied.update(kwargs)
+        return fake_backend
+
+    monkeypatch.setattr(ba, "PhoneticXeusBackend", backend)
+    result = CliRunner().invoke(
+        app, ["phonetic", str(transcript), "--pronunciations", str(path)]
+    )
+    assert result.exit_code == 0, result.output
+    assert supplied["pronunciations"] == {"cat": "kæt"}
 
 
 @pytest.mark.parametrize(

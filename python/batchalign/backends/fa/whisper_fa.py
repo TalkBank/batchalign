@@ -19,7 +19,7 @@ Algorithm (per BA2):
   4. Post-correct: bump each word's end to the next word's start, bound by the
      utterance window; drop impossible spans.
 
-The DP aligner is BA2's (`backends/morphosyntax/ud/dp.py`, copied verbatim).
+Sequence remapping uses `batchalign.utils.dp`, the shared Rust DP wrapper.
 Default model is `openai/whisper-large-v2` (BA2's default), loaded with
 `attn_implementation="eager"` so cross-attentions are available.
 """
@@ -29,7 +29,7 @@ from __future__ import annotations
 from typing import Any
 
 from batchalign.backends.base import FA, BatchPolicy
-from batchalign.backends.morphosyntax.ud.dp import (
+from batchalign.utils.dp import (
     Match,
     PayloadTarget,
     ReferenceTarget,

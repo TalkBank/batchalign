@@ -1,11 +1,70 @@
-"""Language-specific Epitran IPA references with optional user overrides."""
+"""Generate reference IPA for CHAT units using Epitran and CSV overrides.
+
+Create one ``Pronunciations`` instance per backend and call it with each
+spoken unit's text and the primary ISO 639-3 language supplied by CHAT::
+
+    from batchalign.backends.phonetic.utils.pronunciation import (
+        Pronunciations, load_pronunciations,
+    )
+
+    pronounce = Pronunciations(load_pronunciations("pronunciations.csv"))
+    pronounce("gato", "spa")  # "ɡato" from Epitran
+    pronounce("wug", "eng")   # "wʌɡ" if present in the CSV
+
+Each call returns one reference IPA string for the unit, including grouped
+words. Feed these strings to ``projection.project_phones`` to recover unit
+boundaries without replacing acoustic IPA with expected pronunciations.
+Engines load lazily and are reused. English needs Flite's ``lex_lookup``;
+some other languages download dictionaries on first use.
+"""
 
 from __future__ import annotations
 
+import csv
 import re
 import shutil
 from importlib.metadata import version
+from pathlib import Path
 from typing import Any, Mapping
+
+__all__ = ["Pronunciations", "epitran_code", "load_pronunciations"]
+
+
+def load_pronunciations(path: str | Path) -> dict[str, str]:
+    """Read a UTF-8 CSV containing exactly the columns ``word`` and ``ipa``.
+
+    Example file (the header is required)::
+
+        word,ipa
+        wug,wʌɡ
+        bonjour,bɔ̃ʒuʁ
+        the cat,ðəkæt
+
+    Words may be whole CHAT phonological units. Standard CSV quoting handles
+    commas. Blank lines are ignored and a UTF-8 BOM is accepted. Returns a
+    case-insensitive word-to-IPA mapping for ``Pronunciations(overrides)``.
+    Raises ``ValueError`` for malformed rows, empty cells, or duplicate words;
+    file access errors propagate as ``OSError``.
+    """
+    result: dict[str, str] = {}
+    try:
+        with Path(path).open(encoding="utf-8-sig", newline="") as source:
+            rows = csv.reader(source, strict=True)
+            if next(rows, None) != ["word", "ipa"]:
+                raise ValueError("pronunciation CSV must start with the header word,ipa")
+            for row in rows:
+                if not row:
+                    continue
+                if len(row) != 2 or not all(cell.strip() for cell in row):
+                    raise ValueError(f"CSV line {rows.line_num}: expected nonempty word,ipa")
+                word, ipa = (cell.strip() for cell in row)
+                word = word.casefold()
+                if word in result:
+                    raise ValueError(f"CSV line {rows.line_num}: duplicate word {word!r}")
+                result[word] = ipa
+    except csv.Error as error:
+        raise ValueError(f"Invalid pronunciation CSV: {error}") from error
+    return result
 
 
 def epitran_code(language: str) -> str:
@@ -63,6 +122,14 @@ class Pronunciations:
         return self._engines[code]
 
     def __call__(self, text: str, language: str) -> str:
+        """Return reference IPA for a spoken CHAT unit and ISO 639-3 language.
+
+        Whole-unit and individual-word overrides take precedence over G2P.
+        CHAT group/word markers are removed before lookup. Raises ``ValueError``
+        for invalid language codes, unavailable language resources, incomplete
+        transliteration, or units without spoken words. Supply overrides for
+        words Epitran cannot handle.
+        """
         if text.casefold() in self.overrides:
             return self.overrides[text.casefold()]
         # CHAT group delimiters and word-form markers carry no spoken phones.

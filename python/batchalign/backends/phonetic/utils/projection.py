@@ -1,17 +1,33 @@
-"""DP projection of reference word ownership onto original acoustic phones."""
+"""Group observed IPA phones into transcript units using reference IPA.
+
+Use ``project_phones(phones, pronunciations)``::
+
+    from batchalign.backends.phonetic.utils.projection import project_phones
+
+    project_phones(["ð", "ə", "t", "æ", "t"], ["ðə", "kæt"])
+    # ["ðə", "tæt"]: the observed substitution survives unchanged.
+
+Pass the acoustic model's original phone tokens and one reference IPA string
+per spoken CHAT unit, in transcript order. References can come from
+``pronunciation.Pronunciations`` or the caller. Handle pauses separately;
+do not pass them as spoken units. No G2P or audio model is loaded here.
+"""
 
 from __future__ import annotations
 
 import unicodedata
 from collections import Counter
 
-from batchalign.backends.morphosyntax.ud.dp import (
+from batchalign.utils.dp import (
     ExtraType,
     Match,
     PayloadTarget,
     ReferenceTarget,
     align,
 )
+
+
+__all__ = ["project_phones", "comparison_symbols"]
 
 
 def comparison_symbols(ipa: str) -> list[str]:
@@ -36,6 +52,20 @@ def comparison_symbols(ipa: str) -> list[str]:
 
 def project_phones(phones: list[str], pronunciations: list[str]) -> list[str]:
     """Assign every original phone once using BA's existing edit alignment.
+
+    Args:
+        phones: Observed IPA tokens in audio order. A token can contain
+            multiple symbols or diacritics; it is never split in the output.
+        pronunciations: Reference IPA, one string per spoken transcript unit.
+
+    Returns:
+        One nonempty observed IPA string per reference unit. Concatenating
+        the result equals ``"".join(phones)`` exactly. Inputs are not mutated.
+
+    Raises:
+        ValueError: A sequence has no comparison symbols, a token cannot be
+            assigned, assignments cross unit boundaries, or a unit receives
+            no observed phones. Missing phones are never invented.
 
     Within an edit run, pair substitutions in order. Remaining insertions
     attach to the preceding reference unit (the following unit at the start).

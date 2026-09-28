@@ -1,9 +1,9 @@
 //! PyO3 binding for the centralized Rust Hirschberg DP aligner.
 //!
-//! Exposes `batchalign._core.dp_align(payload, reference)` so the Python
-//! morphosyntax pipeline can stop maintaining its own duplicate aligner
-//! (`python/batchalign/backends/morphosyntax/ud/dp.py`, 224 LOC) and call
-//! the Rust implementation directly (`batchalign_core::alignment`).
+//! Exposes `batchalign._core.dp_align(payload, reference)` through the shared
+//! Python wrapper `batchalign.utils.dp`. Morphosyntax, forced alignment, and
+//! phonetic projection call the same Rust implementation
+//! (`batchalign_core::alignment`).
 //!
 //! Match semantics are exact equality on the supplied strings (the Python
 //! side normalizes ahead of time when it wants case-insensitive behavior).
@@ -22,8 +22,7 @@ use batchalign_core::alignment::{AlignResult, MatchMode, align};
 ///   - `{"type": "extra_payload", "key": str, "payload_idx": int}`
 ///   - `{"type": "extra_reference", "key": str, "reference_idx": int}`
 ///
-/// The Python caller maps these back to its `Match` / `Extra` dataclasses
-/// during the deletion of `python/.../ud/dp.py`.
+/// `batchalign.utils.dp` maps these back to its `Match` / `Extra` dataclasses.
 #[pyfunction]
 #[pyo3(signature = (payload, reference, case_insensitive=false))]
 pub fn dp_align(

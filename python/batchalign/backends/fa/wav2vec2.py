@@ -18,7 +18,7 @@ Algorithm (per BA2):
      next item is untimed — e.g. the terminal punctuation after the last word),
      then bound the span by the utterance window; drop impossible spans.
 
-The DP aligner is BA2's (`backends/morphosyntax/ud/dp.py`, copied verbatim).
+Sequence remapping uses `batchalign.utils.dp`, the shared Rust DP wrapper.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ import re
 from typing import Any
 
 from batchalign.backends.base import FA, BatchPolicy
-from batchalign.backends.morphosyntax.ud.dp import (
+from batchalign.utils.dp import (
     Match,
     PayloadTarget,
     ReferenceTarget,
