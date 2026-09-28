@@ -39,6 +39,9 @@ pub use base::{
 pub use cache::CacheKey;
 pub use metrics::{MetricsArtifact, MetricsKind, MetricsRow, MetricsTable};
 pub use proto::convert::{ConvertInput, MediaFormat, MediaOutput};
+pub use proto::phonetic::{
+    PhoneticInput, PhoneticOutput, PhoneticResult, PhoneticUnit, PhoneticUtterance,
+};
 pub use utils::{
     AiChatInput, AudioError, BAError, BAResult, ChatInput, MediaInput, PairedInput, PreparedAudio,
     SourceId, SpeakerLabel, prepare_pcm, prepare_pcm_interleaved,

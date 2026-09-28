@@ -263,6 +263,7 @@ fn call_py_backend(
                 TaskInput::Ai(_) => "Ai",
                 TaskInput::Asr(_) => "Asr",
                 TaskInput::Fa(_) => "Fa",
+                TaskInput::Phonetic(_) => "Phonetic",
                 TaskInput::Speaker(_) => "Speaker",
                 TaskInput::UtSeg(_) => "UtSeg",
                 TaskInput::Utr(_) => "Utr",

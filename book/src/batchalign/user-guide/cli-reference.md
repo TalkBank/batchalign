@@ -50,6 +50,7 @@ or over their input as described below. See [Command I/O](../reference/command-i
 |---|---|
 | `transcribe` | Recording to CHAT transcript |
 | `align` | Forced alignment of CHAT against audio |
+| `phonetic` | Add observed IPA to `%pho` using audio and phone-sequence DP |
 | `morphotag` | Add `%mor` and `%gra` |
 | `utseg` | Revise utterance segmentation |
 | `translate` | Add translation tiers |
@@ -142,6 +143,83 @@ Accepts the shared input selection and `-o/--out` options above.
 |---|---|---|
 | `--engine` | pyannote-ai | Choices: `pyannote-ai`, `pyannote`. Diarization engine: pyannote-ai (cloud) or pyannote (local). |
 | `--num-speakers`, `-n` | 0 | Expected speaker count; zero auto-detects. |
+
+## phonetic
+
+Accepts timed CHAT and matching audio, using shared input selection and
+`-o/--out`. Install the `phonetic` extra for PhoneticXeus, Piper Plus G2P, and Epitran.
+Phonetic transcription requires Python 3.11 or newer.
+The first inference downloads the pinned model revision;
+building the CLI and displaying help do not download model weights.
+
+```bash
+just batchalign cli phonetic recording.cha --out phonetic-output --force-cpu
+```
+
+The command recognizes phones from audio and DP-aligns them against reference
+IPA pronunciations to recover word boundaries. `%pho` retains the observed IPA,
+including pronunciation differences. Existing `%pho` tiers are preserved.
+The input must have utterance timing bullets; use `utr` first when needed.
+Word-level forced alignment is not required.
+
+Like Whisper forced alignment, phonetic inference groups consecutive utterances
+into approximately 20-second audio windows, then projects phones back to their
+original words and utterances. Gaps over two seconds and backwards timings start
+a new window; an utterance longer than 20 seconds stays whole. Words receiving
+no phones are marked `…` (uncoded) and reported with their utterance timing.
+
+Windows of similar duration are batched using padding and real encoder lengths.
+Normalization is performed independently per window, and padded output frames
+are excluded from decoding. CPU defaults to one window at a time; CUDA defaults
+to two. Increase `--batch-size` to try higher GPU throughput, or decrease it to
+reduce memory use. Batched and single-window output can differ slightly because
+the upstream encoder's convolution branches remain sensitive to padding.
+
+| Option | Default | Details |
+|---|---|---|
+| `--pronunciations` | None | UTF-8 CSV with header `word,ipa`; one word or whole phonological unit and its IPA per row, overriding the generated pronunciation. |
+| `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
+| `--batch-size` | CPU 1, CUDA 2 | Maximum audio windows per model batch; must be positive. |
+
+The task runner passes the primary `@Languages` code from CHAT. No separate
+language option is needed. [Piper Plus G2P](https://pypi.org/project/piper-plus-g2p/)
+0.2.0 handles English, Japanese, Mandarin Chinese, Korean, Spanish, French,
+Portuguese, and Swedish. Both `cmn` and `zho` select Mandarin; Cantonese (`yue`)
+is a separate language and uses the fallback.
+
+Other languages use [Epitran](https://github.com/dmort27/epitran), with their
+default script resolved automatically (e.g. Russian `rus-Cyrl`, Hindi
+`hin-Deva`). A failure in a supported Piper backend is reported rather than
+silently switching providers. English does not require Flite's `lex_lookup`
+or eSpeak; Python language packages are included in the extra. Language
+resources may download on first use.
+
+The DP compares IPA directly, preserving distinctions such as nasalization,
+vowel length, and tone. Piper's language-specific phone/tone labels are
+converted to IPA before comparison. References only determine grouping;
+they never replace the observed phones. Alternate scripts and code-switched
+words can use pronunciation overrides.
+Pass `--pronunciations pronunciations.csv` to supply dialect forms or words
+in unsupported languages. For example:
+
+```csv
+word,ipa
+wug,wʌɡ
+bonjour,bɔ̃ʒuʁ
+the cat,ðəkæt
+```
+
+The header is required. Use standard CSV quoting for cells containing commas.
+Words are matched without case; empty cells and duplicate words are errors.
+An unknown pronunciation, invalid
+audio window, or alignment leaving a word without phones fails the file without
+overwriting it. Insertions between word anchors attach to the preceding word;
+review inferred boundaries, especially around reduced or atypical speech.
+
+Python pipelines can compose `recipes.phonetic(phonetic_backend=backend,
+utr_backend=...)` with existing tasks. Custom backends implement the `Phonetic`
+marker and typed `PhoneticInput`/`PhoneticOutput` contract; the Rust runner owns
+CHAT extraction, result validation, and tier insertion.
 
 ## ai
 

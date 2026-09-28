@@ -75,6 +75,10 @@ _LAZY_SUBCOMMANDS: dict[str, tuple[str, str]] = {
         "batchalign.cli.convert",
         "Convert media files to WAV or MP3.",
     ),
+    "phonetic": (
+        "batchalign.cli.phonetic",
+        "Transcribe observed IPA into CHAT %pho tiers.",
+    ),
     "diarize": (
         "batchalign.cli.diarize",
         "Detect anonymous speaker turns and write turns JSON.",

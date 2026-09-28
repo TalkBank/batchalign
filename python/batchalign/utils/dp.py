@@ -1,16 +1,29 @@
-"""
-dp.py
-Dynamic Programming Utilities
+"""Shared minimum-edit sequence alignment for Python backends.
 
-Generally used for minimum-edit sequence alignment across the program.
-This module now uses a Hirschberg-style divide-and-conquer aligner to
-produce the same outputs while using linear space and less Python-level
-overhead than the previous full-matrix implementation.
+``align(payload, reference, tqdm=False)`` returns ordered ``Match`` and
+``Extra`` records. Pass string sequences, or attach caller-owned metadata::
+
+    from batchalign.utils.dp import PayloadTarget, ReferenceTarget, align
+
+    edits = align(
+        [PayloadTarget("cat", {"start_ms": 100})],
+        [ReferenceTarget("cat", 0)],
+        tqdm=False,
+    )
+    # edits[0].payload == {"start_ms": 100}
+    # edits[0].reference_payload == 0
+
+Matching costs 0, insertion/deletion 1, and substitution 2. Substitutions
+produce paired extras; input metadata is returned unchanged. The normal path
+calls ``batchalign._core.dp_align`` (Rust Hirschberg). A Python fallback
+supports missing bindings and custom matching callbacks.
 """
 
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Iterable, List, Optional, Sequence
+
+__all__ = ["align", "PayloadTarget", "ReferenceTarget", "Match", "Extra", "ExtraType"]
 
 # the target to align against the reference
 # carries a payload which will be stitched to maching

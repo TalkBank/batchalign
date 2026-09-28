@@ -13,6 +13,7 @@ use crate::proto::convert::{ConvertInput, MediaOutput};
 use crate::proto::coref::{CorefInput, CorefOutput};
 use crate::proto::fa::{FaInput, FaOutput};
 use crate::proto::morphosyntax::{MorphosyntaxInput, MorphosyntaxOutput};
+use crate::proto::phonetic::{PhoneticInput, PhoneticOutput};
 use crate::proto::speaker::{SpeakerInput, SpeakerOutput};
 use crate::proto::translate::{TranslateInput, TranslateOutput};
 use crate::proto::utr::{UtrInput, UtrOutput};
@@ -69,6 +70,8 @@ pub enum Task {
     Compare,
     /// Decode media and encode a new WAV or MP3 artifact.
     Convert,
+    /// Acoustic phonetic transcription into `%pho`.
+    Phonetic,
 }
 
 impl Task {
@@ -91,6 +94,7 @@ impl Task {
             // already get bullets from UtSeg.)
             Task::Fa => &[Task::UtSeg, Task::Utr],
             Task::Morphosyntax => &[Task::UtSeg],
+            Task::Phonetic => &[Task::UtSeg, Task::Utr, Task::Fa],
             Task::Coref => &[Task::Morphosyntax],
             Task::Translate => &[Task::Morphosyntax],
             Task::Compare => &[],
@@ -109,6 +113,7 @@ impl Task {
             Task::Utr => "utr",
             Task::Morphosyntax => "morphosyntax",
             Task::Translate => "translate",
+            Task::Phonetic => "phonetic",
             Task::Coref => "coref",
             Task::Compare => "compare",
             Task::Convert => "convert",
@@ -116,7 +121,7 @@ impl Task {
     }
 
     /// Every variant — useful for iteration in tests and codegen.
-    pub const ALL: [Task; 11] = [
+    pub const ALL: [Task; 12] = [
         Task::Ai,
         Task::Asr,
         Task::Fa,
@@ -125,6 +130,7 @@ impl Task {
         Task::Utr,
         Task::Morphosyntax,
         Task::Translate,
+        Task::Phonetic,
         Task::Coref,
         Task::Compare,
         Task::Convert,
@@ -200,6 +206,7 @@ union_input_output! {
         Ai(AiInput) => Ai,
         Asr(AsrInput) => Asr,
         Fa(FaInput) => Fa,
+        Phonetic(PhoneticInput) => Phonetic,
         Speaker(SpeakerInput) => Speaker,
         UtSeg(UtSegInput) => UtSeg,
         // UTR's payload is serde-transparent over `AsrInput`, so the
@@ -217,6 +224,7 @@ union_input_output! {
         Ai(AiOutput),
         Asr(AsrOutput),
         Fa(FaOutput),
+        Phonetic(PhoneticOutput),
         Speaker(SpeakerOutput),
         UtSeg(UtSegOutput),
         Utr(UtrOutput),
@@ -252,6 +260,7 @@ try_from_output! {
     Ai(AiOutput),
     Asr(AsrOutput),
     Fa(FaOutput),
+    Phonetic(PhoneticOutput),
     Speaker(SpeakerOutput),
     UtSeg(UtSegOutput),
     Utr(UtrOutput),
