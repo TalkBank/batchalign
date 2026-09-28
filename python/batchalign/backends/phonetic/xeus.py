@@ -41,7 +41,7 @@ class PhoneticXeusBackend(Phonetic):
             self.pronunciations.overrides, sort_keys=True, ensure_ascii=False
         )
         digest = hashlib.sha256(overrides.encode()).hexdigest()
-        return f"phoneticxeus:{self.model_id}:{self.revision}:cmudict-{self.pronunciations.version}:{digest}:{self.device}:v1"
+        return f"phoneticxeus:{self.model_id}:{self.revision}:epitran-{self.pronunciations.version}:{digest}:{self.device}:v3"
 
     @property
     def batch_policy(self) -> BatchPolicy:

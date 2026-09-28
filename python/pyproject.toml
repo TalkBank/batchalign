@@ -89,7 +89,7 @@ cantonese    = ["pycantonese>=4.2,<5", "tencentcloud-sdk-python-asr", "tencentcl
 translate    = ["googletrans"]
 qwen3        = ["qwen-asr", "transformers>=4.57,<5", "torch>=2.0"]
 nllb         = ["transformers>=4.57,<5", "torch>=2.0", "sentencepiece"]
-phonetic     = ["transformers>=4.57,<5", "torch>=2.0,<2.13", "torchaudio>=2.0,<2.13", "cmudict>=1.1,<2", "pyyaml", "typeguard", "huggingface-hub", "safetensors"]
+phonetic     = ["transformers>=4.57,<5", "torch>=2.0,<2.13", "torchaudio>=2.0,<2.13", "epitran>=1.35,<2", "langcodes>=3.5,<4", "pyyaml", "typeguard", "huggingface-hub", "safetensors"]
 ai           = ["dspy-ai"]
 # HTTP daemon (`batchalign daemon`, the PyApp-bundled sidecar). The
 # desktop GUI's Tauri shell spawns this binary as a sidecar. `[standard]`
@@ -109,7 +109,7 @@ all = [
     "qwen-asr",
     "wtpsplit",
     "sentencepiece",
-    "cmudict>=1.1,<2", "pyyaml", "typeguard", "huggingface-hub", "safetensors",
+    "epitran>=1.35,<2", "langcodes>=3.5,<4", "pyyaml", "typeguard", "huggingface-hub", "safetensors",
     "dspy-ai",
     "fastapi>=0.110", "uvicorn[standard]>=0.27", "sse-starlette>=2.0", "python-multipart>=0.0.9",
 ]

@@ -147,8 +147,8 @@ Accepts the shared input selection and `-o/--out` options above.
 ## phonetic
 
 Accepts timed CHAT and matching audio, using shared input selection and
-`-o/--out`. Install the `phonetic` extra for PhoneticXeus and packaged
-pronunciation data. The first inference downloads the pinned model revision;
+`-o/--out`. Install the `phonetic` extra for PhoneticXeus and Epitran.
+The first inference downloads the pinned model revision;
 building the CLI and displaying help do not download model weights.
 
 ```bash
@@ -156,19 +156,30 @@ just batchalign cli phonetic recording.cha --out phonetic-output --force-cpu
 ```
 
 The command recognizes phones from audio and DP-aligns them against reference
-pronunciations to recover word boundaries. `%pho` retains the observed IPA,
+IPA pronunciations from Epitran to recover word boundaries. `%pho` retains the observed IPA,
 including pronunciation differences. Existing `%pho` tiers are preserved.
 The input must have utterance timing bullets; use `utr` first when needed.
 Word-level forced alignment is not required.
 
 | Option | Default | Details |
 |---|---|---|
-| `--pronunciations` | None | JSON mapping from words or whole phonological units to IPA strings. Overrides packaged English lookup; required for unknown words and other languages. |
+| `--pronunciations` | None | JSON mapping from words or whole phonological units to IPA strings, overriding Epitran. |
 | `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
 
-For example, an override file can contain `{"wug": "wʌɡ"}`. English lookup uses
-the first CMUdict pronunciation; alternatives and dialect differences can be
-overridden. No system G2P executable is needed. An unknown pronunciation, invalid
+The task runner passes the primary `@Languages` code from CHAT. Its default
+script is resolved automatically: French uses `fra-Latn`, Russian `rus-Cyrl`,
+and Hindi `hin-Deva`. No separate language option is needed. This uses the
+primary language's default script; alternate scripts and code-switched words
+can use pronunciation overrides.
+The DP compares IPA directly, preserving distinctions
+such as nasalization, vowel length, and tone; reference pronunciations only
+determine grouping and never replace observed phones.
+
+Language coverage follows [Epitran](https://github.com/dmort27/epitran).
+English requires Flite's `lex_lookup` on PATH. Some Epitran backends, including
+Chinese, download additional dictionaries on first use.
+An override file can contain `{"wug": "wʌɡ"}`; this also supports dialect forms
+and words in unsupported languages. An unknown pronunciation, invalid
 audio window, or alignment leaving a word without phones fails the file without
 overwriting it. Insertions between word anchors attach to the preceding word;
 review inferred boundaries, especially around reduced or atypical speech.

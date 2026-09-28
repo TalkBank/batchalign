@@ -32,14 +32,14 @@ def register(app: typer.Typer) -> None:
             "--pronunciations",
             exists=True,
             dir_okay=False,
-            help="JSON word-to-IPA overrides for unknown words or other languages.",
+            help="JSON word-to-IPA overrides for pronunciations Epitran cannot supply.",
         ),
         force_cpu: bool = typer.Option(False, "--force-cpu", help="Use CPU inference."),
     ) -> None:
         """Add observed IPA to `%pho`, preserving existing phonetic tiers.
 
         Requires utterance timing bullets (run utr first if absent).
-        Default pronunciation lookup is English; other languages need IPA overrides.
+        Reference IPA uses Epitran for the CHAT language; English requires Flite.
         """
         import batchalign as ba
 

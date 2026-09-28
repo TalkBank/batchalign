@@ -15,17 +15,23 @@ from batchalign.backends.morphosyntax.ud.dp import (
 
 
 def comparison_symbols(ipa: str) -> list[str]:
-    """Broad IPA comparison alphabet; preserve original tokens outside this view."""
-    ipa = ipa.translate(
-        str.maketrans({"g": "ɡ", "r": "ɹ", "ɚ": "əɹ", "ɝ": "əɹ", "ʌ": "ə", "ɐ": "ə"})
-    )
-    return [
-        ch
-        for ch in unicodedata.normalize("NFD", ipa)
-        if not unicodedata.combining(ch)
-        and not ch.isspace()
-        and ch not in "ˈˌːˑʰʷʲⁿˡ.‿"
-    ]
+    """IPA segments for DP, retaining contrastive diacritics and modifiers.
+
+    Canonical Unicode equivalents compare equally. Stress and syllable/word
+    separators do not own phones; tied affricates remain a single segment.
+    There are no language-specific vowel or rhotic equivalences.
+    """
+    symbols: list[str] = []
+    tied = False
+    for ch in unicodedata.normalize("NFD", ipa.replace("g", "ɡ")):
+        if ch.isspace() or ch in "ˈˌ.‿":
+            continue
+        if symbols and (unicodedata.combining(ch) or ch in "ːˑʰʷʲⁿˡ˞ˠˤʼ" or tied):
+            symbols[-1] += ch
+        else:
+            symbols.append(ch)
+        tied = ch in "\u0361\u035c"
+    return symbols
 
 
 def project_phones(phones: list[str], pronunciations: list[str]) -> list[str]:

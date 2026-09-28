@@ -1,4 +1,4 @@
-"""Phone ownership, packaged pronunciation data, and the real CLI/runner seam."""
+"""Phone ownership, multilingual IPA references, and the real CLI/runner seam."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
-from batchalign.backends.phonetic.pronunciation import Pronunciations
+from batchalign.backends.phonetic.pronunciation import Pronunciations, epitran_code
 from batchalign.backends.phonetic.projection import comparison_symbols, project_phones
 from batchalign.cli import app
 
@@ -39,20 +39,56 @@ def test_projection_rejects_unresolved_units():
 
 
 def test_comparison_normalization_does_not_split_combining_marks():
-    assert comparison_symbols("ˈkʰæ̃tː") == list("kæt")
-    assert comparison_symbols("ɚ") == list("əɹ")
+    assert comparison_symbols("ˈkʰæ̃tː") == ["kʰ", "æ̃", "tː"]
+    assert comparison_symbols("ã") == comparison_symbols("a\u0303")
+    assert comparison_symbols("t͡ʃ") == ["t͡ʃ"]
+    assert comparison_symbols("rɹɚɝʌəɐ") == list("rɹɚɝʌəɐ")
+    assert comparison_symbols("a˥a˩") == list("a˥a˩")
 
 
-def test_packaged_lookup_and_overrides():
+@pytest.mark.parametrize(
+    "language,word,ipa",
+    [("spa", "gato", "ɡato"), ("tur", "göz", "ɡœz"), ("fra", "chat", "ʃa")],
+)
+def test_multilingual_ipa_references(language, word, ipa):
+    reference = Pronunciations()(word, language)
+    assert reference == ipa
+    # The same DP groups directly against generated IPA for each language.
+    phones = comparison_symbols(ipa) * 2
+    assert project_phones(phones, [reference, reference]) == [ipa, ipa]
+
+
+def test_automatic_non_latin_script():
+    assert Pronunciations()("кот", "rus") == "kot"
+
+
+@pytest.mark.parametrize(
+    "language,code",
+    [("fra", "fra-Latn"), ("rus", "rus-Cyrl"), ("hin", "hin-Deva"),
+     ("ara", "ara-Arab"), ("cmn", "cmn-Hans"), ("zho", "cmn-Hans"),
+     ("yue", "yue-Hant"), ("jpn", "jpn-Jpan")],
+)
+def test_language_selects_epitran_script(language, code):
+    assert epitran_code(language) == code
+
+
+def test_lookup_overrides_and_chat_markers():
     lookup = Pronunciations({"wug": "wʌɡ", "bonjour": "bɔ̃ʒuʁ"})
-    assert lookup("cat", "eng") == "kæt"
-    assert lookup("&-um", "eng")
+    assert lookup("&-gato", "spa") == "ɡato"
+    assert lookup("‹gato gato›", "spa") == "ɡatoɡato"
     assert lookup("wug", "eng") == "wʌɡ"
     assert lookup("bonjour", "fra") == "bɔ̃ʒuʁ"
-    with pytest.raises(ValueError, match="override"):
-        lookup("zzzzunlistedword", "eng")
-    with pytest.raises(ValueError, match="override"):
-        lookup("chat", "fra")
+    with pytest.raises(ValueError, match="@Languages"):
+        lookup("word", "ell")  # A valid CHAT language without an Epitran map.
+    with pytest.raises(ValueError, match="Incomplete IPA"):
+        lookup("gato猫", "spa")
+
+
+def test_english_missing_flite_has_actionable_error(monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda _: None)
+    with pytest.raises(ValueError, match="lex_lookup"):
+        Pronunciations()("cat", "eng")
+    assert Pronunciations({"cat": "kæt"})("cat", "eng") == "kæt"
 
 
 @pytest.fixture
@@ -112,9 +148,11 @@ def fake_backend(monkeypatch):
     return backend
 
 
+@pytest.mark.parametrize("language", ["eng", "fra", "rus"])
 def test_cli_runner_writes_pho_and_preserves_existing(
-    transcript, fake_backend, tmp_path
+    transcript, fake_backend, tmp_path, language
 ):
+    transcript.write_text(transcript.read_text().replace("eng", language))
     output = tmp_path / "out"
     result = CliRunner().invoke(
         app, ["phonetic", str(transcript), "--out", str(output)]
@@ -124,6 +162,7 @@ def test_cli_runner_writes_pho_and_preserves_existing(
     assert "%pho:\ttə (.) tə" in text
     assert "%pho:" not in transcript.read_text()
     units = fake_backend.calls[0].utterances[0].units
+    assert fake_backend.calls[0].language == language
     assert [(unit.text, unit.pause) for unit in units] == [
         ("the", False),
         ("(.)", True),
@@ -160,9 +199,17 @@ def test_cli_help_is_lazy():
     result = CliRunner().invoke(app, ["phonetic", "--help"])
     assert result.exit_code == 0
     assert "--pronunciations" in result.output
+    assert "--g2p-code" not in result.output
 
 
-def test_backend_resamples_and_retains_phone_tokens():
+@pytest.mark.parametrize(
+    "language,word,overrides,observed,expected",
+    [("eng", "cat", {"cat": "kæt"}, "<blank>/kʰ/æ̃/t", "kʰæ̃t"),
+     ("rus", "кот", None, "<blank>/k/o/t", "kot")],
+)
+def test_backend_resamples_and_retains_phone_tokens(
+    language, word, overrides, observed, expected
+):
     from batchalign.backends.phonetic.xeus import PhoneticXeusBackend
     from batchalign._core.proto import PreparedAudio
 
@@ -171,13 +218,13 @@ def test_backend_resamples_and_retains_phone_tokens():
     class Model:
         def transcribe(self, audio, sampling_rate):
             calls.append((len(audio), sampling_rate))
-            return [{"predicted_transcript": "<blank>/kʰ/æ̃/t"}]
+            return [{"predicted_transcript": observed}]
 
-    backend = PhoneticXeusBackend()
+    backend = PhoneticXeusBackend(pronunciations=overrides)
     backend._model = Model()
     item = SimpleNamespace(
         source_id="sample",
-        language="eng",
+        language=language,
         audio=PreparedAudio(
             pcm_f32le=base64.b64encode(b"\x00" * 22050 * 4),
             sample_rate=22050,
@@ -189,13 +236,13 @@ def test_backend_resamples_and_retains_phone_tokens():
                 index=0,
                 start_ms=0,
                 end_ms=1000,
-                units=[SimpleNamespace(text="cat", pause=False)],
+                units=[SimpleNamespace(text=word, pause=False)],
             )
         ],
     )
     output = backend.call([item])
     assert calls == [(16000, 16000)]
-    assert output[0].utterances[0].ipa == ["kʰæ̃t"]
+    assert output[0].utterances[0].ipa == [expected]
     item.utterances[0].end_ms = 2000
     with pytest.raises(ValueError, match="outside"):
         backend.call([item])

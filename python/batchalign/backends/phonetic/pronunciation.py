@@ -1,36 +1,66 @@
-"""Packaged English pronunciation lookup with optional IPA overrides."""
+"""Language-specific Epitran IPA references with optional user overrides."""
 
 from __future__ import annotations
 
 import re
+import shutil
 from importlib.metadata import version
-from typing import Mapping
+from typing import Any, Mapping
 
-# Comparison pronunciations only: acoustic IPA is never rewritten with these.
-ARPABET_IPA = dict(
-    zip(
-        "AA AE AH AO AW AY B CH D DH EH ER EY F G HH IH IY JH K L M N NG OW OY P R S SH T TH UH UW V W Y Z ZH".split(),
-        "ɑ æ ə ɔ aʊ aɪ b tʃ d ð ɛ ɚ eɪ f ɡ h ɪ i dʒ k l m n ŋ oʊ ɔɪ p ɹ s ʃ t θ ʊ u v w j z ʒ".split(),
-    )
-)
+
+def epitran_code(language: str) -> str:
+    """Resolve CHAT's ISO language to Epitran's language/default-script pair."""
+    from langcodes import Language
+    from batchalign.lang import LanguageCode
+
+    language = LanguageCode.from_str(language).alpha_3
+    script = Language.get(language).maximize().script
+    # CHAT commonly uses the Chinese macrolanguage; Epitran names Mandarin.
+    language = "cmn" if language == "zho" else language
+    return f"{language}-{script}"
 
 
 class Pronunciations:
-    """Resolve each CHAT phonological unit without an external G2P executable."""
+    """Generate comparison IPA only; the acoustic phones remain authoritative.
+
+    The task runner passes CHAT's primary language; langcodes supplies its
+    default script, e.g. ``rus`` becomes ``rus-Cyrl``.
+    """
 
     def __init__(self, overrides: Mapping[str, str] | None = None):
-        self.overrides = {
-            word.casefold(): ipa for word, ipa in (overrides or {}).items()
-        }
         if any(
-            not word or not isinstance(ipa, str) or not ipa.strip()
-            for word, ipa in self.overrides.items()
+            not isinstance(word, str) or not word.strip()
+            or not isinstance(ipa, str) or not ipa.strip()
+            for word, ipa in (overrides or {}).items()
         ):
             raise ValueError(
                 "pronunciations must map nonempty words to nonempty IPA strings"
             )
-        self._dictionary = None
-        self.version = version("cmudict")
+        self.overrides = {
+            word.casefold(): ipa for word, ipa in (overrides or {}).items()
+        }
+        self.version = f"{version('epitran')}:langcodes-{version('langcodes')}"
+        self._engines: dict[str, Any] = {}
+
+    def _engine(self, language: str) -> Any:
+        import epitran
+        from epitran.exceptions import DatafileError
+
+        code = epitran_code(language)
+        if code not in self._engines:
+            if code == "eng-Latn" and shutil.which("lex_lookup") is None:
+                raise ValueError(
+                    "Epitran English requires Flite's lex_lookup executable on PATH; "
+                    "install it or supply IPA pronunciation overrides"
+                )
+            try:
+                self._engines[code] = epitran.Epitran(code, tones=True)
+            except (OSError, ValueError, DatafileError) as error:
+                raise ValueError(
+                    f"Cannot initialize Epitran {code!r}: {error}; check CHAT's "
+                    "@Languages and language resources or supply IPA pronunciation overrides"
+                ) from error
+        return self._engines[code]
 
     def __call__(self, text: str, language: str) -> str:
         if text.casefold() in self.overrides:
@@ -45,23 +75,16 @@ class Pronunciations:
             if word in self.overrides:
                 phones.append(self.overrides[word])
                 continue
-            if language not in {"eng", "en"}:
+            engine = self._engine(language)
+            ipa = engine.transliterate(word)
+            # Epitran can pass unknown orthography through unchanged. Reject
+            # partial conversions instead of treating those letters as IPA.
+            if not ipa.strip() or ipa != engine.strict_trans(word):
                 raise ValueError(
-                    f"No pronunciation for {word!r} in {language!r}; supply IPA pronunciation overrides"
+                    f"Incomplete IPA pronunciation for {word!r} in {language!r}; "
+                    "supply IPA pronunciation overrides"
                 )
-            if self._dictionary is None:
-                import cmudict
-
-                self._dictionary = cmudict.dict()
-            alternatives = self._dictionary.get(word)
-            if not alternatives:
-                raise ValueError(
-                    f"No pronunciation for {word!r}; supply an IPA pronunciation override"
-                )
-            # Stable first pronunciation; the acoustic phones remain authoritative.
-            phones.append(
-                "".join(ARPABET_IPA[phone.rstrip("012")] for phone in alternatives[0])
-            )
+            phones.append(ipa)
         if not phones:
             raise ValueError(f"No spoken words in phonological unit {text!r}")
         return "".join(phones)
