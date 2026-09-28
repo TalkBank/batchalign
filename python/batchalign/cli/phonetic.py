@@ -35,10 +35,16 @@ def register(app: typer.Typer) -> None:
             "per row. Example row: wug,wʌɡ. Overrides the generated pronunciation for that unit.",
         ),
         force_cpu: bool = typer.Option(False, "--force-cpu", help="Use CPU inference."),
+        batch_size: int | None = typer.Option(
+            None, "--batch-size", min=1,
+            help="Audio windows per padded model batch (default: CPU 1, CUDA 2). "
+            "Lower this to reduce memory use.",
+        ),
     ) -> None:
         """Add observed IPA to `%pho`, preserving existing phonetic tiers.
 
         Requires utterance timing bullets (run utr first if absent).
+        Adjacent utterances share approximately 20-second inference windows.
         Reference IPA uses Piper Plus for supported CHAT languages and Epitran
         otherwise. Requires Python 3.11+; English needs no system G2P executable.
 
@@ -74,6 +80,7 @@ def register(app: typer.Typer) -> None:
             backend = ba.PhoneticXeusBackend(
                 device=inference_device(force_cpu=force_cpu, allow_mps=False),
                 pronunciations=overrides,
+                batch_size=batch_size,
             )
             pipeline = ba.recipes.phonetic(
                 phonetic_backend=backend, workers=opts.parallel

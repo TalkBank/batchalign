@@ -34,11 +34,28 @@ def test_projection_preserves_observed_phones(phones, reference, expected):
     assert "".join(expected) == "".join(phones)
 
 
-def test_projection_rejects_unresolved_units():
-    with pytest.raises(ValueError, match="unresolved"):
-        project_phones(["k", "æ", "t"], ["ðə", "kæt"])
-    with pytest.raises(ValueError, match="empty"):
-        project_phones([], ["kæt"])
+@pytest.mark.parametrize(
+    "phones,reference,expected",
+    [
+        (["k", "æ", "t"], ["ðə", "kæt"], ["…", "kæt"]),
+        (["k", "æ", "t"], ["kæt", "ðə"], ["kæt", "…"]),
+        (["k", "æ", "t", "d", "ɒ", "ɡ"], ["kæt", "ə", "dɒɡ"], ["kæt", "…", "dɒɡ"]),
+        ([], ["kæt", "dɒɡ"], ["…", "…"]),
+        # Actual Xeus output for "just to test batch line", 5305–6555 ms.
+        (["t", "ʃ", "ɪ", "s", "t", "æ", "z", "æ", "s", "p", "æ", "ʃ", "ə", "l", "a", "ɪ̃", "n"],
+         ["dʒˈʌst", "tuː", "tˈɛst", "bˈætʃ", "lˈaɪn"],
+         ["…", "tʃ", "ɪst", "æzæspæʃə", "laɪ̃n"]),
+    ],
+)
+def test_projection_marks_unresolved_units(phones, reference, expected):
+    assert project_phones(phones, reference) == expected
+    assert "".join(unit for unit in expected if unit != "…") == "".join(phones)
+
+
+@pytest.mark.parametrize("phones,reference", [(["k"], []), (["k"], [""]), ([""], ["k"])])
+def test_projection_still_rejects_invalid_input(phones, reference):
+    with pytest.raises(ValueError):
+        project_phones(phones, reference)
 
 
 def test_comparison_normalization_does_not_split_combining_marks():
@@ -198,6 +215,7 @@ def fake_backend(monkeypatch):
     class FakePhonetic(ba.Phonetic):
         calls = []
         corrupt = False
+        phone = "tə"
 
         @property
         def name(self):
@@ -215,7 +233,7 @@ def fake_backend(monkeypatch):
                 utterances = []
                 for utterance in item.utterances:
                     ipa = [
-                        unit.text if unit.pause else "tə" for unit in utterance.units
+                        unit.text if unit.pause else self.phone for unit in utterance.units
                     ]
                     if self.corrupt:
                         ipa.pop()
@@ -230,10 +248,12 @@ def fake_backend(monkeypatch):
     return backend
 
 
+@pytest.mark.parametrize("phone", ["tə", "…"])
 @pytest.mark.parametrize("language", ["eng", "fra", "rus"])
 def test_cli_runner_writes_pho_and_preserves_existing(
-    transcript, fake_backend, tmp_path, language
+    transcript, fake_backend, tmp_path, language, phone
 ):
+    fake_backend.phone = phone
     transcript.write_text(transcript.read_text().replace("eng", language))
     output = tmp_path / "out"
     result = CliRunner().invoke(
@@ -241,7 +261,7 @@ def test_cli_runner_writes_pho_and_preserves_existing(
     )
     assert result.exit_code == 0, result.output
     text = (output / transcript.name).read_text()
-    assert "%pho:\ttə (.) tə" in text
+    assert f"%pho:\t{phone} (.) {phone}" in text
     assert "%pho:" not in transcript.read_text()
     units = fake_backend.calls[0].utterances[0].units
     assert fake_backend.calls[0].language == language
@@ -308,23 +328,25 @@ def test_cli_loads_csv_overrides(transcript, fake_backend, tmp_path, monkeypatch
 @pytest.mark.parametrize(
     "language,word,overrides,observed,expected",
     [("eng", "cat", {"cat": "kæt"}, "<blank>/kʰ/æ̃/t", "kʰæ̃t"),
+     ("eng", "cat", {"cat": "kæt"}, "<blank>", "…"),
      ("rus", "кот", None, "<blank>/k/o/t", "kot")],
 )
 def test_backend_resamples_and_retains_phone_tokens(
-    language, word, overrides, observed, expected
+    language, word, overrides, observed, expected, caplog, monkeypatch
 ):
     from batchalign.backends.phonetic.xeus import PhoneticXeusBackend
     from batchalign._core.proto import PreparedAudio
 
     calls = []
 
-    class Model:
-        def transcribe(self, audio, sampling_rate):
-            calls.append((len(audio), sampling_rate))
-            return [{"predicted_transcript": observed}]
+    def transcribe(model, audio_batch):
+        calls.extend((len(audio), 16000) for audio in audio_batch)
+        return [[p for p in observed.split("/") if p != "<blank>"]]
+
+    monkeypatch.setattr("batchalign.backends.phonetic.xeus.transcribe_batch", transcribe)
 
     backend = PhoneticXeusBackend(pronunciations=overrides)
-    backend._model = Model()
+    backend._model = object()
     item = SimpleNamespace(
         source_id="sample",
         language=language,
@@ -346,9 +368,31 @@ def test_backend_resamples_and_retains_phone_tokens(
     output = backend.call([item])
     assert calls == [(16000, 16000)]
     assert output[0].utterances[0].ipa == [expected]
+    if expected == "…":
+        assert "sample: phonetic 0–1000 ms: no phones aligned to ['cat']" in caplog.text
+    else:
+        assert "no phones aligned" not in caplog.text
     item.utterances[0].end_ms = 2000
     with pytest.raises(ValueError, match="outside"):
         backend.call([item])
+
+
+def test_backend_prepares_download_lock_before_inference(monkeypatch):
+    """The download lock must exist before Textual redirects stderr."""
+    from huggingface_hub.utils import tqdm
+    from batchalign.backends.phonetic.xeus import PhoneticXeusBackend
+
+    calls = []
+    get_lock = tqdm.get_lock
+
+    def prepare_lock():
+        calls.append(get_lock())
+        return calls[-1]
+
+    monkeypatch.setattr(tqdm, "get_lock", prepare_lock)
+    backend = PhoneticXeusBackend()
+    assert len(calls) == 1
+    assert backend._model is None
 
 
 def test_backend_identity_tracks_pronunciations_and_pins_revision():
@@ -358,5 +402,109 @@ def test_backend_identity_tracks_pronunciations_and_pins_revision():
     override = PhoneticXeusBackend(pronunciations={"cat": "kɛt"})
     assert default.name != override.name
     assert override.name == PhoneticXeusBackend(pronunciations={"cat": "kɛt"}).name
+    assert default.name != PhoneticXeusBackend(batch_size=2).name
+    with pytest.raises(ValueError, match="batch_size"):
+        PhoneticXeusBackend(batch_size=0)
     with pytest.raises(ValueError, match="immutable"):
         PhoneticXeusBackend(revision="main")
+
+
+def test_phonetic_grouping_matches_whisper_span_limit():
+    from batchalign.backends.phonetic.utils.inference import group_utterances
+
+    windows = [(0, 10000), (10000, 20000), (20000, 21000), (24001, 25000),
+               (23000, 24000), (25000, 50000), (50000, 51000)]
+    utterances = [SimpleNamespace(start_ms=start, end_ms=end) for start, end in windows]
+    assert group_utterances(utterances) == [[0, 1], [2], [3], [4], [5], [6]]
+    assert group_utterances([]) == []
+
+
+def test_phonetic_padded_ctc_uses_lengths_and_independent_normalization():
+    import torch
+    from batchalign.backends.phonetic.utils.inference import transcribe_batch
+
+    frontend = SimpleNamespace(normalize_audio=True)
+    calls = []
+
+    def encode(speech, lengths):
+        assert not frontend.normalize_audio
+        assert not torch.is_grad_enabled()
+        calls.append((speech.clone(), lengths.tolist()))
+        # A repeated phone across a blank must survive. The trailing b frames
+        # in row 0 are padding and must NOT become an observed phone.
+        ids = torch.tensor([[1, 1, 0, 1, 2, 2], [2, 2, 0, 2, 3, 0]])[:len(lengths)]
+        logits = torch.nn.functional.one_hot(ids, num_classes=4).float()
+        return (logits, []), torch.tensor([4, 6])[:len(lengths)]
+
+    core = SimpleNamespace(
+        frontend=frontend, encode=encode, blank_id=0,
+        token_list=["<blank>", "a", "b", "<eos>"],
+        ctc=SimpleNamespace(ctc_lo=lambda encoded: encoded),
+    )
+    model = SimpleNamespace(model=core, device="cpu", dtype=torch.float32)
+    short = torch.tensor([1., 2., 3., 4.])
+    long = torch.arange(8, dtype=torch.float32) * 100
+    assert transcribe_batch(model, [short, long]) == [["a", "a"], ["b", "b"]]
+    assert calls[0][1] == [4, 8]
+    assert calls[0][0].shape == (2, 8)
+    assert torch.equal(calls[0][0][0, 4:], torch.zeros(4))
+    assert frontend.normalize_audio
+    assert transcribe_batch(model, [short]) == [["a", "a"]]
+    assert torch.equal(calls[0][0][0, :4], calls[1][0][0])
+
+    def fail(*args):
+        raise RuntimeError("encoder failed")
+
+    core.encode = fail
+    with pytest.raises(RuntimeError, match="encoder failed"):
+        transcribe_batch(model, [short])
+    assert frontend.normalize_audio
+
+
+@pytest.mark.parametrize("batch_size", [None, 1, 2])
+def test_phonetic_grouped_batches_restore_utterance_ownership(monkeypatch, batch_size):
+    from batchalign.backends.phonetic.xeus import PhoneticXeusBackend
+    from batchalign._core.proto import PreparedAudio
+
+    def utterance(index, start, end, *words):
+        return SimpleNamespace(
+            index=index, start_ms=start, end_ms=end,
+            units=[SimpleNamespace(text=word, pause=word == "(.)") for word in words],
+        )
+
+    item = SimpleNamespace(
+        source_id="grouping", language="eng",
+        audio=PreparedAudio(
+            pcm_f32le=base64.b64encode(b"\x00" * 32000 * 4),
+            sample_rate=1000, channels=1, frame_count=32000,
+        ),
+        utterances=[
+            utterance(10, 0, 10000, "cat", "(.)"),
+            utterance(20, 10000, 19000, "dog"),
+            utterance(30, 21000, 22000, "fish"),
+            utterance(40, 30000, 32000, "cat"),
+        ],
+    )
+    backend = PhoneticXeusBackend(
+        pronunciations={"cat": "kæt", "dog": "dɒɡ", "fish": "fɪʃ"},
+        batch_size=batch_size, device="cpu",
+    )
+    backend._model = object()
+    calls, ticks = [], []
+
+    def transcribe(model, waves):
+        lengths = [len(wave) for wave in waves]
+        calls.append(lengths)
+        phones = {16000: list("fɪʃ"), 32000: list("kæt"), 304000: list("kætdɒɡ")}
+        return [phones[length] for length in lengths]
+
+    monkeypatch.setattr("batchalign.backends.phonetic.xeus.transcribe_batch", transcribe)
+    output = backend.call([item], progress=lambda *tick: ticks.append(tick))[0]
+    if batch_size == 2:
+        assert calls == [[16000, 32000], [304000]]
+        assert ticks == [(2, 3), (3, 3)]
+    else:
+        assert calls == [[16000], [32000], [304000]]
+        assert ticks == [(1, 3), (2, 3), (3, 3)]
+    assert [result.index for result in output.utterances] == [10, 20, 30, 40]
+    assert [result.ipa for result in output.utterances] == [["kæt", "(.)"], ["dɒɡ"], ["fɪʃ"], ["kæt"]]

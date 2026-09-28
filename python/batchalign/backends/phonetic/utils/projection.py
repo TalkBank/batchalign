@@ -27,7 +27,11 @@ from batchalign.utils.dp import (
 )
 
 
-__all__ = ["project_phones", "comparison_symbols"]
+# CHAT's single-character marker for an uncoded item on the %pho tier.
+# https://talkbank.org/0info/manuals/CHAT.html (Special Form Markers)
+UNRESOLVED = "…"
+
+__all__ = ["project_phones", "comparison_symbols", "UNRESOLVED"]
 
 
 def comparison_symbols(ipa: str) -> list[str]:
@@ -59,31 +63,34 @@ def project_phones(phones: list[str], pronunciations: list[str]) -> list[str]:
         pronunciations: Reference IPA, one string per spoken transcript unit.
 
     Returns:
-        One nonempty observed IPA string per reference unit. Concatenating
-        the result equals ``"".join(phones)`` exactly. Inputs are not mutated.
+        One observed IPA string per reference unit, or ``UNRESOLVED`` (``…``)
+        when no phones align to it. An empty acoustic sequence produces only
+        these placeholders. Removing placeholders and concatenating the result
+        equals ``"".join(phones)`` exactly. Inputs are not mutated.
 
     Raises:
-        ValueError: A sequence has no comparison symbols, a token cannot be
-            assigned, assignments cross unit boundaries, or a unit receives
-            no observed phones. Missing phones are never invented.
+        ValueError: A reference has no comparison symbols, a token cannot be
+            assigned, or assignments cross unit boundaries.
 
     Within an edit run, pair substitutions in order. Remaining insertions
     attach to the preceding reference unit (the following unit at the start).
     Multi-symbol phones use majority ownership, with ties going to the left.
-    A unit receiving no acoustic phones is unresolved, never filled from G2P.
+    A unit receiving no acoustic phones is marked unresolved, never filled
+    from G2P. The placeholder means uncoded, not an observed pause.
     """
     payload = [
         PayloadTarget(symbol, index)
         for index, phone in enumerate(phones)
         for symbol in comparison_symbols(phone)
     ]
+    reference_symbols = [comparison_symbols(ipa) for ipa in pronunciations]
+    if not reference_symbols or any(not symbols for symbols in reference_symbols):
+        raise ValueError("Cannot project empty pronunciation sequences")
     reference = [
         ReferenceTarget(symbol, index)
-        for index, pronunciation in enumerate(pronunciations)
-        for symbol in comparison_symbols(pronunciation)
+        for index, symbols in enumerate(reference_symbols)
+        for symbol in symbols
     ]
-    if not payload or not reference:
-        raise ValueError("Cannot project empty phone or pronunciation sequences")
     edits = align(payload, reference, tqdm=False)
     votes: list[list[int]] = [[] for _ in phones]
     previous = reference[0].payload
@@ -118,8 +125,4 @@ def project_phones(phones: list[str], pronunciations: list[str]) -> list[str]:
             raise ValueError("Phone projection crossed a word boundary")
         result[owner] += phone
         previous = owner
-    if any(not unit for unit in result):
-        raise ValueError(
-            "Phone alignment left an unresolved word; check transcript/pronunciations"
-        )
-    return result
+    return [unit or UNRESOLVED for unit in result]

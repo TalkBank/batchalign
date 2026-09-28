@@ -162,10 +162,24 @@ including pronunciation differences. Existing `%pho` tiers are preserved.
 The input must have utterance timing bullets; use `utr` first when needed.
 Word-level forced alignment is not required.
 
+Like Whisper forced alignment, phonetic inference groups consecutive utterances
+into approximately 20-second audio windows, then projects phones back to their
+original words and utterances. Gaps over two seconds and backwards timings start
+a new window; an utterance longer than 20 seconds stays whole. Words receiving
+no phones are marked `…` (uncoded) and reported with their utterance timing.
+
+Windows of similar duration are batched using padding and real encoder lengths.
+Normalization is performed independently per window, and padded output frames
+are excluded from decoding. CPU defaults to one window at a time; CUDA defaults
+to two. Increase `--batch-size` to try higher GPU throughput, or decrease it to
+reduce memory use. Batched and single-window output can differ slightly because
+the upstream encoder's convolution branches remain sensitive to padding.
+
 | Option | Default | Details |
 |---|---|---|
 | `--pronunciations` | None | UTF-8 CSV with header `word,ipa`; one word or whole phonological unit and its IPA per row, overriding the generated pronunciation. |
 | `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
+| `--batch-size` | CPU 1, CUDA 2 | Maximum audio windows per model batch; must be positive. |
 
 The task runner passes the primary `@Languages` code from CHAT. No separate
 language option is needed. [Piper Plus G2P](https://pypi.org/project/piper-plus-g2p/)
