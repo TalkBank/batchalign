@@ -1703,7 +1703,7 @@ iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
     --hash=sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12
     # via pytest
-intel-openmp==2021.4.0 ; sys_platform == 'win32' \
+intel-openmp==2021.4.0 ; python_full_version < '3.14' and sys_platform == 'win32' \
     --hash=sha256:3b921236a38384e2016f0f3d65af6732cf2c12918087128a9163225451e776f2 \
     --hash=sha256:41c01e266a7fdb631a7609191709322da2bbf24b252ba763f125dd651bcc7675 \
     --hash=sha256:6e863d8fd3d7e8ef389d52cf97a50fe2afe1a19247e8c0d168ce021546f96fc9 \
@@ -2416,7 +2416,7 @@ mdurl==0.1.2 \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
     --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
     # via markdown-it-py
-mkl==2021.4.0 ; sys_platform == 'win32' \
+mkl==2021.4.0 ; python_full_version < '3.14' and sys_platform == 'win32' \
     --hash=sha256:398dbf2b0d12acaf54117a5210e8f191827f373d362d796091d161f610c1ebfb \
     --hash=sha256:439c640b269a5668134e3dcbcea4350459c4a8bc46469669b2d67e07e3d330e8 \
     --hash=sha256:636d07d90e68ccc9630c654d47ce9fdeb036bb46e2b193b3a9ac8cfea683cce5 \
@@ -2918,60 +2918,119 @@ numpy==1.26.4 \
     #   transformers
     #   umap-learn
     #   wtpsplit
-nvidia-cublas-cu12==12.1.3.1 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cublas-cu12==12.1.3.1 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:2b964d60e8cf11b5e1073d179d85fa340c120e99b3067558f3cf98dd69d02906 \
     --hash=sha256:ee53ccca76a6fc08fb9701aa95b6ceb242cdaab118c3bb152af4e579af792728
     # via
     #   nvidia-cudnn-cu12
     #   nvidia-cusolver-cu12
     #   torch
-nvidia-cuda-cupti-cu12==12.1.105 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cublas-cu12==12.4.5.8 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:0f8aa1706812e00b9f19dfe0cdb3999b092ccb8ca168c0db5b8ea712456fd9b3 \
+    --hash=sha256:2fc8da60df463fdefa81e323eef2e36489e1c94335b5358bcb38360adf75ac9b \
+    --hash=sha256:5a796786da89203a0657eda402bcdcec6180254a8ac22d72213abc42069522dc
+    # via
+    #   nvidia-cudnn-cu12
+    #   nvidia-cusolver-cu12
+    #   torch
+nvidia-cuda-cupti-cu12==12.1.105 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:bea8236d13a0ac7190bd2919c3e8e6ce1e402104276e6f9694479e48bb0eb2a4 \
     --hash=sha256:e54fde3983165c624cb79254ae9818a456eb6e87a7fd4d56a2352c24ee542d7e
     # via torch
-nvidia-cuda-nvrtc-cu12==12.1.105 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cuda-cupti-cu12==12.4.127 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:5688d203301ab051449a2b1cb6690fbe90d2b372f411521c86018b950f3d7922 \
+    --hash=sha256:79279b35cf6f91da114182a5ce1864997fd52294a87a16179ce275773799458a \
+    --hash=sha256:9dec60f5ac126f7bb551c055072b69d85392b13311fcc1bcda2202d172df30fb
+    # via torch
+nvidia-cuda-nvrtc-cu12==12.1.105 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:0a98a522d9ff138b96c010a65e145dc1b4850e9ecb75a0172371793752fd46ed \
     --hash=sha256:339b385f50c309763ca65456ec75e17bbefcbbf2893f462cb8b90584cd27a1c2
     # via torch
-nvidia-cuda-runtime-cu12==12.1.105 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cuda-nvrtc-cu12==12.4.127 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:0eedf14185e04b76aa05b1fea04133e59f465b6f960c0cbf4e37c3cb6b0ea198 \
+    --hash=sha256:a178759ebb095827bd30ef56598ec182b85547f1508941a3d560eb7ea1fbf338 \
+    --hash=sha256:a961b2f1d5f17b14867c619ceb99ef6fcec12e46612711bcec78eb05068a60ec
+    # via torch
+nvidia-cuda-runtime-cu12==12.1.105 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:6e258468ddf5796e25f1dc591a31029fa317d97a0a94ed93468fc86301d61e40 \
     --hash=sha256:dfb46ef84d73fababab44cf03e3b83f80700d27ca300e537f85f636fac474344
     # via torch
-nvidia-cudnn-cu12==8.9.2.26 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cuda-runtime-cu12==12.4.127 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:09c2e35f48359752dfa822c09918211844a3d93c100a715d79b59591130c5e1e \
+    --hash=sha256:64403288fa2136ee8e467cdc9c9427e0434110899d07c779f25b5c068934faa5 \
+    --hash=sha256:961fe0e2e716a2a1d967aab7caee97512f71767f852f67432d572e36cb3a11f3
+    # via torch
+nvidia-cudnn-cu12==8.9.2.26 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:5ccb288774fdfb07a7e7025ffec286971c06d8d7b4fb162525334616d7629ff9
     # via torch
-nvidia-cufft-cu12==11.0.2.54 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cudnn-cu12==9.1.0.70 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:165764f44ef8c61fcdfdfdbe769d687e06374059fbb388b6c89ecb0e28793a6f \
+    --hash=sha256:6278562929433d68365a07a4a1546c237ba2849852c0d4b2262a486e805b977a
+    # via torch
+nvidia-cufft-cu12==11.0.2.54 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:794e3948a1aa71fd817c3775866943936774d1c14e7628c74f6f7417224cdf56 \
     --hash=sha256:d9ac353f78ff89951da4af698f80870b1534ed69993f10a4cf1d96f21357e253
     # via torch
-nvidia-curand-cu12==10.3.2.106 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cufft-cu12==11.2.1.3 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:5dad8008fc7f92f5ddfa2101430917ce2ffacd86824914c82e28990ad7f00399 \
+    --hash=sha256:d802f4954291101186078ccbe22fc285a902136f974d369540fd4a5333d1440b \
+    --hash=sha256:f083fc24912aa410be21fa16d157fed2055dab1cc4b6934a0e03cba69eb242b9
+    # via torch
+nvidia-curand-cu12==10.3.2.106 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:75b6b0c574c0037839121317e17fd01f8a69fd2ef8e25853d826fec30bdba74a \
     --hash=sha256:9d264c5036dde4e64f1de8c50ae753237c12e0b1348738169cd0f8a536c0e1e0
     # via torch
-nvidia-cusolver-cu12==11.4.5.107 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-curand-cu12==10.3.5.147 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:1f173f09e3e3c76ab084aba0de819c49e56614feae5c12f69883f4ae9bb5fad9 \
+    --hash=sha256:a88f583d4e0bb643c49743469964103aa59f7f708d862c3ddb0fc07f851e3b8b \
+    --hash=sha256:f307cc191f96efe9e8f05a87096abc20d08845a841889ef78cb06924437f6771
+    # via torch
+nvidia-cusolver-cu12==11.4.5.107 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:74e0c3a24c78612192a74fcd90dd117f1cf21dea4822e66d89e8ea80e3cd2da5 \
     --hash=sha256:8a7ec542f0412294b15072fa7dab71d31334014a69f953004ea7a118206fe0dd
     # via torch
-nvidia-cusparse-cu12==12.1.0.106 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cusolver-cu12==11.6.1.9 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:19e33fa442bcfd085b3086c4ebf7e8debc07cfe01e11513cc6d332fd918ac260 \
+    --hash=sha256:d338f155f174f90724bbde3758b7ac375a70ce8e706d70b018dd3375545fc84e \
+    --hash=sha256:e77314c9d7b694fcebc84f58989f3aa4fb4cb442f12ca1a9bde50f5e8f6d1b9c
+    # via torch
+nvidia-cusparse-cu12==12.1.0.106 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:b798237e81b9719373e8fae8d4f091b70a0cf09d9d85c95a557e11df2d8e9a5a \
     --hash=sha256:f3b50f42cf363f86ab21f720998517a659a48131e8d538dc02f8768237bd884c
     # via
     #   nvidia-cusolver-cu12
     #   torch
-nvidia-nccl-cu12==2.20.5 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+nvidia-cusparse-cu12==12.3.1.170 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:9bc90fb087bc7b4c15641521f31c0371e9a612fc2ba12c338d3ae032e6b6797f \
+    --hash=sha256:9d32f62896231ebe0480efd8a7f702e143c98cfaa0e8a76df3386c1ba2b54df3 \
+    --hash=sha256:ea4f11a2904e2a8dc4b1833cc1b5181cde564edd0d5cd33e3c168eff2d1863f1
+    # via
+    #   nvidia-cusolver-cu12
+    #   torch
+nvidia-nccl-cu12==2.20.5 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:057f6bf9685f75215d0c53bf3ac4a10b3e6578351de307abad9e18a99182af56 \
     --hash=sha256:1fc150d5c3250b170b29410ba682384b14581db722b2531b0d8d33c595f33d01
+    # via torch
+nvidia-nccl-cu12==2.21.5 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:8579076d30a8c24988834445f8d633c697d42397e92ffc3f63fa26766d25e0a0
     # via torch
 nvidia-nvjitlink-cu12==12.4.127 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:06b3b9b25bf3f8af351d664978ca26a16d2c5127dbd53c0497e28d1fb9611d57 \
     --hash=sha256:4abe7fef64914ccfa909bc2ba39739670ecc9e820c83ccc7a6ed414122599b83 \
     --hash=sha256:fd9020c501d27d135f983c6d3e244b197a7ccad769e34df53a42e276b0e25fa1
     # via
+    #   nvidia-cufft-cu12
     #   nvidia-cusolver-cu12
     #   nvidia-cusparse-cu12
-nvidia-nvtx-cu12==12.1.105 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
+    #   torch
+nvidia-nvtx-cu12==12.1.105 ; python_full_version < '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:65f4d98982b31b60026e0e6de73fbdfc09d08a96f4656dd3665ca616a11e1e82 \
     --hash=sha256:dc21cf308ca5691e7c04d962e213f8a4aa9bbfa23d95412f452254c2caeb09e5
+    # via torch
+nvidia-nvtx-cu12==12.4.127 ; python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux' \
+    --hash=sha256:641dccaaa1139f3ffb0d3164b4b84f9d253397e38246a4f2f36728b48566d485 \
+    --hash=sha256:781e950d9b9f60d8241ccea575b32f5105a5baf4c2351cab5256a24869f12a1a \
+    --hash=sha256:7959ad635db13edf4fc65c06a6e9f9e55fc2f92596db928d169c0bb031e88ef3
     # via torch
 omegaconf==2.3.0 \
     --hash=sha256:7b4df175cdb08ba400f45cae3bdcae7ba8365db4d165fc65fd04b050ab63b46b \
@@ -4930,9 +4989,15 @@ sudachipy==0.7.0 \
     # via
     #   pyopenjtalk-plus
     #   sudachidict-core
-sympy==1.13.1 \
+sympy==1.13.1 ; (python_full_version >= '3.14' and platform_machine != 'x86_64') or (python_full_version >= '3.14' and sys_platform != 'darwin') \
     --hash=sha256:9cebf7e04ff162015ce31c9c6c9144daa34a93bd082f54fd8f12deca4f47515f \
     --hash=sha256:db36cdc64bf61b9b24578b6f7bab1ecdd2452cf008f34faa33776680c26d66f8
+    # via
+    #   pyannote-metrics
+    #   torch
+sympy==1.14.0 ; (python_full_version < '3.14' and platform_machine != 'x86_64') or (python_full_version < '3.14' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') \
+    --hash=sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517 \
+    --hash=sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
     # via
     #   pyannote-metrics
     #   torch
@@ -4940,7 +5005,7 @@ tabulate==0.10.0 \
     --hash=sha256:e2cfde8f79420f6deeffdeda9aaec3b6bc5abce947655d17ac662b126e48a60d \
     --hash=sha256:f0b0622e567335c8fabaaa659f1b33bcb6ddfe2e496071b743aa113f8774f2d3
     # via pyannote-metrics
-tbb==2021.13.1 ; sys_platform == 'win32' \
+tbb==2021.13.1 ; python_full_version < '3.14' and sys_platform == 'win32' \
     --hash=sha256:00f5e5a70051650ddd0ab6247c0549521968339ec21002e475cd23b1cbf46d66 \
     --hash=sha256:bb5bdea0c0e9e6ad0739e7a8796c2635ce9eccca86dd48c426cd8027ac70fb1d \
     --hash=sha256:cbf024b2463fdab3ebe3fa6ff453026358e6b903839c80d647e08ad6d0796ee9 \
@@ -5080,7 +5145,7 @@ tomlkit==0.14.0 \
 toolwrapper==2.1.0 \
     --hash=sha256:128088c93cb02fcaa6701c488e62e027f45ca5597b5c9bcf28816ad70e830bf7
     # via mosestokenizer
-torch==2.3.1 \
+torch==2.3.1 ; (python_full_version < '3.14' and platform_machine != 'x86_64') or (python_full_version < '3.14' and sys_platform != 'darwin') \
     --hash=sha256:07e9ba746832b8d069cacb45f312cadd8ad02b81ea527ec9766c0e7404bb3feb \
     --hash=sha256:224259821fe3e4c6f7edf1528e4fe4ac779c77addaa74215eb0b63a5c474d66c \
     --hash=sha256:2bb5af780c55be68fe100feb0528d2edebace1d55cb2e351de735809ba7391eb \
@@ -5117,6 +5182,81 @@ torch==2.3.1 \
     #   torch-pitch-shift
     #   torchaudio
     #   torchmetrics
+torch==2.5.1 ; (python_full_version >= '3.14' and platform_machine != 'x86_64') or (python_full_version >= '3.14' and sys_platform != 'darwin') \
+    --hash=sha256:1f3b7fb3cf7ab97fae52161423f81be8c6b8afac8d9760823fd623994581e1a3 \
+    --hash=sha256:23d062bf70776a3d04dbe74db950db2a5245e1ba4f27208a87f0d743b0d06e86 \
+    --hash=sha256:31f8c39660962f9ae4eeec995e3049b5492eb7360dd4f07377658ef4d728fa4c \
+    --hash=sha256:32a037bd98a241df6c93e4c789b683335da76a2ac142c0973675b715102dc5fa \
+    --hash=sha256:340ce0432cad0d37f5a31be666896e16788f1adf8ad7be481196b503dad675b9 \
+    --hash=sha256:34bfa1a852e5714cbfa17f27c49d8ce35e1b7af5608c4bc6e81392c352dbc601 \
+    --hash=sha256:3f4b7f10a247e0dcd7ea97dc2d3bfbfc90302ed36d7f3952b0008d0df264e697 \
+    --hash=sha256:46c817d3ea33696ad3b9df5e774dba2257e9a4cd3c4a3afbf92f6bb13ac5ce2d \
+    --hash=sha256:603c52d2fe06433c18b747d25f5c333f9c1d58615620578c326d66f258686f9a \
+    --hash=sha256:71328e1bbe39d213b8721678f9dcac30dfc452a46d586f1d514a6aa0a99d4744 \
+    --hash=sha256:73e58e78f7d220917c5dbfad1a40e09df9929d3b95d25e57d9f8558f84c9a11c \
+    --hash=sha256:7974e3dce28b5a21fb554b73e1bc9072c25dde873fa00d54280861e7a009d7dc \
+    --hash=sha256:8046768b7f6d35b85d101b4b38cba8aa2f3cd51952bc4c06a49580f2ce682291 \
+    --hash=sha256:8c712df61101964eb11910a846514011f0b6f5920c55dbf567bff8a34163d5b1 \
+    --hash=sha256:9b61edf3b4f6e3b0e0adda8b3960266b9009d02b37555971f4d1c8f7a05afed7 \
+    --hash=sha256:de5b7d6740c4b636ef4db92be922f0edc425b65ed78c5076c43c42d362a45457 \
+    --hash=sha256:ed231a4b3a5952177fafb661213d690a72caaad97d5824dd4fc17ab9e15cec03
+    # via
+    #   batchalign (python/pyproject.toml)
+    #   accelerate
+    #   asteroid-filterbanks
+    #   julius
+    #   lightning
+    #   openai-whisper
+    #   pyannote-audio
+    #   pytorch-lightning
+    #   pytorch-metric-learning
+    #   speechbrain
+    #   stanza
+    #   torch-audiomentations
+    #   torch-pitch-shift
+    #   torchaudio
+    #   torchmetrics
+torch==2.8.0 ; platform_machine == 'x86_64' and sys_platform == 'darwin' \
+    --hash=sha256:06fcee8000e5c62a9f3e52a688b9c5abb7c6228d0e56e3452983416025c41381 \
+    --hash=sha256:0be92c08b44009d4131d1ff7a8060d10bafdb7ddcb7359ef8d8c5169007ea905 \
+    --hash=sha256:1a62a1ec4b0498930e2543535cf70b1bef8c777713de7ceb84cd79115f553767 \
+    --hash=sha256:220a06fd7af8b653c35d359dfe1aaf32f65aa85befa342629f716acb134b9710 \
+    --hash=sha256:2b2f96814e0345f5a5aed9bf9734efa913678ed19caf6dc2cddb7930672d6128 \
+    --hash=sha256:2f4ac52f0130275d7517b03a33d2493bab3693c83dcfadf4f81688ea82147d2e \
+    --hash=sha256:5128fe752a355d9308e56af1ad28b15266fe2da5948660fad44de9e3a9e36e8c \
+    --hash=sha256:5ae0524688fb6707c57a530c2325e13bb0090b745ba7b4a2cd6a3ce262572916 \
+    --hash=sha256:619c2869db3ada2c0105487ba21b5008defcc472d23f8b80ed91ac4a380283b0 \
+    --hash=sha256:65616ca8ec6f43245e1f5f296603e33923f4c30f93d65e103d9e50c25b35150b \
+    --hash=sha256:659df54119ae03e83a800addc125856effda88b016dfc54d9f65215c3975be16 \
+    --hash=sha256:7b677e17f5a3e69fdef7eb3b9da72622f8d322692930297e4ccb52fefc6c8211 \
+    --hash=sha256:83c13411a26fac3d101fe8035a6b0476ae606deb8688e904e796a3534c197def \
+    --hash=sha256:89aa9ee820bb39d4d72b794345cccef106b574508dd17dbec457949678c76011 \
+    --hash=sha256:8c7ef765e27551b2fbfc0f41bcf270e1292d9bf79f8e0724848b1682be6e80aa \
+    --hash=sha256:8f0a9d617a66509ded240add3754e462430a6c1fc5589f86c17b433dd808f97a \
+    --hash=sha256:a3f16a58a9a800f589b26d47ee15aca3acf065546137fc2af039876135f4c760 \
+    --hash=sha256:a7242b86f42be98ac674b88a4988643b9bc6145437ec8f048fea23f72feb5eca \
+    --hash=sha256:b2aca0939fb7e4d842561febbd4ffda67a8e958ff725c1c27e244e85e982173c \
+    --hash=sha256:c12fa219f51a933d5f80eeb3a7a5d0cbe9168c0a14bbb4055f1979431660879b \
+    --hash=sha256:da6afa31c13b669d4ba49d8a2169f0db2c3ec6bec4af898aa714f401d4c38904 \
+    --hash=sha256:e2fab4153768d433f8ed9279c8133a114a034a61e77a3a104dcdf54388838705 \
+    --hash=sha256:e8e5bf982e87e2b59d932769938b698858c64cc53753894be25629bdf5cf2f46 \
+    --hash=sha256:e9f071f5b52a9f6970dc8a919694b27a91ae9dc08898b2b988abbef5eddfd1ae
+    # via
+    #   batchalign (python/pyproject.toml)
+    #   accelerate
+    #   asteroid-filterbanks
+    #   julius
+    #   lightning
+    #   openai-whisper
+    #   pyannote-audio
+    #   pytorch-lightning
+    #   pytorch-metric-learning
+    #   speechbrain
+    #   stanza
+    #   torch-audiomentations
+    #   torch-pitch-shift
+    #   torchaudio
+    #   torchmetrics
 torch-audiomentations==0.12.0 \
     --hash=sha256:1b80b91d2016ccf83979622cac8f702072a79b7dcc4c2bee40f00b26433a786b \
     --hash=sha256:b02d4c5eb86376986a53eb405cca5e34f370ea9284411237508e720c529f7888
@@ -5129,7 +5269,7 @@ torch-pitch-shift==1.2.5 \
     --hash=sha256:6e1c7531f08d0f407a4c55e5ff8385a41355c5c5d27ab7fa08632e51defbd0ed \
     --hash=sha256:6f8500cbc13f1c98b11cde1805ce5084f82cdd195c285f34287541f168a7c6a7
     # via torch-audiomentations
-torchaudio==2.3.1 \
+torchaudio==2.3.1 ; (python_full_version < '3.14' and platform_machine != 'x86_64') or (python_full_version < '3.14' and sys_platform != 'darwin') \
     --hash=sha256:01984f38398ca5e98ecfbfeafb72ae5b2131d0bb8aa464b5777addb3e4826877 \
     --hash=sha256:07b72d76fa108ac0f3400a759456ba96bdaa2b8649fd9588cc93295a532b01d9 \
     --hash=sha256:1f9134b27e5a7f0c1e33382fc0fe278e53695768cb0af02e8d22b5006c74a2ad \
@@ -5150,6 +5290,60 @@ torchaudio==2.3.1 \
     --hash=sha256:c8c727c8341825bd18d91017c4c00f36b53b08f2176cdb9bdcb0def1c450b21d \
     --hash=sha256:ce45e05acd544696c6a6f023d4fe8614ade57515799a1103b2418e854838d4a5 \
     --hash=sha256:d4982f4c520e49628507e968fb29c5db707108a8580b11593f049a932c8f2b98
+    # via
+    #   batchalign (python/pyproject.toml)
+    #   pyannote-audio
+    #   speechbrain
+    #   torch-audiomentations
+    #   torch-pitch-shift
+torchaudio==2.5.1 ; (python_full_version >= '3.14' and platform_machine != 'x86_64') or (python_full_version >= '3.14' and sys_platform != 'darwin') \
+    --hash=sha256:0be6d6f5127b17f9f1ac33fb02c8f1127bfea955de630c5cab6eb9daaef4db6d \
+    --hash=sha256:4aead2d6b32426d0e657e243f6f5146f8d400bc8db9fe8a8000254baeec1202d \
+    --hash=sha256:4ba24769a72bd686903feaf1040c895d710af2ffbcd25ee7a9794ee285561b26 \
+    --hash=sha256:6bb65416405f40e00b20701257c16e7493bfdd7188e02e87cc5b389c31c10c2c \
+    --hash=sha256:7005354aa7dda9ef908e13c2566ee1fe0bd6d7f5bae0583b5e53016cd229fc34 \
+    --hash=sha256:7af3f7f92fd33bc9f036a60cdeda4cbeb6bccebd18eae89776dd1e8ed042672e \
+    --hash=sha256:901291d770aeeb1f51920bb5aa73ff82e9b7f26354a3c7b90d80ff0b4e9a5044 \
+    --hash=sha256:9b3872c5dd5080be6322908d62365581a1dd9250e3dd6d47bab3f5b0854a5d1f \
+    --hash=sha256:9c8fb06fbd8d2016e7b7caf15a3231867c792a2e3b0f2f8f9013633e9c2ce412 \
+    --hash=sha256:a40a0e4b238564a19bf138c64d593c7b52d97c8737843d85d6ca09216241ae66 \
+    --hash=sha256:abacbec3b6d695cf99ada8b1db55db933181c8ff7d283e246e2bbefdde674235 \
+    --hash=sha256:cba8ccab1bff0496ccdc71ebbdcd31d0f7bf97ff3c46276425ff86460f6f8967 \
+    --hash=sha256:d29349944955eb061e774fe4d9eea4681c5bc9ff42ea39a877f8f14de1e4ed00 \
+    --hash=sha256:ec8f12d6be12aed248a0d65a76c7bb341ee5eef969fe2e9dc3154c7cfba1bdf4 \
+    --hash=sha256:f1cbfdfd1bbdfbe7289d47a74f36ff6c5d87c3205606202fef5a7fb693f61cf0 \
+    --hash=sha256:f2f0a4fa19137cad247087dcf4b85c56860f924c3ca4a89679299cf0e002ee33
+    # via
+    #   batchalign (python/pyproject.toml)
+    #   pyannote-audio
+    #   speechbrain
+    #   torch-audiomentations
+    #   torch-pitch-shift
+torchaudio==2.8.0 ; platform_machine == 'x86_64' and sys_platform == 'darwin' \
+    --hash=sha256:078105bf80f725c0215a0bebac8cb2fb1b3993ab32bdc3fcd50145a5b4127001 \
+    --hash=sha256:09535a9b727c0793cd07c1ace99f3f353626281bcc3e30c2f2314e3ebc9d3f96 \
+    --hash=sha256:1951f10ed092f2dda57634f6a3950ef21c9d9352551aa84a9fccd51bbda18095 \
+    --hash=sha256:4573c6042950c20278e3608a9a38050ba0bc72e0049e1bbfd249caf859a8029b \
+    --hash=sha256:4b82cacd1b8ccd543b1149d8cab257a40dfda8119023d2e3a96c66349c84bffb \
+    --hash=sha256:4e2b4712ad6d7547ce82d84567c8c29d5e2966ff1d31d94e1644024fb4b2649f \
+    --hash=sha256:4f7d97494698d98854129349b12061e8c3398d33bd84c929fa9aed5fd1389f73 \
+    --hash=sha256:522289e2cd57e79401fd5ccae9b1bc0ff2e47f3529092adf5acf57427ea0c6a9 \
+    --hash=sha256:58f912bf2d289c709b42a55475b2b483becec79d9affb7684b606bb1f896b434 \
+    --hash=sha256:68df9c9068984edff8065c2b6656725e6114fe89281b0cf122c7505305fc98a4 \
+    --hash=sha256:776c0b4ba84b9e3ddf6304b9c47cd63549d7896a6f3d5184ece074cc3d76ed6b \
+    --hash=sha256:862e2e40bf09d865e5df080a84c1a39bbcef40e43140f4b1737eb3a389d3b38f \
+    --hash=sha256:93a8583f280fe83ba021aa713319381ea71362cc87b67ee38e97a43cb2254aee \
+    --hash=sha256:a1f4bde9ce9316b6b24304c73ea9f82a2aabc4dbf8c6c2598117ea7c6ecc4db2 \
+    --hash=sha256:c1b5139c840367a7855a062a06688a416619f6fd2ca46d9b9299b49a7d133dfd \
+    --hash=sha256:c2f44cf279f673cfcdd8f576c349eee8bedf8caab351a5dd78b32970cc34a212 \
+    --hash=sha256:c9276857d241c6de257af765c0f51fc011af38cb725401495121b280913007cf \
+    --hash=sha256:d2a85b124494736241884372fe1c6dd8c15e9bc1931bd325838c5c00238c7378 \
+    --hash=sha256:d3c1b85b26a09832d139f6d6da6b66caeb51d2e16e08f8587665c44a9e1aa8f9 \
+    --hash=sha256:d4a715d09ac28c920d031ee1e60ecbc91e8a5079ad8c61c0277e658436c821a6 \
+    --hash=sha256:ddef94bf181e6447cbb05f38beaca8f6c5bb8d2b9ddced1aa3452025b9fc70d3 \
+    --hash=sha256:e30b4741ec333dea78d012047c58305a1865a20ce74a3b8bc2d7b40de344dd02 \
+    --hash=sha256:ef7f7ffa828b8d8ba5d3a569b825fc0469688e1e8962bf6577d538bd8af1387d \
+    --hash=sha256:f851d32e94ca05e470f0c60e25726ec1e0eb71cb2ca5a0206b7fd03272ccc3c8
     # via
     #   batchalign (python/pyproject.toml)
     #   pyannote-audio
