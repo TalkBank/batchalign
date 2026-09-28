@@ -32,14 +32,15 @@ def register(app: typer.Typer) -> None:
             exists=True,
             dir_okay=False,
             help="UTF-8 CSV overrides with header word,ipa and one word or CHAT unit "
-            "per row. Example row: wug,wʌɡ. Replaces Epitran's pronunciation for that unit.",
+            "per row. Example row: wug,wʌɡ. Overrides the generated pronunciation for that unit.",
         ),
         force_cpu: bool = typer.Option(False, "--force-cpu", help="Use CPU inference."),
     ) -> None:
         """Add observed IPA to `%pho`, preserving existing phonetic tiers.
 
         Requires utterance timing bullets (run utr first if absent).
-        Reference IPA uses Epitran for the CHAT language; English requires Flite.
+        Reference IPA uses Piper Plus for supported CHAT languages and Epitran
+        otherwise. Requires Python 3.11+; English needs no system G2P executable.
 
         Override example: --pronunciations pronunciations.csv
 

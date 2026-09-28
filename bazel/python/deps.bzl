@@ -14,13 +14,15 @@ entirely in `pyproject.toml`. This is a list of *which marker-
 conditional names rules_python skips*, derived from grepping
 requirements.lock.txt for `; python_full_version` / `; sys_platform`
 markers that don't satisfy our pinned 3.12 + cross-platform set.
+Korean G2P's two platform-specific analyzer roots also need an explicit
+select because the hub omits them from all_requirements on matching hosts.
 
 Track upstream: bazel-contrib/rules_python#2244 (and friends) — once
 fixed, this whole file collapses to `_RUNTIME_DEPS = all_requirements`
 directly in the consumer BUILD.
 """
 
-load("@pypi//:requirements.bzl", _all_requirements = "all_requirements")
+load("@pypi//:requirements.bzl", _all_requirements = "all_requirements", _requirement = "requirement")
 
 # Names that appear in `all_requirements` but whose BUILD file pip.parse
 # elides because of a `python_full_version` / `sys_platform` marker.
@@ -64,6 +66,9 @@ _MARKER_FILTERED = [
     # sys_platform == 'win32'
     "pywin32_ctypes",
     "tzdata",
+    # Korean G2P's platform-specific roots are selected explicitly below.
+    "eunjeon",
+    "python_mecab_ko",
 ]
 
 def _is_filtered(label):
@@ -75,8 +80,13 @@ def _is_filtered(label):
 def all_runtime_deps():
     """Every dep the lockfile resolves for the current platform.
 
-    No name list maintained anywhere in BUILD/justfile/MODULE — call this
-    from py_library/py_binary/py_test `deps =` and the dependency set is
-    implicit in pyproject.toml + requirements.lock.txt.
+    Call this from py_library/py_binary/py_test `deps =`. Packages come from
+    pyproject.toml + requirements.lock.txt, with the Korean analyzer selected
+    for the target platform below.
     """
-    return [d for d in _all_requirements if not _is_filtered(d)]
+    # The hub omits these marker-conditional roots from all_requirements even
+    # on matching hosts. Keep them available to g2pk2 without runtime pip calls.
+    return [d for d in _all_requirements if not _is_filtered(d)] + select({
+        "@platforms//os:windows": [_requirement("eunjeon")],
+        "//conditions:default": [_requirement("python-mecab-ko")],
+    })

@@ -147,7 +147,8 @@ Accepts the shared input selection and `-o/--out` options above.
 ## phonetic
 
 Accepts timed CHAT and matching audio, using shared input selection and
-`-o/--out`. Install the `phonetic` extra for PhoneticXeus and Epitran.
+`-o/--out`. Install the `phonetic` extra for PhoneticXeus, Piper Plus G2P, and Epitran.
+Phonetic transcription requires Python 3.11 or newer.
 The first inference downloads the pinned model revision;
 building the CLI and displaying help do not download model weights.
 
@@ -156,28 +157,34 @@ just batchalign cli phonetic recording.cha --out phonetic-output --force-cpu
 ```
 
 The command recognizes phones from audio and DP-aligns them against reference
-IPA pronunciations from Epitran to recover word boundaries. `%pho` retains the observed IPA,
+IPA pronunciations to recover word boundaries. `%pho` retains the observed IPA,
 including pronunciation differences. Existing `%pho` tiers are preserved.
 The input must have utterance timing bullets; use `utr` first when needed.
 Word-level forced alignment is not required.
 
 | Option | Default | Details |
 |---|---|---|
-| `--pronunciations` | None | UTF-8 CSV with header `word,ipa`; one word or whole phonological unit and its IPA per row, overriding Epitran. |
+| `--pronunciations` | None | UTF-8 CSV with header `word,ipa`; one word or whole phonological unit and its IPA per row, overriding the generated pronunciation. |
 | `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
 
-The task runner passes the primary `@Languages` code from CHAT. Its default
-script is resolved automatically: French uses `fra-Latn`, Russian `rus-Cyrl`,
-and Hindi `hin-Deva`. No separate language option is needed. This uses the
-primary language's default script; alternate scripts and code-switched words
-can use pronunciation overrides.
-The DP compares IPA directly, preserving distinctions
-such as nasalization, vowel length, and tone; reference pronunciations only
-determine grouping and never replace observed phones.
+The task runner passes the primary `@Languages` code from CHAT. No separate
+language option is needed. [Piper Plus G2P](https://pypi.org/project/piper-plus-g2p/)
+0.2.0 handles English, Japanese, Mandarin Chinese, Korean, Spanish, French,
+Portuguese, and Swedish. Both `cmn` and `zho` select Mandarin; Cantonese (`yue`)
+is a separate language and uses the fallback.
 
-Language coverage follows [Epitran](https://github.com/dmort27/epitran).
-English requires Flite's `lex_lookup` on PATH. Some Epitran backends, including
-Chinese, download additional dictionaries on first use.
+Other languages use [Epitran](https://github.com/dmort27/epitran), with their
+default script resolved automatically (e.g. Russian `rus-Cyrl`, Hindi
+`hin-Deva`). A failure in a supported Piper backend is reported rather than
+silently switching providers. English does not require Flite's `lex_lookup`
+or eSpeak; Python language packages are included in the extra. Language
+resources may download on first use.
+
+The DP compares IPA directly, preserving distinctions such as nasalization,
+vowel length, and tone. Piper's language-specific phone/tone labels are
+converted to IPA before comparison. References only determine grouping;
+they never replace the observed phones. Alternate scripts and code-switched
+words can use pronunciation overrides.
 Pass `--pronunciations pronunciations.csv` to supply dialect forms or words
 in unsupported languages. For example:
 

@@ -13,6 +13,7 @@ from batchalign.backends.phonetic.utils.pronunciation import (
     Pronunciations, epitran_code, load_pronunciations,
 )
 from batchalign.backends.phonetic.utils.projection import comparison_symbols, project_phones
+from batchalign.backends.phonetic.utils.piper import piper_ipa
 from batchalign.cli import app
 
 
@@ -54,7 +55,7 @@ def test_comparison_normalization_does_not_split_combining_marks():
 )
 def test_multilingual_ipa_references(language, word, ipa):
     reference = Pronunciations()(word, language)
-    assert reference == ipa
+    assert comparison_symbols(reference) == comparison_symbols(ipa)
     # The same DP groups directly against generated IPA for each language.
     phones = comparison_symbols(ipa) * 2
     assert project_phones(phones, [reference, reference]) == [ipa, ipa]
@@ -76,14 +77,14 @@ def test_language_selects_epitran_script(language, code):
 
 def test_lookup_overrides_and_chat_markers():
     lookup = Pronunciations({"wug": "wʌɡ", "bonjour": "bɔ̃ʒuʁ"})
-    assert lookup("&-gato", "spa") == "ɡato"
-    assert lookup("‹gato gato›", "spa") == "ɡatoɡato"
+    assert comparison_symbols(lookup("&-gato", "spa")) == list("ɡato")
+    assert comparison_symbols(lookup("‹gato gato›", "spa")) == list("ɡatoɡato")
     assert lookup("wug", "eng") == "wʌɡ"
     assert lookup("bonjour", "fra") == "bɔ̃ʒuʁ"
     with pytest.raises(ValueError, match="@Languages"):
         lookup("word", "ell")  # A valid CHAT language without an Epitran map.
     with pytest.raises(ValueError, match="Incomplete IPA"):
-        lookup("gato猫", "spa")
+        lookup("göz猫", "tur")
 
 
 def test_pronunciation_csv(tmp_path):
@@ -111,11 +112,65 @@ def test_pronunciation_csv_rejects_invalid_input(tmp_path, contents, error):
         load_pronunciations(path)
 
 
-def test_english_missing_flite_has_actionable_error(monkeypatch):
+def test_english_uses_piper_without_flite(monkeypatch, tmp_path):
+    import nltk
+
+    monkeypatch.setattr(nltk.data, "path", [str(tmp_path)])
     monkeypatch.setattr("shutil.which", lambda _: None)
-    with pytest.raises(ValueError, match="lex_lookup"):
-        Pronunciations()("cat", "eng")
+    def no_epitran(*args):
+        pytest.fail("English must not use Epitran")
+    monkeypatch.setattr(Pronunciations, "_epitran_engine", no_epitran)
+    assert comparison_symbols(Pronunciations()("cat", "eng")) == list("kæt")
     assert Pronunciations({"cat": "kæt"})("cat", "eng") == "kæt"
+
+
+def test_piper_failure_does_not_silently_fall_back(monkeypatch):
+    import piper_plus_g2p
+
+    def broken(code):
+        raise RuntimeError("Piper unavailable")
+
+    monkeypatch.setattr(piper_plus_g2p, "get_phonemizer", broken)
+    with pytest.raises(RuntimeError, match="Piper unavailable"):
+        Pronunciations()("gato", "spa")
+    # Explicit overrides still bypass G2P entirely.
+    assert Pronunciations({"cat": "kæt"})("cat", "eng") == "kæt"
+
+
+def test_unsupported_piper_language_uses_epitran(monkeypatch):
+    import piper_plus_g2p
+
+    def no_piper(code):
+        pytest.fail("Russian must use Epitran")
+
+    monkeypatch.setattr(piper_plus_g2p, "get_phonemizer", no_piper)
+    assert Pronunciations()("кот", "rus") == "kot"
+
+
+@pytest.mark.parametrize("language", ["cmn", "zho"])
+def test_mandarin_piper_tones(language):
+    assert Pronunciations()("你", language) == "ni˨˩˦"
+
+
+@pytest.mark.parametrize("language,word,expected", [("jpn", "猫", "neko"), ("kor", "가", "ka")])
+def test_piper_asian_backends(language, word, expected, monkeypatch, tmp_path):
+    import nltk
+
+    monkeypatch.setattr(nltk.data, "path", [str(tmp_path)])
+    assert Pronunciations()(word, language) == expected
+
+
+@pytest.mark.parametrize(
+    "language,tokens,expected",
+    [
+        ("zh", ["n", "i", "tone3", "x", "au", "tone4"], "ni˨˩˦xau˥˩"),
+        ("ja", ["k", "o", "[", "N_n", "n", "i", "ch", "i", "w", "a"], "konnitɕiwa"),
+        ("ja", ["k", "i", "cl", "t", "e", "]"], "kitte"),
+        ("es", ["p", "e", "rr", "o"], "pero"),
+    ],
+)
+def test_piper_labels_are_converted_to_ipa(language, tokens, expected):
+    assert piper_ipa(tokens, language) == expected
 
 
 @pytest.fixture
