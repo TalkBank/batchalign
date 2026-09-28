@@ -1045,7 +1045,7 @@ pub trait Dispatcher: Send + Sync {
     /// Name of the backend currently registered to serve `task`, if any.
     ///
     /// Runners use this to annotate generated artifacts (e.g. ASR stamps a
-    /// `@Comment: batchalign3 v… | engine: …` header on the CHAT file it
+    /// `@Comment: batchalign v… | engine: …` header on the CHAT file it
     /// produces). Default implementation returns `None` for stubs / tests
     /// that don't carry routing information.
     fn engine_name(&self, _task: Task) -> Option<String> {

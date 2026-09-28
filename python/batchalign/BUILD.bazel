@@ -300,7 +300,7 @@ sh_binary(
 # `bazel build //python/batchalign:sidecar` produces a self-contained
 # executable at `bazel-bin/python/batchalign/sidecar` that bundles
 # CPython + the batchalign wheel + the `[api]` extra. The binary IS
-# the daemon — running it boots `batchalign3 daemon` directly without
+# the daemon — running it boots `batchalign daemon` directly without
 # the user typing the subcommand. Named "sidecar" because that's the
 # role it plays in a deployment (companion service next to the main
 # CLI / wheel install, not a separate top-level app).

@@ -1,4 +1,4 @@
-# Batchalign — pyo3 Rust engine + Python wheel + `batchalign3` CLI.
+# Batchalign — pyo3 Rust engine + Python wheel + `batchalign` CLI.
 #
 # Batchalign build, test, CLI, and release recipes:
 #   build [profile]   build every Bazel target for the product
@@ -31,7 +31,7 @@
 #   `just batchalign sidecar` produces python/target/pyapp/bin/sidecar,
 #   a self-contained executable bundling CPython + the wheel + the [api]
 #   extra via PyApp (https://ofek.dev/pyapp/). The binary IS the daemon —
-#   running it boots `batchalign3 daemon` directly. See
+#   running it boots `batchalign daemon` directly. See
 #   `bazel/python/pyapp_build.sh` for the build mechanics + env-var
 #   contract; the pyapp version pin lives in pyproject.toml's
 #   [tool.batchalign.pinned_tools].
@@ -104,7 +104,7 @@ test profile="release":
         //crates/batchalign/batchalign-engine:pipeline_smoke \
         //python/batchalign:pytest
 
-# Run the Python `batchalign3` CLI via py_binary.
+# Run the Python `batchalign` CLI via py_binary.
 #
 # `bazel run` cd's to its execroot before invoking the binary, which breaks
 # relative-path args (e.g. `../talkbank-alignment/foo`). `--run_under` is

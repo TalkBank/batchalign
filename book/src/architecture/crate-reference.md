@@ -17,7 +17,7 @@ Procedural macros for the model crate (`SemanticEq`, `SemanticDiff`, `SpanShift`
 
 ### talkbank-parser
 
-The sole parser. Wraps the tree-sitter C parser and converts the concrete syntax tree (CST) into `ChatFile` model types. Provides error recovery via tree-sitter's GLR algorithm. Used by the LSP, CLI, and batchalign3.
+The sole parser. Wraps the tree-sitter C parser and converts the concrete syntax tree (CST) into `ChatFile` model types. Provides error recovery via tree-sitter's GLR algorithm. Used by the LSP, CLI, and batchalign.
 
 ### talkbank-transform
 

@@ -7,7 +7,7 @@ These scripts are convenience wrappers around the canonical public install
 command:
 
 ```bash
-uv tool install batchalign3
+uv tool install batchalign
 ```
 
 They help users who already trust the repo download/checkout and want a
@@ -25,9 +25,9 @@ the primary public install story.
    - Right-click the file > **Open** > **Open** in the dialog.
    - Or: System Settings > Privacy & Security > scroll down > **Open Anyway**.
 4. A Terminal window will open showing installation progress.
-5. When done, open a **new** Terminal window and run `batchalign3 --help`.
+5. When done, open a **new** Terminal window and run `batchalign --help`.
 
-The script installs `uv` (if not present) and then installs `batchalign3`
+The script installs `uv` (if not present) and then installs `batchalign`
 via `uv tool install`. Re-running the script upgrades an existing installation.
 
 ## Windows
@@ -39,23 +39,23 @@ via `uv tool install`. Re-running the script upgrades an existing installation.
 3. If Windows SmartScreen blocks it: click **More info** > **Run anyway**.
 4. A Command Prompt window will open showing installation progress.
 5. When done, open a **new** PowerShell or Command Prompt and run
-   `batchalign3 --help`.
+   `batchalign --help`.
 
 The script installs `uv` (if not present) via PowerShell and then installs
-`batchalign3` via `uv tool install`. Re-running the script upgrades an
+`batchalign` via `uv tool install`. Re-running the script upgrades an
 existing installation.
 
 ## Release-channel status
 
 | Channel | What it is | Status today |
 |---|---|---|
-| `uv tool install batchalign3` | Canonical public install path for the `0.1.x` preview line | Allowed |
+| `uv tool install batchalign` | Canonical public install path for the `0.1.x` preview line | Allowed |
 | PyPI wheel/sdist | Package payload used by the `uv` install flow | Allowed |
 | Optional GitHub Release wheel/sdist attachments | Alternate download for the same package when published by the release workflow | Allowed, but secondary to the `uv` path |
-| This directory's `.command` / `.bat` files | Convenience wrappers that install `uv` if needed and then run `uv tool install batchalign3` | Helper-only; not a separate signed installer tier |
+| This directory's `.command` / `.bat` files | Convenience wrappers that install `uv` if needed and then run `uv tool install batchalign` | Helper-only; not a separate signed installer tier |
 | Native installers (`.pkg`, `.dmg`, `.exe`, `.msi`) | OS-level installer surfaces | Blocked until signing/notarization automation exists |
 
-Use **public preview** wording consistently. `batchalign3` is intentionally
+Use **public preview** wording consistently. `batchalign` is intentionally
 pre-1.0, and these scripts should be described as wrappers around the preview
 CLI install flow, not as a promoted native-installer story.
 

@@ -76,7 +76,7 @@ Status semantics:
 additionally carries timing via:
 
 - `%wor` tier with per-word bullets (`WorTimingSidecar`)
-- Utterance-level start/end timestamps (some batchalign3 outputs)
+- Utterance-level start/end timestamps (some batchalign outputs)
 - `@Bg` / `@Eg` gem boundaries with time ranges
 
 **Open question:** which of these count as satisfying E544? See

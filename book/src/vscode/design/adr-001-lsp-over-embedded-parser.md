@@ -26,7 +26,7 @@ CHAT domain knowledge.
 Concretely:
 
 - The LSP binary is built from the same Rust workspace that produces
-  `chatter` (the CLI) and is used by `batchalign3`. Embedding would
+  `chatter` (the CLI) and is used by `batchalign`. Embedding would
   fork the codebase into two parallel implementations.
 - CHAT parsing goes through `tree-sitter-talkbank` → `talkbank-parser`
   → `talkbank-model::ChatFile`, with incremental reparse driven by
@@ -44,7 +44,7 @@ Concretely:
 - One parser implementation, one validation implementation, one CLAN
   implementation. No TS/Rust drift.
 - The same Rust model that powers the VS Code extension also powers
-  `chatter validate`, `batchalign3`, the Tauri desktop app. Bug fixes
+  `chatter validate`, `batchalign`, the Tauri desktop app. Bug fixes
   land in one place.
 - Rich incremental parsing via tree-sitter without porting the C
   grammar to JavaScript.

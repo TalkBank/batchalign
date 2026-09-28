@@ -4,7 +4,7 @@
 **Last updated:** 2026-03-30 13:40 EDT
 
 This tutorial walks through reviewing a CHAT file that was aligned by
-`batchalign3 align --bullet-repair`. It takes about 5 minutes to review
+`batchalign align --bullet-repair`. It takes about 5 minutes to review
 a typical file.
 
 ## Prerequisites

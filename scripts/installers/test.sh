@@ -72,13 +72,13 @@ echo ""
 
 # ── Test 2: Verify CLI works ────────────────────────────────────────────────
 
-echo "=== Test 2: Verify batchalign3 --help ==="
-batchalign3 --help >/dev/null
-echo "[OK] batchalign3 --help exits 0"
+echo "=== Test 2: Verify batchalign --help ==="
+batchalign --help >/dev/null
+echo "[OK] batchalign --help exits 0"
 
 echo ""
-echo "=== Test 3: Verify batchalign3 version ==="
-batchalign3 version 2>&1 || true
+echo "=== Test 3: Verify batchalign version ==="
+batchalign version 2>&1 || true
 echo ""
 
 # ── Test 4: Upgrade (re-run installer) ──────────────────────────────────────
@@ -89,9 +89,9 @@ echo ""
 
 # ── Test 5: Verify CLI still works after upgrade ────────────────────────────
 
-echo "=== Test 5: Verify batchalign3 --help after upgrade ==="
-batchalign3 --help >/dev/null
-echo "[OK] batchalign3 --help exits 0 after upgrade"
+echo "=== Test 5: Verify batchalign --help after upgrade ==="
+batchalign --help >/dev/null
+echo "[OK] batchalign --help exits 0 after upgrade"
 echo ""
 
 # ── Done ────────────────────────────────────────────────────────────────────

@@ -8,12 +8,12 @@ new command is a one-file change:
   2. Add the entry to `_LAZY_SUBCOMMANDS` below with a static one-line
      help string.
 
-The script is exposed as `batchalign3` via `[project.scripts]` in
+The script is exposed as `batchalign` via `[project.scripts]` in
 `pyproject.toml`.
 
 Subcommand modules are NOT imported at CLI startup. They are loaded on
-first dispatch through `LazyTyperGroup` below — so `batchalign3 --help`,
-`batchalign3 --version`, and shell-completion of top-level command
+first dispatch through `LazyTyperGroup` below — so `batchalign --help`,
+`batchalign --version`, and shell-completion of top-level command
 names complete without paying the import cost of every backend.
 The static help strings let the top-level `--help` panel render the
 full command list without loading anything.
@@ -102,7 +102,7 @@ class LazyTyperGroup(TyperGroup):
     `format_commands` (used by `--help`) uses the static help strings
     in `_LAZY_SUBCOMMANDS` so the help panel renders without loading.
     `get_command` lazy-loads exactly one module — the one being
-    dispatched. Per-subcommand `--help` (e.g. `batchalign3 cache --help`)
+    dispatched. Per-subcommand `--help` (e.g. `batchalign cache --help`)
     pays for that one module only.
     """
 
@@ -167,7 +167,7 @@ class LazyTyperGroup(TyperGroup):
 
 
 app = typer.Typer(
-    name="batchalign3",
+    name="batchalign",
     cls=LazyTyperGroup,
     no_args_is_help=True,
     add_completion=False,

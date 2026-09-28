@@ -69,12 +69,12 @@ language files or were confirmed as supertypes (not concrete).
 
 ### Phase 3: Tier Regeneration
 
-Ran batchalign3 morphotag on all 25 language files to generate fresh %mor/%gra
+Ran batchalign morphotag on all 25 language files to generate fresh %mor/%gra
 tiers:
 
 ```bash
-cd /path/to/batchalign3
-uv run batchalign3 morphotag /path/to/talkbank-tools/resources/corpus/reference/{lang}/ --in-place
+cd /path/to/batchalign
+uv run batchalign morphotag /path/to/talkbank-tools/resources/corpus/reference/{lang}/ --in-place
 ```
 
 All 20 languages are covered by Stanza's UD models. Validation confirmed all
@@ -186,7 +186,7 @@ resources/corpus/reference/           374 files total
 - **construct gap-filling**: 4 handcrafted files closed 18 gaps efficiently.
 - **Keeping existing 345 files**: No breakage, no regressions. The new files are
   purely additive.
-- **batchalign3 morphotag**: Generated correct %mor/%gra for all 20 languages
+- **batchalign morphotag**: Generated correct %mor/%gra for all 20 languages
   without manual intervention.
 
 ## What Didn't Work / Lessons Learned

@@ -13,7 +13,7 @@ is a documentation bug.
 
 | Surface | Built by | Signed? | Notarized? | Distribution today |
 |---|---|---|---|---|
-| `batchalign3` Python wheel | `publish-pypi.yml` (manual dispatch) | Wheel itself is not code-signed; PyPI upload uses OIDC trusted publishing for **provenance**, not artifact signing | n/a | PyPI |
+| `batchalign` Python wheel | `publish-pypi.yml` (manual dispatch) | Wheel itself is not code-signed; PyPI upload uses OIDC trusted publishing for **provenance**, not artifact signing | n/a | PyPI |
 | Batchalign desktop bundle (`.app`/`.dmg`/AppImage) | `bazel-tauri-batchalign.yml` bundle matrix | No | No | GitHub Actions workflow artifact only (no public release) |
 | VS Code extension `.vsix` | `bazel-typescript.yml` (CI) + manual `vsce publish` | No | n/a | Marketplace push is currently manual from an operator workstation |
 | `chatter` / `chatter-lsp` binaries | `bazel-rust.yml` (build only) | No | No | No release workflow exists; users build from source |
@@ -26,7 +26,7 @@ bytes. Treat OIDC as a deploy-key story, not as artifact signing.
 ## What docs may claim today
 
 - **Allowed:** "GitHub Release archive", "PyPI wheel",
-  "`uv pip install batchalign3`", "VSIX file", "workflow artifact",
+  "`uv pip install batchalign`", "VSIX file", "workflow artifact",
   "terminal-first archive", "unsigned development bundle".
 - **Not allowed unless we wire the automation in the same patch:**
   "signed", "notarized", "Gatekeeper-trusted",

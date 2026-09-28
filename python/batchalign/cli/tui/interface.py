@@ -409,7 +409,7 @@ class Interface:
 
     def _render_command_header(self) -> None:
         dest = "in-place" if self.output is None else f"→ {self.output}"
-        line1 = f"batchalign3 {self.command} · {dest}"
+        line1 = f"batchalign {self.command} · {dest}"
         params_bits: list[str] = []
         for k, v in self.params.items():
             if v is None:
@@ -540,7 +540,7 @@ class Interface:
         total = len(self._tasks)
         destination = "in place" if self.output is None else str(self.output)
         files = Table(
-            title=f"batchalign3 {self.command} · Run summary",
+            title=f"batchalign {self.command} · Run summary",
             title_style="bold #c7d2fe",
             caption=(
                 f"{total} processed · {ok} done · {fail} failed · "

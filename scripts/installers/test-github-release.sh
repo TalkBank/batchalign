@@ -145,10 +145,10 @@ echo "[OK] uv tool install succeeded"
 # ── Verify CLI works ────────────────────────────────────────────────────────
 
 echo ""
-echo "=== Test 5: Verify batchalign3 ==="
-batchalign3 --help >/dev/null
-echo "[OK] batchalign3 --help exits 0"
-batchalign3 version 2>&1 || true
+echo "=== Test 5: Verify batchalign ==="
+batchalign --help >/dev/null
+echo "[OK] batchalign --help exits 0"
+batchalign version 2>&1 || true
 
 # ── Test upgrade from release ───────────────────────────────────────────────
 
@@ -157,8 +157,8 @@ echo "=== Test 6: Upgrade from downloaded wheel ==="
 uv tool install --force --python 3.12 "$DOWNLOADED_WHEEL"
 echo "[OK] Upgrade (--force) succeeded"
 
-batchalign3 --help >/dev/null
-echo "[OK] batchalign3 --help exits 0 after upgrade"
+batchalign --help >/dev/null
+echo "[OK] batchalign --help exits 0 after upgrade"
 
 # ── Done ────────────────────────────────────────────────────────────────────
 

@@ -203,5 +203,5 @@ codebase uses targeted optimizations:
 | SmallVec inline storage | Throughout | Avoids heap for 1–4 element collections |
 | `SmolStr` inline strings | All short CHAT tokens | No heap allocation for ≤23 byte strings |
 
-See also: the batchalign3 book's Arena Allocators page
+See also: the batchalign book's Arena Allocators page
 for the full evaluation of where arenas do and don't help.

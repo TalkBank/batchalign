@@ -44,7 +44,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(default_cache_path_py, m)?)?;
     m.add_function(wrap_pyfunction!(dp_align, m)?)?;
     // VERGEN_GIT_SHA baked at compile time (build.rs). Surfaces to
-    // `batchalign3 version` and the X-Batchalign-SHA response header.
+    // `batchalign version` and the X-Batchalign-SHA response header.
     // option_env! handles the Bazel path (where build.rs's
     // cargo:rustc-env directive doesn't propagate through rules_rust).
     m.add(

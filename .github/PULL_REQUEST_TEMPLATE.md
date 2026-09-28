@@ -16,7 +16,7 @@ Last updated: 2026-04-29 07:58 EDT
 - [ ] `chatter` CLI
 - [ ] `chatter-lsp`
 - [ ] CLAN commands / converters
-- [ ] `batchalign3` / `batchalign-*`
+- [ ] `batchalign` / `batchalign-*`
 - [ ] VS Code extension
 - [ ] desktop / experimental surfaces
 - [ ] docs only

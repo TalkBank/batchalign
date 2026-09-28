@@ -3,7 +3,7 @@
 **Status:** Current
 **Last updated:** 2026-03-30 13:40 EDT
 
-After running automatic alignment with batchalign3, timing bullets may not be perfectly placed. Review Mode provides a structured workflow for a human reviewer to step through flagged utterances, rate alignment quality, correct errors, and produce a final validated transcript.
+After running automatic alignment with batchalign, timing bullets may not be perfectly placed. Review Mode provides a structured workflow for a human reviewer to step through flagged utterances, rate alignment quality, correct errors, and produce a final validated transcript.
 
 ## Workflow Overview
 
@@ -11,7 +11,7 @@ The following diagram shows the end-to-end post-alignment review workflow:
 
 ```mermaid
 flowchart TD
-    A["batchalign3 align\n--bullet-repair"] --> B["Aligned .cha file\nwith timing bullets"]
+    A["batchalign align\n--bullet-repair"] --> B["Aligned .cha file\nwith timing bullets"]
     B --> C["Open in VS Code"]
     C --> D["Start Review Mode\n(Command Palette)"]
     D --> E["Step through\nflagged utterances"]
@@ -35,10 +35,10 @@ flowchart TD
 
 ### 1. Align the transcript
 
-Run batchalign3 to add or repair timing bullets:
+Run batchalign to add or repair timing bullets:
 
 ```bash
-batchalign3 align --bullet-repair input.cha -o output/
+batchalign align --bullet-repair input.cha -o output/
 ```
 
 This produces an aligned `.cha` file where each utterance has timing bullets derived from the audio.

@@ -10,7 +10,7 @@ function buildCli(): string {
   const batch = activeBatchId ? batches[activeBatchId] : null;
   if (!batch) return "";
   const cmds = batch.pipeline.map((v) => {
-    const args: string[] = [`batchalign3 ${v}`];
+    const args: string[] = [`batchalign ${v}`];
     args.push(batch.folderPath);
     if (!batch.inPlace && batch.outputPath) args.push(batch.outputPath);
     return args.join(" ");

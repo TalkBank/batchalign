@@ -31,7 +31,7 @@ Use cheap byte-prefix dispatch before heavy parsing:
 
 This preserves performance and isolates error contexts earlier.
 
-For downstream `batchalign3` consumers, tier dispatch is only the front door.
+For downstream `batchalign` consumers, tier dispatch is only the front door.
 The important contract is what happens after dispatch: parse-health taint,
 recovery vs rejection, and whether a tier is safe to pass into alignment.
 
@@ -73,7 +73,7 @@ recovery vs rejection, and whether a tier is safe to pass into alignment.
 
 ## Batchalign3 Surface Checks
 
-When a change affects the surface used by `batchalign3`, confirm:
+When a change affects the surface used by `batchalign`, confirm:
 
 - full-file parse equivalence still holds for corpus coverage
 - alignment-sensitive downstream tiers still gate on parse-health appropriately

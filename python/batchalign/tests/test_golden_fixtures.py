@@ -196,7 +196,7 @@ def test_morphotag_recipe_prepares_legacy_input() -> None:
 
 
 def test_version_banner_contains_required_fields() -> None:
-    """`batchalign3 version` output must contain a git SHA label."""
+    """`batchalign version` output must contain a git SHA label."""
     from batchalign.cli.version import render
 
     text = render()

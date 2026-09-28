@@ -59,7 +59,7 @@ flowchart TD
     tests["talkbank-parser-tests\nEquivalence tests"]
 
     batchalign_types["batchalign-types\nWire types (V2 protocol)"]
-    batchalign["batchalign\nbatchalign3: server, runner, dispatch, workers, CLI binary"]
+    batchalign["batchalign\nbatchalign: server, runner, dispatch, workers, CLI binary"]
     batchalign_pyo3["batchalign-pyo3\nPython↔Rust worker runtime (.so, cdylib+rlib)"]
 
     derive --> model

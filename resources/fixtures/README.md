@@ -163,7 +163,7 @@ Currently supported `kind` values:
    private directory. Redact any reporter identity or private
    corpus path; use opaque references.
 
-4. In the public batchalign3 repo, add (or reuse) one command-local test
+4. In the public batchalign repo, add (or reuse) one command-local test
    function slot in
    `crates/batchalign/tests/ml_golden/<command>/regressions.rs`
    pointing at the new `<bug-name>` directory. Use an opaque

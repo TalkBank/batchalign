@@ -1,4 +1,4 @@
-# Replacements in the batchalign3 Pipeline
+# Replacements in the batchalign Pipeline
 
 The current reference for this topic is [Morphosyntax processing contract](../reference/morphosyntax.md).
 The earlier page mixed language/format background with implementation paths, flags, or behavior from a previous runtime.

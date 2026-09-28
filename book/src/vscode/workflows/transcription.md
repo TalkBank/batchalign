@@ -137,7 +137,7 @@ This is the recommended way to set up foot-pedal controls.
 
 Once you have a complete transcript with timing bullets, the next steps typically include:
 
-1. **Add dependent tiers** -- run `batchalign3 morphotag` to add `%mor` and `%gra` tiers automatically
+1. **Add dependent tiers** -- run `batchalign morphotag` to add `%mor` and `%gra` tiers automatically
 2. **Validate** -- use the [Validation Explorer](corpus-validation.md) to check for formatting errors
 3. **Review** -- if you used automatic alignment, enter [Review Mode](../review/overview.md) to verify timing accuracy
 

@@ -6,7 +6,7 @@
 # corresponding media volumes on the server.  The client auto-detects
 # the mapping key from the input path, so users just run:
 #
-#   batchalign3 align /path/to/childes-data/Eng-NA/SomeCorpus/ \
+#   batchalign align /path/to/childes-data/Eng-NA/SomeCorpus/ \
 #       --server http://SERVER_HOST:8000
 #
 # and the server resolves media at:

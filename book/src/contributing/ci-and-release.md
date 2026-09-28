@@ -100,13 +100,13 @@ generated source.
 ## Release process, per surface
 
 Only one surface has a fully automated release workflow today
-(`batchalign3` → PyPI). The rest are either workflow-artifact-only or
+(`batchalign` → PyPI). The rest are either workflow-artifact-only or
 hand-published. Full per-surface narrative lives in
 [Release Pipeline](../operations/release-pipeline.md). Summary:
 
 | Surface | Build in CI | Release path today | Gap |
 |---|---|---|---|
-| `batchalign3` PyPI wheel | `bazel-python.yml` + `bazel-wheels.yml` | `publish-pypi.yml` (`workflow_dispatch`, OIDC trusted publisher) | none for PyPI |
+| `batchalign` PyPI wheel | `bazel-python.yml` + `bazel-wheels.yml` | `publish-pypi.yml` (`workflow_dispatch`, OIDC trusted publisher) | none for PyPI |
 | `chatter` / `chatter-lsp` | `bazel-rust.yml`, nightly `bazel-build-all.yml` | None — install from source | No release workflow |
 | VS Code extension `.vsix` | `bazel-typescript.yml` (artifact only) | Manual `vsce publish` from operator workstation | No automated marketplace workflow |
 | Batchalign desktop bundle | `bazel-tauri-batchalign.yml` `bundle` job (main + dispatch) | Workflow artifacts only; unsigned; macOS + Linux | No GitHub Release upload; no Windows; no signing |
@@ -150,7 +150,7 @@ After changes to core crates, verify the downstream consumer locally:
 
 ```bash
 # batchalign (Python + Rust)
-cd /path/to/batchalign3
+cd /path/to/batchalign
 uv run maturin develop    # Rebuild Rust extension
 uv run pytest
 ```

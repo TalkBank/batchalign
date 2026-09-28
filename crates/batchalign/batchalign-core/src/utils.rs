@@ -488,7 +488,7 @@ fn first_supported_track<'a>(tracks: &'a [Track], codecs: &CodecRegistry) -> Opt
 
 /// Prefix every provenance `@Comment` starts with. Used to detect and refresh
 /// a prior stamp on retag so reruns don't accrete a comment per invocation.
-pub const PROVENANCE_PREFIX: &str = "batchalign3 ";
+pub const PROVENANCE_PREFIX: &str = "batchalign ";
 /// Clear the `unlinked` status from any `@Media` header in the file.
 ///
 /// CHAT requires an explicit linkage-status flag (`, unlinked` /
@@ -515,15 +515,15 @@ pub fn clear_media_unlinked(lines: &mut [talkbank_model::Line]) {
     }
 }
 
-/// Insert one `@Comment: batchalign3 <sha> | <stage>: <engine> | <ts>`
+/// Insert one `@Comment: batchalign <sha> | <stage>: <engine> | <ts>`
 /// header per pipeline stage, immediately after the constant participant
 /// headers.
 ///
 /// One stage → one comment line. A full UTR → FA run therefore produces:
 ///
 /// ```text
-/// @Comment:	batchalign3 abc1234 | utr: rev:rev_lang_en | 2026-06-02T17:04:12Z
-/// @Comment:	batchalign3 abc1234 | fa: wav2vec2-fa:mms_fa-v3 | 2026-06-02T17:09:33Z
+/// @Comment:	batchalign abc1234 | utr: rev:rev_lang_en | 2026-06-02T17:04:12Z
+/// @Comment:	batchalign abc1234 | fa: wav2vec2-fa:mms_fa-v3 | 2026-06-02T17:09:33Z
 /// ```
 ///
 /// One-line-per-stage was chosen over a single accumulated comment so the
@@ -560,7 +560,9 @@ pub fn stamp_provenance(
     for l in lines.as_mut_slice() {
         if let Some(Header::Comment { content }) = l.as_header() {
             let text = content.to_chat_string();
-            if text.starts_with(PROVENANCE_PREFIX) && text.contains(&stage_marker) {
+            if (text.starts_with(PROVENANCE_PREFIX) || text.starts_with("batchalign3 "))
+                && text.contains(&stage_marker)
+            {
                 *l = Line::header(Header::Comment {
                     content: BulletContent::from_text(stamp.clone()),
                 });
@@ -718,6 +720,34 @@ mod stamp_provenance_tests {
         let c = &comments[0];
         assert!(!c.contains("rev:rev_lang_en"), "old engine dropped: {c}");
         assert!(c.contains("whisper:large-v3"), "new engine present: {c}");
+    }
+
+    #[test]
+    fn legacy_stamp_is_replaced_in_place() {
+        use talkbank_model::model::BulletContent;
+
+        let other_stage = "batchalign3 oldsha | fa: old-engine | 2026-06-02T17:04:12Z";
+        let mut lines = talkbank_model::model::ChatFileLines::new(
+            [
+                "batchalign3 oldsha | utr: old-engine | 2026-06-02T17:04:12Z",
+                other_stage,
+                "A user comment",
+            ]
+            .into_iter()
+            .map(|text| {
+                Line::header(Header::Comment {
+                    content: BulletContent::from_text(text),
+                })
+            })
+            .collect(),
+        );
+        stamp_provenance(&mut lines, "utr", Some("whisper:large-v3"));
+        let comments = comment_lines(&lines);
+        assert_eq!(comments.len(), 3);
+        assert!(comments[0].starts_with("batchalign "));
+        assert!(comments[0].contains("| utr: whisper:large-v3 |"));
+        assert_eq!(comments[1], other_stage);
+        assert_eq!(comments[2], "A user comment");
     }
 
     #[test]

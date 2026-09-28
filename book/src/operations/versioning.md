@@ -14,7 +14,7 @@ source below wins for public communication and release policy.
 |------------------------|--------------|------------------|---------------|-------|
 | TalkBank core Rust release line (`chatter`, preview TalkBank crates, preview `chatter-lsp`) | Mixed: stable CLI + preview libraries/LSP | `Cargo.toml` `workspace.package.version` | `0.2.0` | Shared version for the main Rust workspace. Matching the workspace version does not imply that every Rust crate already has a crates.io publication path. |
 | Standalone `tree-sitter-talkbank` grammar packages (crates.io, npm, PyPI) | Public preview | `grammar/Cargo.toml` `package.version` | `0.2.0` | `grammar/package.json` and `grammar/pyproject.toml` mirror this value for the same grammar release line. |
-| `batchalign3` public product release line (Python package, bundled CLI, local server, dashboard UI) | Public preview | `pyproject.toml` `[project].version` | `0.1.0` | Authoritative version for PyPI/wheel installs and the user-visible Batchalign product surface. |
+| `batchalign` public product release line (Python package, bundled CLI, local server, dashboard UI) | Public preview | `pyproject.toml` `[project].version` | `0.1.0` | Authoritative version for PyPI/wheel installs and the user-visible Batchalign product surface. |
 | Batchalign runtime banner metadata | Internal | `batchalign/version` | `0.1.0` | Runtime metadata only; intentionally mirrors the public Batchalign preview version, but it is not a release-contract source. |
 | Batchalign Rust/PyO3 build crates (`crates/batchalign-*`, `pyo3/`) | Internal | Their local `Cargo.toml` manifests, kept in lockstep with `pyproject.toml` | `0.1.0` | Internal build metadata only. These crates are unpublished (`publish = false`) and are not independent public Rust APIs. |
 | VS Code extension | Public preview | `apps/vscode-extension/package.json` `version` | `0.1.0` | Independent Marketplace release line. |
@@ -30,11 +30,11 @@ source below wins for public communication and release policy.
 
 4. **The standalone grammar ships as one cross-ecosystem release line.** `grammar/Cargo.toml` is the canonical version source for `tree-sitter-talkbank`; the npm and PyPI metadata must mirror it in the same patch so crates.io, npm, and PyPI do not drift.
 
-5. **`batchalign3` public versioning is Python-package-first.** `pyproject.toml` defines the public Batchalign release line. The Batchalign Cargo manifests mirror that version for packaging and operator-facing coherence, but the public contract still comes from the Python package surface, not from unpublished Rust crates.
+5. **`batchalign` public versioning is Python-package-first.** `pyproject.toml` defines the public Batchalign release line. The Batchalign Cargo manifests mirror that version for packaging and operator-facing coherence, but the public contract still comes from the Python package surface, not from unpublished Rust crates.
 
 6. **`batchalign/version` is not authoritative for release policy.** It is runtime metadata only. Do not use it to infer what the public Batchalign version or compatibility promise is.
 
-7. **Matching versions do not widen the contract.** The Batchalign Cargo manifests intentionally mirror the public `batchalign3` release line, but `publish = false` keeps those crates internal-only. Equal version numbers do not create a crates.io support promise or a public Rust semver contract.
+7. **Matching versions do not widen the contract.** The Batchalign Cargo manifests intentionally mirror the public `batchalign` release line, but `publish = false` keeps those crates internal-only. Equal version numbers do not create a crates.io support promise or a public Rust semver contract.
 
 8. **CI semver checks are a Rust guardrail, not a blanket publication or crates.io promise.** `cargo-semver-checks` runs in CI, but only the surfaces marked public/stable in `book/src/operations/release-contract.md` are currently covered by the repo's strongest external compatibility promise.
 

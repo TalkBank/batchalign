@@ -3,7 +3,7 @@
 **Status:** Current
 **Last updated:** 2026-04-29 08:30 EDT
 
-This document is the unified reference for all Python/Rust interface boundaries in batchalign3.
+This document is the unified reference for all Python/Rust interface boundaries in batchalign.
 
 ## Interface Boundaries
 

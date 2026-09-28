@@ -90,7 +90,7 @@ translate    = ["googletrans"]
 qwen3        = ["qwen-asr", "transformers>=4.57,<5", "torch>=2.0"]
 nllb         = ["transformers>=4.57,<5", "torch>=2.0", "sentencepiece"]
 ai           = ["dspy-ai"]
-# HTTP daemon (`batchalign3 daemon`, the PyApp-bundled sidecar). The
+# HTTP daemon (`batchalign daemon`, the PyApp-bundled sidecar). The
 # desktop GUI's Tauri shell spawns this binary as a sidecar. `[standard]`
 # pulls uvloop + httptools for higher throughput than the pure-Python
 # asyncio loop, `sse-starlette` powers `/jobs/{id}/events` per-job

@@ -1,6 +1,6 @@
 //! Pipeline decision provenance: tracking machine decisions for user review.
 //!
-//! Every batchalign3 command makes decisions that alter output: clamping
+//! Every batchalign command makes decisions that alter output: clamping
 //! timestamps, stripping timing, skipping utterances, defaulting values,
 //! normalizing text. These decisions are currently logged via `tracing` but
 //! invisible to the user in the output CHAT file.

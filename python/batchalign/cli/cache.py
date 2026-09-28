@@ -1,4 +1,4 @@
-"""`batchalign3 cache` — inspect and manage the local result cache.
+"""`batchalign cache` — inspect and manage the local result cache.
 
 Backed by the LMDB store at `default_cache_path()` (see
 `crates/batchalign/batchalign-engine/src/cache.rs`). The cache is a

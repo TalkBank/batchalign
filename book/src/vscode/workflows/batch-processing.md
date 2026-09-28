@@ -3,7 +3,7 @@
 **Status:** Current
 **Last updated:** 2026-03-30 13:40 EDT
 
-This chapter covers workflows that operate on multiple files at once -- directory-level analysis, corpus-scale validation, and integration with the `chatter` CLI and batchalign3 for bulk operations.
+This chapter covers workflows that operate on multiple files at once -- directory-level analysis, corpus-scale validation, and integration with the `chatter` CLI and batchalign for bulk operations.
 
 ## Directory-Level CLAN Analysis
 
@@ -59,7 +59,7 @@ chatter validate path/to/corpus/ --jobs 4
 
 The CLI runs validation in parallel using crossbeam workers. Results are cached in SQLite for instant re-display on subsequent runs.
 
-## Integration with batchalign3
+## Integration with batchalign
 
 A common workflow for processing a corpus involves multiple stages:
 
@@ -67,10 +67,10 @@ A common workflow for processing a corpus involves multiple stages:
 
 ```bash
 # 1. Automatic transcription and alignment
-batchalign3 transcribe audio_corpus/ -o transcribed/ --lang eng
+batchalign transcribe audio_corpus/ -o transcribed/ --lang eng
 
 # 2. Add morphological annotation (no --lang — language read per-file from @Languages)
-batchalign3 morphotag transcribed/ -o annotated/
+batchalign morphotag transcribed/ -o annotated/
 
 # 3. Validate the results
 chatter validate annotated/ --force
@@ -83,7 +83,7 @@ code annotated/
 
 ```bash
 # Repair timing bullets on an existing corpus
-batchalign3 align --bullet-repair corpus/ -o repaired/
+batchalign align --bullet-repair corpus/ -o repaired/
 
 # Validate the repaired files
 chatter validate repaired/ --force
@@ -121,5 +121,5 @@ All CLI commands accept directories and process files in parallel. Use `--help` 
 ## Related Chapters
 
 - [Corpus Validation](corpus-validation.md) -- the Validation Explorer tree view
-- [Post-Alignment Review](post-alignment-review.md) -- reviewing batchalign3 output in VS Code
+- [Post-Alignment Review](post-alignment-review.md) -- reviewing batchalign output in VS Code
 - [Cache Management](../configuration/cache.md) -- cache location and clearing

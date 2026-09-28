@@ -24,8 +24,8 @@ public or stability-guaranteed.
 | `chatter` CLI | **Public stable** | `Cargo.toml` `workspace.package.version` | User-facing CLI contract for CHAT validation, normalization, conversion, and CLAN-compatible commands. |
 | Public TalkBank Rust crates: `talkbank-model`, `talkbank-parser`, `talkbank-transform`, `clan-core` | **Public preview** | `Cargo.toml` `workspace.package.version` | Documented source-first Rust dependency surfaces. Today consumers use git/path dependencies: the release workflow is binary-only, there is no dedicated crates.io publish workflow yet, and the current manifests still rely on unpublished helper crates such as `talkbank-derive` and `talkbank-re2c-parser`. |
 | `tree-sitter-talkbank` standalone grammar packages | **Public preview** | `grammar/Cargo.toml` `package.version` | One grammar release line mirrored into npm and PyPI metadata. The grammar is public and reusable, but CST/API shape may still evolve before stabilization. |
-| `batchalign3` Python package, bundled CLI, and user-visible Batchalign version banners | **Public preview** | `pyproject.toml` `[project].version` | Publicly installable and documented on the `0.1.x` preview line. Internal Cargo manifests mirror this version so the CLI/server/runtime surface presents one product release line, but the compatibility promise remains preview-tier. |
-| `batchalign3 serve` local server and dashboard UI | **Public preview** | Tracks the `batchalign3` product release line in `pyproject.toml` | End-user surface is supported, but the REST/WebSocket/API contract is not yet frozen for third-party integrations. |
+| `batchalign` Python package, bundled CLI, and user-visible Batchalign version banners | **Public preview** | `pyproject.toml` `[project].version` | Publicly installable and documented on the `0.1.x` preview line. Internal Cargo manifests mirror this version so the CLI/server/runtime surface presents one product release line, but the compatibility promise remains preview-tier. |
+| `batchalign serve` local server and dashboard UI | **Public preview** | Tracks the `batchalign` product release line in `pyproject.toml` | End-user surface is supported, but the REST/WebSocket/API contract is not yet frozen for third-party integrations. |
 | `chatter-lsp` language server | **Public preview** | `Cargo.toml` `workspace.package.version` | Functional and documented, but protocol/configuration details may still evolve. |
 | VS Code extension | **Public preview** | `apps/vscode-extension/package.json` `version` | First public release channel is GitHub Releases VSIX-only. Marketplace publishing is intentionally deferred while binary discovery and release ops are still being hardened. |
 | Desktop shells in `apps/chatter/chatter-gui/` and `apps/batchalign/batchalign-gui/` | **Experimental** | Their local `package.json` / `Cargo.toml` manifests | In-repo experiments only; not part of the supported release contract. |
@@ -39,7 +39,7 @@ public or stability-guaranteed.
   publication path rather than only source-level git/path consumption.
 - `tree-sitter-talkbank` is releasable and public, but it remains preview-tier
   until the standalone grammar API is explicitly frozen.
-- `batchalign3` is now a major top-level product in this merged repository, but
+- `batchalign` is now a major top-level product in this merged repository, but
   it is still classified as **public preview** at the repo-contract level on a
   deliberately pre-1.0 release line. Its package version does not imply that
   every Batchalign-adjacent sub-surface is stable.

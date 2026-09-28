@@ -54,7 +54,7 @@ def test_all_ok_exit_zero_and_done_line(fake_progress_core):
                                     kind=ProgressKind.SourceCompleted))
     out = _strip_ansi(buf.getvalue())
     assert ui.exit_code == 0
-    assert "batchalign3 transcribe" in out
+    assert "batchalign transcribe" in out
     assert "2 files" in out
     assert "done=2" in out
     assert "fail=0" in out
@@ -153,7 +153,7 @@ def test_interactive_summary_lists_processed_files(fake_progress_core):
 
     out = _strip_ansi(buf.getvalue())
     assert "Run summary" in out
-    assert "batchalign3 transcribe" in out
+    assert "batchalign transcribe" in out
     assert "2 processed" in out
     assert "done.wav" in out
     assert "broken.wav" in out

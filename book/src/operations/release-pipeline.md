@@ -4,7 +4,7 @@
 
 How a code change becomes a published artifact, **as the repo actually
 ships today**. Several products emerge from this monorepo; only one
-(`batchalign3` on PyPI) has automated publishing wired up. The rest are
+(`batchalign` on PyPI) has automated publishing wired up. The rest are
 either workflow-artifact-only or hand-published. This page is a map of
 that reality, not a wishlist.
 
@@ -51,7 +51,7 @@ flowchart TD
     end
 
     subgraph PROD["Products"]
-        R1["batchalign3 wheel<br/>→ PyPI"]
+        R1["batchalign wheel<br/>→ PyPI"]
         R2["Batchalign desktop bundle<br/>(unsigned .app/.dmg/AppImage)"]
         R3["VS Code extension .vsix"]
         R4["chatter CLI / chatter-lsp"]
@@ -73,7 +73,7 @@ flowchart TD
 
 Verified against `.github/workflows/` on 2026-06-01.
 
-### 1. `batchalign3` Python wheel → PyPI
+### 1. `batchalign` Python wheel → PyPI
 
 **Build path in CI:** `bazel-python.yml` runs on every PR touching
 Python / batchalign-engine. It builds the cdylib (`_core_so`), runs
@@ -209,7 +209,7 @@ Publishing always requires a deliberate human gesture
 
 | Surface | Source field | Today's value |
 |---|---|---|
-| Python wheel `batchalign3` | `python/pyproject.toml [project].version` | `0.3.0` |
+| Python wheel `batchalign` | `python/pyproject.toml [project].version` | `0.3.0` |
 | Rust workspace (chatter, talkbank-*, clan-*) | `[workspace.package].version` in root `Cargo.toml` | `0.2.0` |
 | `batchalign-engine` Rust crate | per-crate `[package].version` | `0.3.0` |
 | Chatter GUI bundle | `apps/chatter/chatter-gui/src-tauri/tauri.conf.json` | `0.1.0` |

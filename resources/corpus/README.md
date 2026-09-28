@@ -53,7 +53,7 @@ Overlaps, intonation contours, uptake/special, nonvocal and long features. All f
 
 ### `languages/` — One Per Language (20 files)
 
-ara, dan, deu, ell, eng, est, fra, heb, hrv, hun, isl, ita, jpn, nld, pol, por, rus, spa, tur, zho. Each file has 3–5 utterances with %mor/%gra from batchalign3 morphotag.
+ara, dan, deu, ell, eng, est, fra, heb, hrv, hun, isl, ita, jpn, nld, pol, por, rus, spa, tur, zho. Each file has 3–5 utterances with %mor/%gra from batchalign morphotag.
 
 ## Validation
 
@@ -65,7 +65,7 @@ just batchalign test
 
 - All 74 files must remain valid Batchalign fixture inputs.
 - Every file has `@Comment:` headers explaining its purpose and constructs.
-- Language files have fresh %mor/%gra from batchalign3 morphotag.
+- Language files have fresh %mor/%gra from batchalign morphotag.
 - Canonical parser and grammar validation lives in Chatter.
 
 ---

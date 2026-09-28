@@ -153,7 +153,7 @@ Five places in the workspace used to walk the chunk expansion by hand
 (`count_chunks`, `align_mor_to_gra`, `extract_mor_chunk_items`, the LSP
 hover helper, the graph DOT label builder). All now delegate to
 `MorTier::chunks()`. Any future consumer — CLI, CLAN analyses,
-`batchalign3` — must do the same.
+`batchalign` — must do the same.
 
 ### Three distinct index spaces
 

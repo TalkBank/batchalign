@@ -20,7 +20,7 @@ This document answers two separate questions for each public-facing surface in
 | `tree-sitter-talkbank` grammar | Public preview | Reusable cross-platform grammar package; grammar CI currently runs on Ubuntu |
 | `chatter-lsp` | Public preview | Bundled in the same core release archives as `chatter` for Linux x86_64, macOS arm64/x86_64, and Windows x86_64 |
 | VS Code extension | Public preview | GitHub Releases publish platform-specific VSIX bundles (macOS arm64/x64, Linux x64/arm64, Windows x64) |
-| `batchalign3` CLI / local server / dashboard | Public preview | Wheels for macOS arm64/x86_64, Linux x86_64/aarch64, and Windows x86_64 |
+| `batchalign` CLI / local server / dashboard | Public preview | Wheels for macOS arm64/x86_64, Linux x86_64/aarch64, and Windows x86_64 |
 | Chatter Desktop (`apps/chatter/chatter-gui/`) | Experimental | In-repo validation GUI only; no supported release distribution |
 | Batchalign Desktop (`apps/batchalign/batchalign-gui/`) | Experimental | In-repo Batchalign GUI shell only; no supported release distribution |
 
@@ -92,7 +92,7 @@ as a fully frozen integration contract.
 For now, user-facing distribution should be described as **GitHub Releases
 VSIX-only**, not Marketplace-first.
 
-## `batchalign3` CLI / local server / dashboard
+## `batchalign` CLI / local server / dashboard
 
 | Platform | Tier | CI / artifact evidence | Notes |
 |---|---|---|---|
@@ -133,7 +133,7 @@ docs should always name them explicitly:
 ## How to phrase support publicly
 
 - Say **"`chatter` is the stable public CHAT-first CLI"**.
-- Say **"`batchalign3` is the public preview audio/ML surface"**.
+- Say **"`batchalign` is the public preview audio/ML surface"**.
 - Say **"the Rust crates are public preview and currently source-first via
   git/path dependencies"**.
 - Say **"the VS Code extension is public preview and currently distributed as

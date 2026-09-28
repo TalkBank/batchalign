@@ -1,4 +1,4 @@
-"""`batchalign3 version` command — print version, git SHA, contributors.
+"""`batchalign version` command — print version, git SHA, contributors.
 
 Banner art is the ported BA2 figlet; `__version__` comes from the
 installed `batchalign` package metadata; the git SHA is read in this

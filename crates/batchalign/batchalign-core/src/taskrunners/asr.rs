@@ -404,7 +404,7 @@ mod tests {
         // Provenance `@Comment` is stamped by the pipeline driver, not the
         // runner — see `batchalign_engine::pipeline::stamp_run_provenance`.
         assert!(
-            !text.contains("batchalign3 "),
+            !text.contains("batchalign "),
             "runner must not stamp provenance: {text}"
         );
     }

@@ -37,7 +37,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     // Bake the short git SHA into the binary as VERGEN_GIT_SHA. Used by
-    // the `batchalign3 version` CLI (Landing 7 #30) and the
+    // the `batchalign version` CLI (Landing 7 #30) and the
     // X-Batchalign-SHA response header middleware (Landing 7 #31). We
     // resolve manually instead of pulling the `vergen` crate to keep
     // the build-deps surface small. CI can override via the env var.

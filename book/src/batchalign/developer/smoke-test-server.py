@@ -106,7 +106,7 @@ def _start_test_echo_server(repo_root: Path) -> tuple[subprocess.Popen[str], str
     env["PYTHONUNBUFFERED"] = "1"
 
     direct_cmd = [
-        "batchalign3",
+        "batchalign",
         "serve",
         "start",
         "--foreground",
@@ -121,7 +121,7 @@ def _start_test_echo_server(repo_root: Path) -> tuple[subprocess.Popen[str], str
         "run",
         "--project",
         ".",
-        "batchalign3",
+        "batchalign",
         "serve",
         "start",
         "--foreground",

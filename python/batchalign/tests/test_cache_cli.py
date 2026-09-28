@@ -1,4 +1,4 @@
-"""Smoke tests for `batchalign3 cache {path,stats,clear}`."""
+"""Smoke tests for `batchalign cache {path,stats,clear}`."""
 
 from __future__ import annotations
 

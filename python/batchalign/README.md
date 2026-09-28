@@ -25,7 +25,7 @@ extras) is materialized for you. Don't reach for `maturin develop` or
 ```bash
 just batchalign build              # build every Bazel target for batchalign
 just batchalign test               # run every Bazel test target
-just batchalign cli --help         # run `batchalign3` via the development bridge
+just batchalign cli --help         # run `batchalign` via the development bridge
 just batchalign pytest             # pytest (with full Bazel dep graph)
 just batchalign wheel              # host-platform wheel at python/target/wheels/
 just batchalign sidecar            # standalone daemon binary via PyApp
@@ -67,27 +67,27 @@ pip install 'batchalign[google]'       # Gemini cloud ASR + diarization
 pip install 'batchalign[cantonese]'    # Cantonese pipeline (FunASR, Tencent)
 pip install 'batchalign[qwen3]'        # Qwen3 ASR + forced aligner
 pip install 'batchalign[nllb]'         # NLLB translation
-pip install 'batchalign[api]'          # FastAPI daemon (`batchalign3 daemon`)
+pip install 'batchalign[api]'          # FastAPI daemon (`batchalign daemon`)
 pip install 'batchalign[all]'          # everything
 ```
 
 ## CLI
 
 ```bash
-batchalign3 --help
+batchalign --help
 
-batchalign3 transcribe input_dir -o output_dir --lang eng
-batchalign3 transcribe input_dir -o output_dir --lang eng --engine whisper --diarize --diarize-engine pyannote-ai
-batchalign3 diarize    input_dir -o output_dir --engine pyannote-ai
-batchalign3 align     input_dir -o output_dir --engine wav2vec
-batchalign3 morphotag input_dir -o output_dir --language en
-batchalign3 utseg     input_dir -o output_dir
-batchalign3 translate input_dir -o output_dir --target eng
-batchalign3 compare   input_dir gold_dir   -o output_dir
+batchalign transcribe input_dir -o output_dir --lang eng
+batchalign transcribe input_dir -o output_dir --lang eng --engine whisper --diarize --diarize-engine pyannote-ai
+batchalign diarize    input_dir -o output_dir --engine pyannote-ai
+batchalign align     input_dir -o output_dir --engine wav2vec
+batchalign morphotag input_dir -o output_dir --language en
+batchalign utseg     input_dir -o output_dir
+batchalign translate input_dir -o output_dir --target eng
+batchalign compare   input_dir gold_dir   -o output_dir
 
-batchalign3 version                    # banner, version, git SHA
-batchalign3 cache {path,stats,clear}   # local result cache
-batchalign3 daemon                     # FastAPI server (needs [api])
+batchalign version                    # banner, version, git SHA
+batchalign cache {path,stats,clear}   # local result cache
+batchalign daemon                     # FastAPI server (needs [api])
 ```
 
 When `-o` is omitted, results are written back in place. The CLI accepts

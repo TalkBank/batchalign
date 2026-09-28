@@ -721,7 +721,7 @@ async fn run_one(
     value
 }
 
-/// Stamp a single `@Comment: batchalign3 <sha> | <task>: <engine> | …`
+/// Stamp a single `@Comment: batchalign <sha> | <task>: <engine> | …`
 /// provenance header onto every Chat artifact this pipeline produced.
 ///
 /// Lifted up from the per-task runners (asr / fa / utr) so the comment lists

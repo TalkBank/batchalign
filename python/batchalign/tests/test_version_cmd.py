@@ -1,4 +1,4 @@
-"""Smoke tests for the `batchalign3 version` command."""
+"""Smoke tests for the `batchalign version` command."""
 
 from __future__ import annotations
 

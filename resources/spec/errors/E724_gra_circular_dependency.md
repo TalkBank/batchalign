@@ -131,7 +131,7 @@ See:
 - **Validation status**: ENABLED as WARNING in parser (tier.rs), ENFORCED as ERROR in generator (mapping.rs)
 - **Test coverage**: 6 tests in `mapping.rs::tests::test_validate_generated_gra_*`
 - **Real-world impact**: 591 files in corpus have this error from non-conforming tool output
-- **Fix**: Re-run `batchalign3 morphotag` to regenerate valid %gra tiers
+- **Fix**: Re-run `batchalign morphotag` to regenerate valid %gra tiers
 
 ## See Also
 

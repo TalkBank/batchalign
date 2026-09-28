@@ -4,14 +4,14 @@
 **Last updated:** 2026-03-30 13:40 EDT
 
 Review Mode helps you evaluate and correct alignment quality in CHAT files
-produced by `batchalign3 align`. When align is uncertain about a timing
+produced by `batchalign align`. When align is uncertain about a timing
 decision, it marks the utterance with a `%xrev` tier. Review Mode lets you
 step through these flagged utterances, listen to the audio, and rate or
 correct the timing — all without leaving VS Code.
 
 ## When to use it
 
-After running `batchalign3 align --bullet-repair`:
+After running `batchalign align --bullet-repair`:
 
 - **Every utterance where align made a repair decision** gets a `%xalign`
   tier documenting what happened (e.g., "boundary averaged 155ms overlap")

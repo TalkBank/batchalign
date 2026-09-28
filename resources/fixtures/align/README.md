@@ -5,11 +5,11 @@
 > open-sourced yet. Until it lands publicly, these fixtures document
 > expected behavior; running them requires the private workspace.
 
-This directory holds real-world `batchalign3 align` regression
+This directory holds real-world `batchalign align` regression
 fixtures. Each subdirectory under `regressions/` is one bug.
 
 **Privacy boundary.** `regressions/` is gitignored in the public
-batchalign3 repository — the fixture content (input CHAT, audio
+batchalign repository — the fixture content (input CHAT, audio
 clips, reporter metadata) lives in a separate private fixture
 repository, and contributors without access to that private repo
 see the align regression tests `SKIP` rather than `FAIL`. See the
@@ -34,7 +34,7 @@ environment variable.
    (opaque references, not real paths or reporter names) and
    what assertion mode the bug needs.
 
-4. In the public batchalign3 repo, add a new test function slot
+4. In the public batchalign repo, add a new test function slot
    to `crates/batchalign/tests/ml_golden/regression_fixtures.rs`:
 
    ```rust

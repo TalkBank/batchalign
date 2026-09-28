@@ -76,7 +76,7 @@ Everything lives in a single repository:
     ├── apps/vscode-extension/   # VS Code extension
     ├── apps/chatter/       # Chatter Desktop (Tauri, experimental)
     ├── apps/batchalign/    # Batchalign Desktop + dashboard (Tauri, experimental)
-    ├── python/             # batchalign3 Python package
+    ├── python/             # batchalign Python package
     └── book/               # TalkBank Toolchain mdBook
 ```
 

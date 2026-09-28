@@ -43,7 +43,7 @@ on-dispatch.
 
 | Concern | Status |
 |---|---|
-| `batchalign3` PyPI publish workflow | Done (`publish-pypi.yml`, manual dispatch, OIDC trusted publisher) |
+| `batchalign` PyPI publish workflow | Done (`publish-pypi.yml`, manual dispatch, OIDC trusted publisher) |
 | Batchalign desktop bundle CI | Done (`bazel-tauri-batchalign.yml`); artifacts only; macOS + Linux; no GitHub Release upload; unsigned |
 | Chatter CLI / `chatter-lsp` release workflow | **TODO** — built in CI by `bazel-rust.yml`, but no release workflow exists |
 | Chatter desktop GUI workflow | **TODO** — only covered by nightly `bazel-build-all.yml` |
