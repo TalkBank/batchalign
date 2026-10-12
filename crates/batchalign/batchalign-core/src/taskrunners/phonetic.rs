@@ -98,19 +98,16 @@ fn extract_utterances(chat: &Chat) -> BAResult<Vec<PhoneticUtterance>> {
         if units.is_empty() {
             continue;
         }
-        let timing = utterance
+        let Some(timing) = utterance
             .main
             .content
             .bullet
             .as_ref()
             .map(|bullet| &bullet.timing)
             .filter(|timing| timing.end_ms > timing.start_ms)
-            .ok_or_else(|| {
-                BAError::Validation(format!(
-                    "phonetic: line {} needs an utterance timing bullet; run utr first",
-                    index + 1
-                ))
-            })?;
+        else {
+            continue;
+        };
         utterances.push(PhoneticUtterance {
             index,
             start_ms: timing.start_ms,
@@ -197,6 +194,34 @@ mod tests {
     fn preserves_existing_pho_without_requiring_timing() {
         let source = chat("*PAR:\tcat .\n%pho:\tkæt\n");
         assert!(extract_utterances(&source).unwrap().is_empty());
+    }
+
+    #[test]
+    fn skips_untimed_utterances() {
+        let source = chat("*PAR:\tcat .\n*PAR:\tdog .\n");
+        assert!(extract_utterances(&source).unwrap().is_empty());
+    }
+
+    #[test]
+    fn inserts_pho_only_for_timed_utterances_in_a_mixed_transcript() {
+        let mut source = chat("*PAR:\tcat .\n*PAR:\tdog . \u{15}1000_2000\u{15}\n*PAR:\tbird .\n");
+        let inputs = extract_utterances(&source).unwrap();
+        assert_eq!(inputs.len(), 1);
+        assert_eq!(inputs[0].units[0].text, "dog");
+        assert_eq!((inputs[0].start_ms, inputs[0].end_ms), (1000, 2000));
+        let output = PhoneticOutput {
+            source_id: source.source_id().clone(),
+            utterances: vec![PhoneticResult {
+                index: inputs[0].index,
+                ipa: vec!["dɔɡ".into()],
+            }],
+        };
+        inject_tiers(&mut source, &inputs, output).unwrap();
+        let serialized = source.to_chat();
+        assert_eq!(serialized.matches("%pho:").count(), 1);
+        assert!(serialized.contains("*PAR:\tcat .\n*PAR:\tdog ."));
+        assert!(serialized.contains("%pho:\tdɔɡ\n*PAR:\tbird ."));
+        Chat::parse(&serialized, source.source_id().clone()).unwrap();
     }
 
     #[test]

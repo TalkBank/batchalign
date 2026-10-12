@@ -285,15 +285,15 @@ def test_cli_failure_does_not_overwrite_source(transcript, fake_backend):
     assert transcript.read_bytes() == original
 
 
-def test_cli_requires_utterance_timing(transcript, fake_backend):
+def test_cli_skips_untimed_utterances(transcript, fake_backend):
     transcript.write_text(
         transcript.read_text()
         .replace(" \x150_1000\x15", "")
         .replace("recording, audio", "recording, audio, unlinked")
     )
     result = CliRunner().invoke(app, ["phonetic", str(transcript)])
-    assert result.exit_code != 0
-    assert "run utr first" in result.output
+    assert result.exit_code == 0, result.output
+    assert "%pho:" not in transcript.read_text()
     assert not fake_backend.calls
 
 
