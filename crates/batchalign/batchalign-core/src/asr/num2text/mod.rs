@@ -9,6 +9,7 @@ mod common;
 mod eng;
 #[cfg(test)]
 mod legacy_tests;
+mod nld;
 mod por;
 mod table;
 #[cfg(test)]
@@ -38,6 +39,7 @@ enum Renderer {
     #[default]
     Table,
     English,
+    Dutch,
     Portuguese,
     Simplified,
     Traditional,
@@ -209,6 +211,7 @@ pub(super) fn expand(text: &str, lang: &str) -> Expansion {
             eng::render(number.kind, &number.groups)
         }
         (Renderer::Portuguese, RuleKind::Ordinal) => por::render(number.kind, &number.groups),
+        (Renderer::Dutch, RuleKind::Ordinal) => nld::render(&number.groups),
         _ => common::render(number.kind, &number.groups, &lang, renderer),
     };
     let source_span = if normalized == text {

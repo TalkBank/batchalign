@@ -1,5 +1,9 @@
 {
   "rules": {
+    "ordinal_nld": {
+      "kind": "ordinal",
+      "pattern": "(?P<value>[0-9]+)(?:e|de|ste|ᵉ)"
+    },
     "ordinal_eng": {
       "kind": "ordinal",
       "pattern": "(?P<value>[0-9]+)(?P<suffix>st|nd|rd|th)"
@@ -42,6 +46,12 @@
     "cardinal"
   ],
   "languages": {
+    "nld": {
+      "renderer": "dutch",
+      "rules": [
+        "ordinal_nld"
+      ]
+    },
     "eng": {
       "renderer": "english",
       "rules": [

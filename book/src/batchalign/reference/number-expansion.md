@@ -11,6 +11,7 @@ building CHAT. All ASR backends use this path. It does not invoke Python
 | `asr/data/number_rules.json` | Ordered regular expressions, named captures, language selection, and punctuation protection |
 | `asr/num2text/mod.rs` | Compile rules once, recognize expressions, dispatch captures, and distinguish unsupported expressions from ordinary text |
 | `asr/num2text/eng.rs` | English ordinal and decade rendering |
+| `asr/num2text/nld.rs` | Dutch ordinal rendering |
 | `asr/num2text/por.rs` | Portuguese ordinal rendering with gender and plural agreement |
 | `asr/num2text/table.rs` and `asr/data/num2lang.json` | Existing cardinal lookup tables for 46 languages and integer decomposition |
 | `asr/num2text/cjk.rs` and `asr/num2chinese.rs` | Existing CJK conversion and script selection |
@@ -33,6 +34,10 @@ complete expression boundary; it does not match prefixes of longer words.
 - Cardinal tables retain their existing exact entries and decomposition behavior.
   This refactor does not add grammatical context to cardinal generation.
 - English ordinals and decades retain the existing Rust implementation.
+- Dutch ordinals accept `e`, `de`, `ste`, and superscript `ᵉ` after digits
+  for values 1–1000: `29e` becomes `negenentwintigste`, `3de` becomes
+  `derde`, and `117e` becomes `honderdzeventiende`. The numeric value
+  determines the written suffix. Larger values remain unsupported.
 - Portuguese ordinals accept digits followed by `º` or `ª`, an optional
   abbreviation period, and optional plural `s`: `54ª`, `54.ª`, `54ºs`.
   Values 1–1000 are supported. For example, `54ª` becomes
@@ -48,6 +53,8 @@ The Portuguese forms follow the ordinal composition described in
 Expansion reflects the recognizer's written interpretation; it cannot establish
 which words the speaker actually said.
 
+Dutch forms follow [Taaladvies's number spelling rules](https://taaladvies.net/aaneenschrijven-van-telwoorden-algemeen/).
+
 ## Results and timing
 
 Recognition and rendering distinguish ordinary text, a successful expansion,
@@ -62,5 +69,5 @@ It retains speaker information outside the language renderer.
 
 The regression suite checks frozen outputs from the previous converter across
 all table languages and CJK/fallback paths, every applicable cardinal-table entry,
-and Portuguese ordinal recognition, CHAT legality, punctuation, and timings.
+and Dutch and Portuguese ordinal recognition, CHAT legality, punctuation, and timings.
 For surrounding stages, see [ASR processing](../architecture/asr-token-pipeline.md).

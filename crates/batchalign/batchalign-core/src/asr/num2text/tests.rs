@@ -1,6 +1,113 @@
 use super::*;
 
 #[test]
+fn dutch_ordinals_render_irregular_forms_and_compounds() {
+    for (n, expected) in [
+        (1, "eerste"),
+        (2, "tweede"),
+        (3, "derde"),
+        (8, "achtste"),
+        (12, "twaalfde"),
+        (17, "zeventiende"),
+        (18, "achttiende"),
+        (19, "negentiende"),
+        (20, "twintigste"),
+        (22, "tweeëntwintigste"),
+        (29, "negenentwintigste"),
+        (100, "honderdste"),
+        (101, "honderdeerste"),
+        (102, "honderdtweede"),
+        (103, "honderdderde"),
+        (108, "honderdachtste"),
+        (117, "honderdzeventiende"),
+        (135, "honderdvijfendertigste"),
+        (200, "tweehonderdste"),
+        (999, "negenhonderdnegenennegentigste"),
+        (1000, "duizendste"),
+    ] {
+        for suffix in ["e", "de", "ste", "ᵉ"] {
+            let input = format!("{n}{suffix}");
+            assert_eq!(expand_number(&input, "nld"), expected, "{input}");
+            assert_eq!(expand_number(&input, "NLD"), expected, "{input}");
+        }
+        assert_eq!(expand_number(expected, "nld"), expected);
+    }
+}
+
+#[test]
+fn all_supported_dutch_ordinals_are_legal_chat_words() {
+    use crate::asr::ChatWordText;
+    use talkbank_model::model::LanguageCode;
+    let lang = LanguageCode::new("nld").unwrap();
+    for n in 1..=1000 {
+        for suffix in ["e", "de", "ste", "ᵉ"] {
+            let input = format!("{n}{suffix}");
+            let Expansion::Expanded { text, source_span } = expand(&input, "nld") else {
+                panic!("{input}");
+            };
+            assert_eq!(source_span, 0..input.len());
+            assert!(
+                ChatWordText::try_from_lang(&text, &lang).is_ok(),
+                "{input}: {text}"
+            );
+        }
+    }
+}
+
+#[test]
+fn dutch_ordinal_recognition_is_language_specific_and_bounded() {
+    for input in [
+        "abc29e", "29extra", "29steabc", "29°", "29.e", "-29e", "3.14e",
+    ] {
+        assert_eq!(expand(input, "nld"), Expansion::NoMatch, "{input}");
+    }
+    for lang in ["eng", "por", "fra", "xxx"] {
+        assert_eq!(expand("29e", lang), Expansion::NoMatch, "{lang}");
+    }
+    for input in ["0e", "1001e", "999999999999999999999999999999999999e"] {
+        assert!(
+            matches!(expand(input, "nld"), Expansion::Unsupported { source_span, .. }
+            if source_span == (0..input.len()))
+        );
+        assert_eq!(expand_number(input, "nld"), input);
+    }
+}
+
+#[test]
+fn dutch_ordinal_asr_regression_preserves_sentence_boundary_and_timing() {
+    use crate::asr::{AsrOutput, process_raw_asr};
+    let raw: AsrOutput = serde_json::from_value(serde_json::json!({
+        "monologues": [{"speaker": 0, "elements": [
+            {"value": "29e.", "ts": 1.0, "end_ts": 1.5}
+        ]}]
+    }))
+    .unwrap();
+    let utterances = process_raw_asr(&raw, "nld");
+    assert_eq!(utterances.len(), 1);
+    let utterance = &utterances[0];
+    assert_eq!(utterance.speaker, crate::asr::SpeakerIndex(0));
+    assert_eq!(
+        utterance
+            .words
+            .iter()
+            .map(|w| w.text.as_str())
+            .collect::<Vec<_>>(),
+        ["negenentwintigste", "."]
+    );
+    assert_eq!(utterance.words[0].start_ms, Some(1000));
+    assert_eq!(utterance.words[0].end_ms, Some(1500));
+    let desc = crate::asr::chat::transcript_from_asr_utterances(
+        &utterances,
+        &["PAR".into()],
+        &["nld".into()],
+        Some("020507.wav"),
+        false,
+    )
+    .unwrap();
+    assert!(crate::asr::chat::build_chat(&desc).is_ok());
+}
+
+#[test]
 fn existing_language_outputs_match_pre_refactor_baseline() {
     // Captured from the converter at 680149583b8075503e08a7ef3a1af62971785517. This
     // covers every table language plus CJK and digit-permitting/unknown fallbacks.
