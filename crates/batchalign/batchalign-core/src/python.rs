@@ -24,6 +24,10 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ProgressEvent>()?;
     m.add_class::<ProgressKind>()?;
     m.add_class::<SourceId>()?;
+    m.add_class::<crate::pychat::CHATFile>()?;
+    m.add_class::<crate::pychat::Media>()?;
+    m.add_class::<crate::pychat::Speaker>()?;
+    m.add_class::<crate::pychat::Utterance>()?;
     m.add_function(wrap_pyfunction!(prepare_audio, m)?)?;
     Ok(())
 }

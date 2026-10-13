@@ -29,6 +29,8 @@ pub mod utils;
 
 #[cfg(feature = "python")]
 pub mod python;
+#[cfg(feature = "python")]
+pub mod pychat;
 
 pub use backends::{Backend, BackendCallError, BackendMeta, BatchPolicy};
 pub use base::{

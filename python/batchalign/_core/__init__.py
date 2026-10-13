@@ -23,6 +23,10 @@ from __future__ import annotations
 # should be available.
 
 _EXPECTED_NAMES = (
+    "CHATFile",
+    "Media",
+    "Speaker",
+    "Utterance",
     "Task",
     "Pipeline",
     "BAValue",

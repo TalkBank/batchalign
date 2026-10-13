@@ -148,6 +148,7 @@
 - [Batchalign](diataxis/batchalign-reference.md)
   - [CLI options](batchalign/user-guide/cli-reference.md)
   - [Python API](batchalign/user-guide/python-api.md)
+  - [Python CHAT documents](batchalign/reference/python-chat.md)
   - [Command inputs and outputs](batchalign/reference/command-io.md)
   - [Filesystem locations](batchalign/reference/filesystem-paths.md)
   - [Provenance comments](batchalign/user-guide/provenance.md)

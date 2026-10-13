@@ -3,6 +3,11 @@
 The `batchalign` Python package exposes a Rust-backed `Pipeline`, task and input
 types, backend classes, and recipe functions. The CLI uses this API too.
 
+For parsing, constructing, and editing transcripts directly, see
+[Python CHAT documents](../reference/python-chat.md). The `CHATFile`, `Speaker`,
+`Utterance`, and `Media` types use the Rust CHAT model and derive participant
+headers from utterance speaker choices.
+
 ## Run a recipe
 
 ```python

@@ -26,6 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 # Map attribute name → source module. Resolved lazily by __getattr__.
 _CORE_NAMES = frozenset({
+    "CHATFile",
+    "Media",
+    "Utterance",
     "Task",
     "Pipeline",
     "BAValue",
@@ -83,7 +86,7 @@ _BACKEND_NAMES = frozenset({
     "AliyunTranslateBackend",
 })
 
-_SUBMODULES = frozenset({"recipes", "inputs", "backends", "config"})
+_SUBMODULES = frozenset({"recipes", "inputs", "backends", "config", "chat"})
 
 
 def __getattr__(name: str) -> Any:
@@ -123,6 +126,9 @@ def __dir__() -> list[str]:
 if TYPE_CHECKING:
     # Make IDE/type-checker happy without forcing the runtime imports.
     from batchalign._core import (  # noqa: F401
+        CHATFile,
+        Media,
+        Utterance,
         Task,
         Pipeline,
         BAValue,
@@ -182,6 +188,9 @@ if TYPE_CHECKING:
 
 
 __all__ = [
+    "CHATFile",
+    "Media",
+    "Utterance",
     "Task",
     "Pipeline",
     "BAValue",
