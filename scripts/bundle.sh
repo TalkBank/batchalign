@@ -1,25 +1,30 @@
 #!/usr/bin/env bash
-# Build, sign, and notarize the ARM64 Batchalign app and DMG.
+# Build or reuse a CI DMG, then sign and notarize the ARM64 app and final DMG.
 # One-time notarization credential setup (prompts securely for an app-specific
 # password generated at account.apple.com; this is separate from the signing key):
 #   xcrun notarytool store-credentials batchalign-notary \
 #     --apple-id YOUR_APPLE_ID --team-id YOUR_APPLE_DEVELOPER_TEAM_ID
 # Find the signing certificate fingerprint: security find-identity -v -p codesigning
 # Then run: ./scripts/bundle.sh --identity SHA1 --profile batchalign-notary --output DIR
-# Requires a native Apple Silicon Mac and its Developer ID Application private key.
+# Add --dmg PATH to reuse a CI build: mount read-only, copy the app, and detach.
+# The copied app is signed/notarized/stapled before creating a new signed/notarized DMG.
+# Building requires native Apple Silicon; both modes require a Developer ID private key.
 set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: ./scripts/bundle.sh --identity SHA1 --profile NAME --output DIR
+Usage: ./scripts/bundle.sh [--dmg PATH] --identity SHA1 --profile NAME --output DIR
 
+  --dmg       Reuse an existing CI DMG instead of building from source.
   --identity  Developer ID Application certificate's 40-character SHA-1 fingerprint.
   --profile   Existing notarytool Keychain credential profile.
   --output    New directory in an existing parent; retains artifacts and Apple logs.
 
-Builds through just batchalign gui build, using python/pyproject.toml's version.
+By default, builds through just batchalign gui build using the Python version.
+With --dmg, mounts the input read-only, copies Batchalign.app out, and detaches.
+The input DMG is preserved; a new DMG contains the stapled app and Applications link.
 The script signs a copy, notarizes/staples the app, then creates, signs, notarizes,
-and staples a DMG. Native Apple Silicon only; both executables must be ARM64.
+and staples a DMG. Both executables must be ARM64 and the version must match Python.
 
 One-time Keychain credential setup (securely prompts for an app-specific password
 generated at account.apple.com, not your regular Apple account password):
@@ -92,13 +97,14 @@ notarize_archive() {
         || die "Apple status is $status for $submission_id; inspect $output/logs before continuing"
 }
 
-identity='' profile='' output=''
+input_dmg='' identity='' profile='' output=''
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help) usage; exit 0 ;;
-        --identity|--profile|--output)
+        --dmg|--identity|--profile|--output)
             [[ $# -ge 2 && -n "$2" ]] || die "missing value for $1"
             case "$1" in
+                --dmg) input_dmg="$2" ;;
                 --identity) identity="$2" ;;
                 --profile) profile="$2" ;;
                 --output) output="$2" ;;
@@ -113,14 +119,21 @@ if [[ -z "$identity" || -z "$profile" || -z "$output" ]]; then
     die 'all three arguments are required'
 fi
 [[ "$(uname -s)" == Darwin ]] || die 'macOS is required'
-[[ "$(uname -m)" == arm64 ]] || die 'build on a native Apple Silicon Mac (without Rosetta)'
 [[ "$identity" =~ ^[[:xdigit:]]{40}$ ]] || die 'identity must be a certificate SHA-1 fingerprint'
 identity="$(printf '%s' "$identity" | tr '[:lower:]' '[:upper:]')"
-for tool in just rustc git security codesign openssl python3 lipo file ditto hdiutil xcrun spctl shasum; do
+for tool in git security codesign openssl python3 lipo file ditto hdiutil xcrun spctl shasum; do
     command -v "$tool" >/dev/null || die "required tool is missing: $tool"
 done
-[[ "$(rustc -vV | awk '/^host:/ { print $2 }')" == aarch64-apple-darwin ]] \
-    || die 'the build requires an aarch64-apple-darwin Rust host toolchain'
+if [[ -z "$input_dmg" ]]; then
+    [[ "$(uname -m)" == arm64 ]] || die 'build on a native Apple Silicon Mac (without Rosetta)'
+    command -v just >/dev/null || die 'required tool is missing: just'
+    command -v rustc >/dev/null || die 'required tool is missing: rustc'
+    [[ "$(rustc -vV | awk '/^host:/ { print $2 }')" == aarch64-apple-darwin ]] \
+        || die 'the build requires an aarch64-apple-darwin Rust host toolchain'
+else
+    [[ -f "$input_dmg" ]] || die "input DMG does not exist: $input_dmg"
+    input_dmg="$(cd "$(dirname "$input_dmg")" && pwd -P)/$(basename "$input_dmg")"
+fi
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 expected_version="$(awk -F'"' '
     /^\[project\]$/ { project = 1; next }
@@ -136,7 +149,11 @@ case "$output/" in "$app/"*) die 'output must be outside the build app' ;; esac
 
 # Preflight uses public certificates only; never export the private signing key.
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/batchalign-bundle.XXXXXX")"
-trap 'rm -rf "$scratch"' EXIT
+mounted=''
+trap 'if [[ -n "$mounted" ]]; then
+    hdiutil detach "$mounted" || { printf "Could not detach %s; temporary files retained.\n" "$mounted" >&2; exit 1; }
+fi
+rm -rf "$scratch"' EXIT
 security find-identity -v -p codesigning | awk -v fingerprint="$identity" '
     $2 == fingerprint { found = 1 }
     END { exit !found }
@@ -169,33 +186,48 @@ security verify-cert -c "$scratch/signer.pem" -p codeSign
 xcrun notarytool history --keychain-profile "$profile" --output-format plist \
     > "$scratch/credential-check.plist"
 
-# Credential checks precede the build. Keep build inputs and Apple responses together.
+# Credential checks precede processing. Keep source provenance and Apple responses together.
 mkdir "$output"
 mkdir "$output/logs"
 cp "$scratch/signer.pem" "$output/logs/signer.pem"
 git -C "$repo_root" rev-parse HEAD > "$output/logs/operator-checkout.txt"
 git -C "$repo_root" status --porcelain > "$output/logs/operator-worktree.txt"
-printf 'version=%s\narchitecture=arm64\nidentity=%s\nsource_app=%s\n' \
-    "$expected_version" "$identity" "$app" > "$output/logs/release.txt"
-python3 - "$expected_version" "$output/logs/tauri-version.json" <<'PY'
+if [[ -n "$input_dmg" ]]; then
+    printf 'Extracting app from %s\n' "$input_dmg"
+    shasum -a 256 "$input_dmg" > "$output/logs/input-dmg-sha256.txt"
+    hdiutil verify "$input_dmg"
+    mkdir "$scratch/mounted" "$scratch/extracted"
+    hdiutil attach -readonly -nobrowse -mountpoint "$scratch/mounted" "$input_dmg" \
+        > "$output/logs/input-mount.txt"
+    mounted="$scratch/mounted"
+    validate_app "$mounted/Batchalign.app" "$expected_version"
+    app="$scratch/extracted/Batchalign.app"
+    ditto "$mounted/Batchalign.app" "$app"
+    hdiutil detach "$mounted"
+    mounted=''
+else
+    python3 - "$expected_version" "$output/logs/tauri-version.json" <<'PY'
 import json
 import pathlib
 import sys
 
 pathlib.Path(sys.argv[2]).write_text(json.dumps({'version': sys.argv[1]}) + '\n')
 PY
-printf 'Building ARM64 Batchalign %s\n' "$expected_version"
-(
-    cd "$repo_root"
-    # Keep Apple's upload/signing stage owned by this script. Tauri creates only
-    # the app here; the final DMG must contain the already-stapled app.
-    unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID APPLE_API_KEY APPLE_API_ISSUER \
-        APPLE_API_KEY_PATH APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD
-    CARGO_TARGET_DIR="$repo_root/target" APPLE_SIGNING_IDENTITY=- \
-        just batchalign gui build release --target aarch64-apple-darwin --bundles app \
-        --config "$output/logs/tauri-version.json"
-) 2>&1 | tee "$output/logs/build.log"
+    printf 'Building ARM64 Batchalign %s\n' "$expected_version"
+    (
+        cd "$repo_root"
+        # Keep Apple's upload/signing stage owned by this script. Tauri creates only
+        # the app here; the final DMG must contain the already-stapled app.
+        unset APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID APPLE_API_KEY APPLE_API_ISSUER \
+            APPLE_API_KEY_PATH APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD
+        CARGO_TARGET_DIR="$repo_root/target" APPLE_SIGNING_IDENTITY=- \
+            just batchalign gui build release --target aarch64-apple-darwin --bundles app \
+            --config "$output/logs/tauri-version.json"
+    ) 2>&1 | tee "$output/logs/build.log"
+fi
 validate_app "$app" "$expected_version"
+printf 'version=%s\narchitecture=arm64\nidentity=%s\nsource_app=%s\nsource_dmg=%s\n' \
+    "$expected_version" "$identity" "$app" "$input_dmg" > "$output/logs/release.txt"
 shasum -a 256 "$app/Contents/Info.plist" "$app/Contents/MacOS/Batchalign" \
     "$app/Contents/MacOS/sidecar" > "$output/logs/source-sha256.txt"
 xcrun notarytool --version > "$output/logs/notarytool-version.txt"

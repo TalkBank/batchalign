@@ -15,7 +15,7 @@ and specification-generator scripts were removed with their product crates.
 
 | Task | Entrypoint |
 |---|---|
-| Build, sign, and notarize the ARM64 macOS app and DMG | `./scripts/bundle.sh --identity SHA1 --profile NAME --output DIR` |
+| Build or repackage, sign, and notarize the ARM64 macOS app and DMG | `./scripts/bundle.sh [--dmg PATH] --identity SHA1 --profile NAME --output DIR` |
 | Install the local push guard | `ln -sf ../../scripts/pre-push.sh .git/hooks/pre-push` |
 | Check generated dashboard API files | `bash scripts/check_dashboard_api_drift.sh` |
 | Check IPC schema files | `bash scripts/check_ipc_type_drift.sh` |
