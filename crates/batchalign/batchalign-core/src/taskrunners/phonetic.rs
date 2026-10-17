@@ -133,7 +133,8 @@ fn inject_tiers(
     if let Some(media) = chat.media().cloned() {
         revised = revised.with_media(media);
     }
-    for (input, result) in inputs.iter().zip(output.utterances) {
+    let english = chat.primary_language().as_deref() == Some("eng");
+    for (input, mut result) in inputs.iter().zip(output.utterances) {
         if result.index != input.index || result.ipa.len() != input.units.len() {
             return Err(BAError::Worker(
                 "phonetic: result unit ownership mismatch".into(),
@@ -149,6 +150,13 @@ fn inject_tiers(
                 )));
             }
         }
+        if english {
+            for (unit, ipa) in input.units.iter().zip(&mut result.ipa) {
+                if !unit.pause {
+                    normalize_english_initial_stop(ipa);
+                }
+            }
+        }
         let Line::Utterance(utterance) = &mut revised.ast_mut().lines.as_mut_slice()[input.index]
         else {
             unreachable!()
@@ -160,6 +168,32 @@ fn inject_tiers(
     revised.validate_stage_output(Task::Phonetic)?;
     *chat = revised;
     Ok(())
+}
+
+/// Convert Xeus's phonetic VOT distinction to English transcription conventions.
+/// Apply once at each unit's onset, without consulting spelling: unaspirated
+/// p/t/k become b/d/ɡ, while aspirated pʰ/tʰ/kʰ become p/t/k.
+fn normalize_english_initial_stop(ipa: &mut String) {
+    let onset = ipa.trim_start_matches(['ˈ', 'ˌ']);
+    let offset = ipa.len() - onset.len();
+    // An affricate beginning with t is a separate phone, not an initial stop.
+    if onset.starts_with("tʃ") || onset.starts_with("t͡") || onset.starts_with("t͜") {
+        return;
+    }
+    // Match aspiration first, and replace only once to avoid cascading pʰ→p→b.
+    for (prefix, replacement) in [
+        ("pʰ", "p"),
+        ("tʰ", "t"),
+        ("kʰ", "k"),
+        ("p", "b"),
+        ("t", "d"),
+        ("k", "ɡ"),
+    ] {
+        if onset.starts_with(prefix) {
+            ipa.replace_range(offset..offset + prefix.len(), replacement);
+            return;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -175,6 +209,64 @@ mod tests {
             "audio, unlinked"
         };
         Chat::parse(&format!("@UTF8\n@Begin\n@Languages:\teng\n@Participants:\tPAR Participant\n@ID:\teng|test|PAR|||||Participant|||\n@Media:\tsample, {linkage}\n{content}@End\n"), SourceId::try_new("test.cha").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn normalizes_english_initial_stops() {
+        for (raw, expected) in [
+            ("pæt", "bæt"),
+            ("tɔɡ", "dɔɡ"),
+            ("kəʊ", "ɡəʊ"),
+            ("pʰæt", "pæt"),
+            ("tʰɑp", "tɑp"),
+            ("kʰɪk", "kɪk"),
+            ("ˈpæt", "ˈbæt"),
+            ("ˌkʰæt", "ˌkæt"),
+            ("spæt", "spæt"),
+            ("ətæk", "ətæk"),
+            ("bɪɡ", "bɪɡ"),
+            ("tʃɪp", "tʃɪp"),
+            ("ˈt͡ʃɪp", "ˈt͡ʃɪp"),
+            ("t͜ʃɪp", "t͜ʃɪp"),
+            ("…", "…"),
+            ("", ""),
+        ] {
+            let mut ipa = raw.to_owned();
+            normalize_english_initial_stop(&mut ipa);
+            assert_eq!(ipa, expected, "{raw}");
+        }
+    }
+
+    #[test]
+    fn injects_stop_corrections_only_for_english_and_preserves_pauses() {
+        for (language, expected) in [
+            ("eng", "bæt dɔɡ ɡəʊ pæt tɑp kɪk (.)"),
+            ("fra", "pæt tɔɡ kəʊ pʰæt tʰɑp kʰɪk (.)"),
+        ] {
+            let original = chat("*PAR:\tbat dog go pat top kick (.) . \u{15}0_1000\u{15}\n");
+            let mut source = Chat::parse(
+                &original.to_chat().replace("eng", language),
+                original.source_id().clone(),
+            )
+            .unwrap();
+            let inputs = extract_utterances(&source).unwrap();
+            let output = PhoneticOutput {
+                source_id: source.source_id().clone(),
+                utterances: vec![PhoneticResult {
+                    index: inputs[0].index,
+                    ipa: ["pæt", "tɔɡ", "kəʊ", "pʰæt", "tʰɑp", "kʰɪk", "(.)"]
+                        .map(str::to_owned)
+                        .to_vec(),
+                }],
+            };
+            inject_tiers(&mut source, &inputs, output).unwrap();
+            let serialized = source.to_chat();
+            assert!(
+                serialized.contains(&format!("%pho:\t{expected}\n")),
+                "{serialized}"
+            );
+            Chat::parse(&serialized, source.source_id().clone()).unwrap();
+        }
     }
 
     #[test]
@@ -272,7 +364,7 @@ mod tests {
         };
         inject_tiers(&mut source, &inputs, output).unwrap();
         let serialized = source.to_chat();
-        assert!(serialized.contains("%pho:\tkʰæ̃t"));
+        assert!(serialized.contains("%pho:\tkæ̃t"));
         assert!(serialized.contains("*PAR:\tcat ."));
         Chat::parse(&serialized, source.source_id().clone()).unwrap();
     }

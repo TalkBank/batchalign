@@ -5,6 +5,7 @@ from __future__ import annotations
 import wave
 import base64
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
 from typer.testing import CliRunner
@@ -212,6 +213,8 @@ def fake_backend(monkeypatch):
     import batchalign as ba
     from batchalign._core.proto import PhoneticOutput, PhoneticResult
 
+    cache_namespace = uuid4().hex
+
     class FakePhonetic(ba.Phonetic):
         calls = []
         corrupt = False
@@ -220,7 +223,7 @@ def fake_backend(monkeypatch):
         @property
         def name(self):
             # Distinct cache namespace per test instance.
-            return f"phonetic-test-{id(self)}"
+            return f"phonetic-test-{cache_namespace}"
 
         @property
         def batch_policy(self):
@@ -248,7 +251,7 @@ def fake_backend(monkeypatch):
     return backend
 
 
-@pytest.mark.parametrize("phone", ["tə", "…"])
+@pytest.mark.parametrize("phone", ["pə", "tə", "kə", "pʰə", "tʰə", "kʰə", "…"])
 @pytest.mark.parametrize("language", ["eng", "fra", "rus"])
 def test_cli_runner_writes_pho_and_preserves_existing(
     transcript, fake_backend, tmp_path, language, phone
@@ -261,7 +264,11 @@ def test_cli_runner_writes_pho_and_preserves_existing(
     )
     assert result.exit_code == 0, result.output
     text = (output / transcript.name).read_text()
-    assert f"%pho:\t{phone} (.) {phone}" in text
+    expected = {
+        "pə": "bə", "tə": "də", "kə": "ɡə",
+        "pʰə": "pə", "tʰə": "tə", "kʰə": "kə",
+    }.get(phone, phone) if language == "eng" else phone
+    assert f"%pho:\t{expected} (.) {expected}" in text
     assert "%pho:" not in transcript.read_text()
     units = fake_backend.calls[0].utterances[0].units
     assert fake_backend.calls[0].language == language
