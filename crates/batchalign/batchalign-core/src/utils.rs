@@ -197,11 +197,18 @@ pub struct ChatInput {
     pub source_id: SourceId,
     /// Path to the `.cha` file.
     pub path: PathBuf,
+    /// Explicit media selected by the caller instead of sibling lookup.
+    #[serde(default)]
+    pub media: Option<PathBuf>,
 }
 
 impl ChatInput {
     pub fn new(source_id: SourceId, path: PathBuf) -> Self {
-        Self { source_id, path }
+        Self {
+            source_id,
+            path,
+            media: None,
+        }
     }
 }
 
@@ -215,6 +222,9 @@ pub struct AiChatInput {
     pub path: PathBuf,
     /// Instruction sent to the AI backend.
     pub instruction: String,
+    /// Explicit media for the transcript.
+    #[serde(default)]
+    pub media: Option<PathBuf>,
 }
 
 impl AiChatInput {
@@ -223,6 +233,7 @@ impl AiChatInput {
             source_id,
             path,
             instruction,
+            media: None,
         }
     }
 }
@@ -237,6 +248,9 @@ pub struct PairedInput {
     pub main: PathBuf,
     /// Path to the gold reference transcript.
     pub gold: PathBuf,
+    /// Explicit media for the main transcript.
+    #[serde(default)]
+    pub media: Option<PathBuf>,
 }
 
 impl PairedInput {
@@ -245,6 +259,7 @@ impl PairedInput {
             source_id,
             main,
             gold,
+            media: None,
         }
     }
 }

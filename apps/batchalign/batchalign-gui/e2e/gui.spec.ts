@@ -36,7 +36,7 @@ test('real morphotag → compare writes valid CHAT and correct metrics', async (
     await page.goto('/');
     await expect(page.getByRole('dialog', { name: 'Loading', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'open folder…' }).click();
-    await page.getByRole('button', { name: '+ add step', exact: true }).click();
+    await page.getByRole('button', { name: '+ add command', exact: true }).click();
     await page.locator('div').filter({ hasText: /^morphotag$/ }).last().click();
     const morphologySubmitted = page.waitForRequest(request => request.url().endsWith('/desktop/jobs') && request.method() === 'POST');
     await page.getByRole('button', { name: 'start batch', exact: true }).click();
@@ -48,7 +48,7 @@ test('real morphotag → compare writes valid CHAT and correct metrics', async (
     await testInfo.attach('morphology.cha', { body: morphology, contentType: 'text/plain' });
     await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeEnabled();
 
-    await page.getByRole('button', { name: '+ add step', exact: true }).click();
+    await page.getByRole('button', { name: '+ add command', exact: true }).click();
     await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
     const submitted = page.waitForRequest(request => request.url().endsWith('/desktop/jobs') && request.method() === 'POST');
     await page.getByRole('button', { name: 'start batch', exact: true }).click();

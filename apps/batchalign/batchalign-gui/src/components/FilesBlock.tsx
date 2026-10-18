@@ -8,8 +8,11 @@ import BlockHeader from "./BlockHeader";
 import FieldRow from "./FieldRow";
 import PathInput from "./PathInput";
 import Toggle from "./Toggle";
+import { useState } from "react";
+import { openFolder } from "../folders";
 
 export default function FilesBlock() {
+  const [error, setError] = useState<string | null>(null);
   const { activeBatchId, batches, dispatch } = useStore();
   const batch = activeBatchId ? batches[activeBatchId] : null;
   if (!batch) return null;
@@ -56,7 +59,19 @@ export default function FilesBlock() {
       />
       <div style={{ padding: "12px 20px 14px" }}>
         <FieldRow label="folder">
-          <PathInput value={batch.folderPath} directory />
+          <PathInput value={batch.folderPath} directory disabled={batch.state === "running"}
+            onChoose={async path => {
+              setError(null);
+              try { await openFolder(path); }
+              catch (error) { setError(String(error)); }
+            }}>
+            <button type="button" className="ba-btn ba-btn--sm"
+              disabled={batch.state === "running"}
+              onClick={() => dispatch({ type: "BATCH_CLOSED", batchId: batch.id })}>
+              close
+            </button>
+          </PathInput>
+          {error && <div role="alert">Could not open folder: {error}</div>}
         </FieldRow>
         {!batch.inPlace && (
           <FieldRow label="write to">

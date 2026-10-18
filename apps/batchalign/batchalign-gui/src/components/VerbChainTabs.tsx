@@ -1,7 +1,8 @@
+import { commandLabel } from "../labels";
 // Underlined-active tabs for the pipeline verbs. Reads `pipeline` from
 // the active batch; renders chevrons between verbs as gray text, the
 // active verb gets the slate underline + dark-blue color. Step
-// management buttons ("remove <verb>" / "+ add step") sit on the right.
+// management buttons ("remove <verb>" / "+ add command") sit on the right.
 
 import { Fragment, useState } from "react";
 import { useStore, type VerbStep } from "../store";
@@ -102,7 +103,7 @@ export default function VerbChainTabs({ selected, onSelect }: Props) {
                 letterSpacing: "-0.005em",
               }}
             >
-              {v}
+              {commandLabel(v)}
             </button>
           </Fragment>
         );
@@ -117,7 +118,7 @@ export default function VerbChainTabs({ selected, onSelect }: Props) {
             className="ba-btn ba-btn--sm"
             style={{ padding: "3px 9px", fontSize: "var(--fs-xs)" }}
           >
-            remove {selected}
+            remove {selected ? commandLabel(selected) : ""}
           </button>
         )}
         <AddVerb unused={unused} onAdd={onAdd} disabled={batch.state === "running"} />
@@ -146,7 +147,7 @@ function AddVerb({
         className="ba-btn ba-btn--sm"
         style={{ padding: "3px 9px", fontSize: "var(--fs-xs)" }}
       >
-        + add step
+        + add command
       </button>
       {open && !disabled && (
         <div
@@ -183,7 +184,7 @@ function AddVerb({
                 (e.currentTarget.style.background = "transparent")
               }
             >
-              {v}
+              {commandLabel(v)}
             </div>
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { asrLanguage, selectedAsr } from "./asrEngines";
 import { type Batch, type SettingsState, type VerbConfig, type VerbStep } from './store';
 import { filterFilesForVerb } from './hooks/useFilteredFiles';
 
@@ -7,22 +8,32 @@ export function buildRecipeKwargs(
 ): Record<string, unknown> {
   switch (verb) {
     case "transcribe": {
-      const engine = (config.engine as string) || "WhisperBackend";
-      const lang = (config.lang as string) || "eng";
+      const engine = selectedAsr((config.lang as string) || "", config.engine as string);
+      const lang = asrLanguage((config.lang as string) || "");
       const speakers = (config.speakers as number) ?? 2;
       const diarize = (config.diarize as boolean) ?? true;
       const nativeSpeaker = engine === "RevAI" || engine === "GoogleGenAIBackend";
       const asrKwargs: Record<string, unknown> = { language: lang };
+      let backendKind = engine;
+      if (engine === "FunAsrBackend") {
+        backendKind = "FunAudioBackend";
+        asrKwargs.model = "FunAudioLLM/SenseVoiceSmall";
+      } else if (engine === "FunAudioBackend") {
+        asrKwargs.model = "funasr/paraformer-zh";
+      } else if (engine === "AliyunAsrBackend") {
+        // Aliyun's project credentials select the model language.
+        delete asrKwargs.language;
+      }
       if (nativeSpeaker) asrKwargs.num_speakers = speakers;
       const out: Record<string, unknown> = {
-        asr_backend: { kind: engine, kwargs: asrKwargs },
+        asr_backend: { kind: backendKind, kwargs: asrKwargs },
       };
       if (diarize) {
         if (nativeSpeaker) {
           out.diarize = true;
         } else {
           out.speaker_backend = {
-            kind: (config.diarize_engine as string) || "PyannoteBackend",
+            kind: (config.diarize_engine as string) || "PyannoteAIBackend",
             kwargs: { num_speakers: speakers },
           };
         }
@@ -32,7 +43,7 @@ export function buildRecipeKwargs(
     case "diarize":
       return {
         speaker_backend: {
-          kind: (config.engine as string) || "PyannoteBackend",
+          kind: (config.engine as string) || "PyannoteAIBackend",
           kwargs: { num_speakers: (config.speakers as number) ?? 0 },
         },
       };
@@ -72,13 +83,18 @@ export function buildRecipeKwargs(
 }
 
 
-export function buildDesktopRequest(batch: Batch, settings: SettingsState) {
+export function buildDesktopRequest(batch: Batch, settings: SettingsState, availableAsr?: string[]) {
   return {
     folder: batch.folderPath,
     source_ids: filterFilesForVerb(batch.files, batch.fileOrder, batch.pipeline[0]),
     steps: batch.pipeline.map(recipe => ({
       recipe,
-      kwargs: buildRecipeKwargs(recipe, batch.config[recipe]),
+      ...(recipe === 'transcribe' ? { language: asrLanguage((batch.config.transcribe.lang as string) || "") } : {}),
+      kwargs: buildRecipeKwargs(recipe, recipe === 'transcribe' ? {
+        ...batch.config.transcribe,
+        engine: selectedAsr((batch.config.transcribe.lang as string) || "",
+          batch.config.transcribe.engine as string, availableAsr),
+      } : batch.config[recipe]),
       gold_path: recipe === 'compare' ? batch.config.compare.gold_path || null : null,
       use_cache: batch.config[recipe].use_cache ?? true,
       strip_word_timing: recipe === 'align' && batch.config.align.write_wor === false,

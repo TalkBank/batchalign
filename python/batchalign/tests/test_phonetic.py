@@ -292,6 +292,32 @@ def test_cli_failure_does_not_overwrite_source(transcript, fake_backend):
     assert transcript.read_bytes() == original
 
 
+@pytest.mark.parametrize("flag", ["-m", "--media"])
+def test_cli_uses_parallel_media_tree(transcript, fake_backend, tmp_path, flag):
+    transcripts = tmp_path / "transcripts"
+    source = transcripts / "nested" / transcript.name
+    source.parent.mkdir(parents=True)
+    transcript.rename(source)
+    media = tmp_path / "media"
+    recording = media / "nested" / "recording.wav"
+    recording.parent.mkdir(parents=True)
+    (tmp_path / "recording.wav").rename(recording)
+    # Explicit media must win over a sibling file, without rewriting @Media.
+    (source.parent / "recording.wav").write_bytes(b"invalid sibling audio")
+    before = source.read_text()
+    output = tmp_path / "out"
+    result = CliRunner().invoke(app, [
+        "phonetic", str(transcripts), flag, str(media), "-o", str(output),
+    ])
+    assert result.exit_code == 0, (result.output, result.exception)
+    text = (output / "nested" / source.name).read_text()
+    assert "%pho:\tdə (.) də" in text
+    assert "@Media:\trecording, audio" in text
+    assert source.read_text() == before
+    assert fake_backend.calls[0].source_id == str(source)
+    assert fake_backend.calls[0].audio.frame_count == 16000
+
+
 def test_cli_skips_untimed_utterances(transcript, fake_backend):
     transcript.write_text(
         transcript.read_text()

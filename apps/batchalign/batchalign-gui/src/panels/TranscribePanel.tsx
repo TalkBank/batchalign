@@ -1,7 +1,10 @@
+import { ASR_LABELS, ASR_NOTES, availableAsr, recommendedAsr, selectedAsr } from "../asrEngines";
 // transcribe panel — picks language, engine, speaker count, diarize.
 // Engines list comes from the live daemon's `/capabilities` ASR set.
 
 import { useStore, type VerbConfig } from "../store";
+import LanguageInput from "../components/LanguageInput";
+import EngineLabel from "../components/EngineLabel";
 import FieldRow from "../components/FieldRow";
 import RadioGroup from "../components/RadioGroup";
 import Toggle from "../components/Toggle";
@@ -11,21 +14,6 @@ interface Props {
   config: VerbConfig;
 }
 
-const PRETTY_ASR: Record<string, string> = {
-  WhisperBackend: "Whisper (local)",
-  WhisperXBackend: "WhisperX (local)",
-  ChatWhisperBackend: "Chat-Whisper (local)",
-  OpenAIWhisperBackend: "OpenAI Whisper (local)",
-  VllmAsrBackend: "vLLM Whisper (local)",
-  RevAI: "Rev.AI (cloud)",
-  TencentAsrBackend: "Tencent Cloud ASR",
-  AliyunAsrBackend: "Aliyun Cloud ASR",
-  FunAsrBackend: "FunASR / SenseVoice",
-  FunAudioBackend: "Paraformer-zh",
-  Qwen3AsrBackend: "Qwen3-ASR",
-  QwenAsrBackend: "Qwen-ASR",
-};
-
 const PRETTY_SPEAKER: Record<string, string> = {
   PyannoteAIBackend: "pyannoteAI (cloud)",
   PyannoteBackend: "Pyannote (local)",
@@ -33,9 +21,9 @@ const PRETTY_SPEAKER: Record<string, string> = {
 
 export default function TranscribePanel({ batchId, config }: Props) {
   const { capabilities, dispatch } = useStore();
-  const asrEngines =
-    capabilities?.backends_by_task["ASR"] ??
-    ["WhisperBackend", "RevAI", "Qwen3AsrBackend"];
+  const lang = (config.lang as string) ?? "";
+  const asrEngines = availableAsr(lang, capabilities?.backends_by_task["ASR"]);
+  const recommended = recommendedAsr(lang, capabilities?.backends_by_task["ASR"]);
   const speakerEngines = (
     capabilities?.backends_by_task["Speaker"] ??
     ["PyannoteAIBackend", "PyannoteBackend"]
@@ -49,23 +37,17 @@ export default function TranscribePanel({ batchId, config }: Props) {
       patch,
     });
 
-  const lang = (config.lang as string) ?? "eng";
   const speakers = (config.speakers as number) ?? 2;
-  const engine = (config.engine as string) ?? "WhisperBackend";
+  const engine = selectedAsr(lang, config.engine as string, capabilities?.backends_by_task["ASR"]);
   const diarize = (config.diarize as boolean) ?? true;
   const nativeSpeaker = engine === "RevAI" || engine === "GoogleGenAIBackend";
   const diarizeEngine =
-    (config.diarize_engine as string) ?? "PyannoteBackend";
+    (config.diarize_engine as string) ?? "PyannoteAIBackend";
 
   return (
     <div>
       <FieldRow label="language">
-        <input
-          className="ba-input"
-          value={lang}
-          onChange={(e) => set({ lang: e.target.value })}
-          style={{ width: 90 }}
-        />
+        <LanguageInput value={lang} onChange={value => set({ lang: value })} />
       </FieldRow>
       <FieldRow label="speakers">
         <input
@@ -77,20 +59,25 @@ export default function TranscribePanel({ batchId, config }: Props) {
         />
       </FieldRow>
       <FieldRow label="engine">
+        {!asrEngines.length && <span>Enter a language to see recommended engines.</span>}
+        {recommended.length > 0 && <div role="group" aria-label="Recommended engines" style={{
+          background: "var(--gray-1)", borderRadius: 8, padding: "10px 12px", marginBottom: 10,
+        }}>
+          <div style={{ fontSize: "var(--fs-xs)", color: "var(--fg-muted)", marginBottom: 6 }}>Recommended</div>
+          <RadioGroup value={engine} options={recommended.map(e => [e, ASR_LABELS[e]])}
+            descriptions={ASR_NOTES} onChange={value => set({ engine: value })} />
+        </div>}
         <RadioGroup
           value={engine}
-          options={asrEngines.map((e) => [
-            e,
-            PRETTY_ASR[e] ?? e.replace(/Backend$/, ""),
-          ])}
-          onChange={(v) => set({ engine: v })}
+          options={asrEngines.filter(e => !recommended.includes(e)).map(e => [e, ASR_LABELS[e]])}
+          onChange={value => set({ engine: value })}
         />
       </FieldRow>
-      <FieldRow label="diarize">
+      <FieldRow label="Speaker recognition">
         <Toggle on={diarize} onChange={(on) => set({ diarize: on })} />
       </FieldRow>
-      {diarize && !nativeSpeaker && (
-        <FieldRow label="diarizer">
+      {diarize && engine && !nativeSpeaker && (
+        <FieldRow label="Recognition engine">
           <RadioGroup
             value={diarizeEngine}
             options={speakerEngines.map((name) => [
@@ -101,9 +88,9 @@ export default function TranscribePanel({ batchId, config }: Props) {
           />
         </FieldRow>
       )}
-      {diarize && nativeSpeaker && (
-        <FieldRow label="diarizer">
-          <span className="ba-mono">{PRETTY_ASR[engine] ?? engine}</span>
+      {diarize && engine && nativeSpeaker && (
+        <FieldRow label="Recognition engine">
+          <EngineLabel label={ASR_LABELS[engine] ?? engine} />
         </FieldRow>
       )}
     </div>

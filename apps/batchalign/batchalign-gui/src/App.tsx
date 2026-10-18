@@ -7,12 +7,13 @@ import { bootBridge } from "./bridge";
 import BAWindow from "./components/BAWindow";
 import BAHeader from "./components/BAHeader";
 import DaemonBootOverlay from "./components/DaemonBootOverlay";
-import TabBar from "./components/TabBar";
 import EmptyView from "./views/EmptyView";
 import BatchView from "./views/BatchView";
 import SettingsView from "./views/SettingsView";
+import { useFolderDrop } from "./hooks/useFolderDrop";
 
 export default function App() {
+  const folderDrop = useFolderDrop();
   const { tabOrder, daemon, capabilities, showSettings, dispatch } = useStore();
 
   useEffect(() => bootBridge(), []);
@@ -26,7 +27,7 @@ export default function App() {
 
   return (
     <BAWindow>
-      {!showSettings && <TabBar />}
+      {folderDrop.error && <div role="alert">Could not open folder: {folderDrop.error}</div>}
       <BAHeader
         sub={
           daemon.ready
@@ -55,7 +56,7 @@ export default function App() {
       {showSettings ? (
         <SettingsView />
       ) : isEmpty ? (
-        <EmptyView />
+        <EmptyView dragging={folderDrop.dragging} />
       ) : (
         <BatchView />
       )}

@@ -10,7 +10,7 @@ import RadioGroup from "../components/RadioGroup";
 const SECTIONS = [
   { id: "general", label: "general" },
   { id: "asr", label: "asr engines" },
-  { id: "defaults", label: "pipeline defaults" },
+  { id: "defaults", label: "command defaults" },
   { id: "paths", label: "paths" },
   { id: "about", label: "about" },
 ] as const;
@@ -176,7 +176,7 @@ function AsrSection() {
 
 function DefaultsSection() {
   return (
-    <Section eyebrow="pipeline defaults" title="defaults">
+    <Section eyebrow="command defaults" title="defaults">
       <FieldRow label="default chain">
         <span className="ba-mono" style={{ fontSize: "var(--fs-sm)" }}>
           transcribe › morphotag

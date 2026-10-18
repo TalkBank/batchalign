@@ -44,6 +44,20 @@ is processed once. Whitespace around list entries is trimmed.
 from the common input root. Without it, CHAT transformation commands write beside
 or over their input as described below. See [Command I/O](../reference/command-io.md).
 
+CHAT commands (`align`, `phonetic`, `diarize`, `morphotag`, `translate`, `utseg`,
+`ai`, and `compare`) also accept `-m/--media DIR` for a separate media hierarchy:
+
+```bash
+batchalign align transcripts/ -m recordings/ -o aligned/
+```
+
+For `transcripts/session/clip.cha`, media is searched in `recordings/session/`,
+using the `@Media` basename first, then `clip`, with a supported audio or video
+extension. Missing matches report an error. A single transcript uses the media
+folder directly; multiple paths or an input list use their common input root,
+as output mirroring does. The explicit media folder takes precedence over media
+beside transcripts. Transcript headers and output locations are preserved.
+
 ## Commands
 
 | Command | Purpose |

@@ -2,58 +2,24 @@
 // Tauri dialog plugin; the parent then dispatches BATCH_OPENED.
 
 import { open } from "@tauri-apps/plugin-dialog";
-import { scanFolder } from "../discovery";
-import { useStore, type Batch, type FileRow } from "../store";
+import { openFolder } from "../folders";
+import { useState } from "react";
 
 // No default pipeline — the user chooses every step themselves so the
 // chain reflects exactly what they intend to run. PipelineBlock renders
-// an "+ add step" affordance for the empty case.
+// an "+ add command" affordance for the empty case.
 
-export default function DropZone() {
-  const { dispatch } = useStore();
+export default function DropZone({ dragging = false }: { dragging?: boolean }) {
+  const [error, setError] = useState<string | null>(null);
 
   const onOpen = async () => {
-    const selected = await open({ directory: true, multiple: false });
-    if (typeof selected !== "string") return;
-    await openFolder(selected);
+    try {
+      setError(null);
+      const selected = await open({ directory: true, multiple: false });
+      if (typeof selected === "string") await openFolder(selected);
+    } catch (error) { setError(String(error)); }
   };
 
-  const openFolder = async (path: string) => {
-    let rows: FileRow[] = [];
-    try { rows = await scanFolder(path); }
-    catch (err) { console.error("list_folder_files failed", err); }
-    const files = Object.fromEntries(rows.map(file => [file.source_id, file]));
-    const fileOrder = rows.map(file => file.source_id);
-
-    const batchId = `b-${Date.now().toString(36)}-${Math.random()
-      .toString(36)
-      .slice(2, 6)}`;
-    const name = path.split(/[\\/]/).pop() ?? "batch";
-    const batch: Batch = {
-      id: batchId,
-      name,
-      folderPath: path,
-      inPlace: true,
-      outputPath: null,
-      pipeline: [],
-      config: {
-        transcribe: {},
-        diarize: {},
-        align: {},
-        morphotag: {},
-        translate: {},
-        compare: {},
-      },
-      files,
-      fileOrder,
-      state: "idle",
-      jobId: null,
-      startedAt: null,
-      finishedAt: null,
-      expandedFileId: null,
-    };
-    dispatch({ type: "BATCH_OPENED", batch });
-  };
 
   return (
     <div
@@ -69,8 +35,10 @@ export default function DropZone() {
       <div
         style={{
           width: 520,
-          background: "var(--bg)",
-          border: "2px dashed var(--gray-2)",
+          background: dragging ? "var(--bg-tinted)" : "var(--bg)",
+          border: `2px dashed ${dragging ? "var(--dark-blue)" : "var(--gray-2)"}`,
+          boxShadow: dragging ? "0 0 0 4px var(--gray-1)" : "none",
+          transition: "background 120ms, border-color 120ms, box-shadow 120ms",
           borderRadius: "var(--r-1)",
           padding: "36px 28px 28px",
           textAlign: "center",
@@ -80,7 +48,7 @@ export default function DropZone() {
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: 28,
-            color: "var(--gray-3)",
+            color: dragging ? "var(--dark-blue)" : "var(--gray-3)",
             lineHeight: 1,
             marginBottom: 14,
           }}
@@ -116,6 +84,7 @@ export default function DropZone() {
         >
           open folder…
         </button>
+        {error && <p role="alert">Could not open folder: {error}</p>}
       </div>
     </div>
   );

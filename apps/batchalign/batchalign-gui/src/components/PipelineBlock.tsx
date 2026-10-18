@@ -11,7 +11,7 @@ export default function PipelineBlock() {
   const { activeBatchId, batches, dispatch } = useStore();
   const batch = activeBatchId ? batches[activeBatchId] : null;
   // `null` = empty pipeline, nothing selectable. The VerbChainTabs
-  // renders only the "+ add step" affordance in that state, and the
+  // renders only the "+ add command" affordance in that state, and the
   // body below shows the empty-pipeline hint instead of a panel.
   const [selected, setSelected] = useState<VerbStep | null>(
     batch?.pipeline[0] ?? null,
@@ -50,7 +50,7 @@ export default function PipelineBlock() {
 
   return (
     <>
-      <BlockHeader index="2" title="pipeline" />
+      <BlockHeader index="2" title="command" />
       <div style={{ padding: "12px 20px 16px" }}>
         <VerbChainTabs selected={selected} onSelect={setSelected} />
         {selected ? (
@@ -78,7 +78,7 @@ function EmptyPipelineHint() {
         lineHeight: 1.5,
       }}
     >
-      no pipeline steps yet. add one with{" "}
+      no commands yet. add one with{" "}
       <span
         className="ba-mono"
         style={{
@@ -88,11 +88,11 @@ function EmptyPipelineHint() {
           fontSize: "var(--fs-xs)",
         }}
       >
-        + add step
+        + add command
       </span>{" "}
       above. pick any combination of{" "}
       <span className="ba-mono">transcribe</span>,{" "}
-      <span className="ba-mono">diarize</span>,{" "}
+      <span className="ba-mono">speaker</span>,{" "}
       <span className="ba-mono">align</span>,{" "}
       <span className="ba-mono">morphotag</span>,{" "}
       <span className="ba-mono">translate</span>,{" "}

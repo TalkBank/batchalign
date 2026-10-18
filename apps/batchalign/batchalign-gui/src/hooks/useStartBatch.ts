@@ -1,3 +1,4 @@
+import { selectedAsr } from "../asrEngines";
 import { invoke } from "@tauri-apps/api/core";
 import { submitDesktopJob, fetchJobStatus } from "../api";
 import { useStore, getAppState, dispatch } from "../store";
@@ -8,11 +9,14 @@ import { buildDesktopRequest } from "../desktop";
 const submitting = new Set<string>();
 
 export async function startBatch(batchId: string): Promise<void> {
-  const { batches, settings } = getAppState();
+  const { batches, settings, capabilities } = getAppState();
   const batch = batches[batchId];
   if (!batch || batch.needsDiscovery || !batch.pipeline.length || batch.state === "running" || submitting.has(batchId)) return;
-  const request = buildDesktopRequest(batch, settings);
-  if (!request.source_ids.length) return;
+  const request = buildDesktopRequest(batch, settings, capabilities?.backends_by_task["ASR"]);
+  if (!request.source_ids.length || (batch.pipeline.includes("transcribe") && !selectedAsr(
+    (batch.config.transcribe.lang as string) || "", batch.config.transcribe.engine as string,
+    getAppState().capabilities?.backends_by_task["ASR"],
+  ))) return;
   submitting.add(batchId);
   const files = request.source_ids.map(id => ({
     ...batch.files[id], status: "queued" as const, log: [],
@@ -59,8 +63,12 @@ export function useStartBatch() {
   const batch = activeBatchId ? batches[activeBatchId] : null;
   const visibleIds = batch?.pipeline[0]
     ? filterFilesForVerb(batch.files, batch.fileOrder, batch.pipeline[0]) : [];
+  const asrReady = !batch?.pipeline.includes("transcribe") || !!selectedAsr(
+    (batch.config.transcribe.lang as string) || "", batch.config.transcribe.engine as string,
+    useStore.getState().capabilities?.backends_by_task["ASR"],
+  );
   return {
-    canStart: !!batch && !batch.needsDiscovery && daemon.ready && visibleIds.length > 0 && batch.pipeline.length > 0,
+    canStart: asrReady && !!batch && !batch.needsDiscovery && daemon.ready && visibleIds.length > 0 && batch.pipeline.length > 0,
     isRunning: batch?.state === "running",
     start: async () => { if (batch) await startBatch(batch.id); },
   };

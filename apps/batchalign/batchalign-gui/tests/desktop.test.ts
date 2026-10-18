@@ -223,18 +223,45 @@ test('rediscovery ignores stale scans and running jobs, then restores newly elig
 });
 
 
-test('fresh-install speech defaults use local models and preserve explicit cloud choices', () => {
-  expect(buildRecipeKwargs('transcribe', {})).toMatchObject({
-    asr_backend: { kind: 'WhisperBackend' },
-    speaker_backend: { kind: 'PyannoteBackend' },
+test('ASR requires a selection and recognition defaults to cloud with explicit overrides', () => {
+  expect(buildRecipeKwargs('transcribe', { lang: 'eng', engine: 'ChatWhisperBackend' })).toMatchObject({
+    asr_backend: { kind: 'ChatWhisperBackend' },
+    speaker_backend: { kind: 'PyannoteAIBackend' },
   });
   expect(buildRecipeKwargs('diarize', {})).toMatchObject({
-    speaker_backend: { kind: 'PyannoteBackend' },
-  });
-  expect(buildRecipeKwargs('transcribe', { diarize_engine: 'PyannoteAIBackend' })).toMatchObject({
     speaker_backend: { kind: 'PyannoteAIBackend' },
+  });
+  expect(buildRecipeKwargs('transcribe', { diarize_engine: 'PyannoteBackend' })).toMatchObject({
+    speaker_backend: { kind: 'PyannoteBackend' },
   });
   expect(buildRecipeKwargs('diarize', { engine: 'PyannoteAIBackend' })).toMatchObject({
     speaker_backend: { kind: 'PyannoteAIBackend' },
   });
+});
+
+test('transcription cannot start until a language is entered', async () => {
+  const value = batch(['transcribe']);
+  useStore.getState().dispatch({ type: 'BATCH_OPENED', batch: value });
+  await startBatch(value.id);
+  expect(native.invoke).not.toHaveBeenCalled();
+  expect(useStore.getState().batches.batch.state).toBe('idle');
+});
+
+test('requests preserve an explicit engine and normalized transcript language', () => {
+  const value = batch(['transcribe']);
+  value.config.transcribe = { lang: ' ZHO ', engine: 'RevAI' };
+  const request = buildDesktopRequest(value, useStore.getInitialState().settings, ['RevAI']);
+  expect(request.steps[0].kwargs.asr_backend).toMatchObject({ kind: 'RevAI' });
+  expect(request.steps[0].language).toBe('zho');
+});
+
+test.each([
+  { lang: 'eng' }, { lang: 'zzz', engine: 'RevAI' },
+  { lang: 'eng', engine: 'WhisperBackend' },
+])('transcription refuses an invalid or unselected engine/language: %j', async config => {
+  const value = batch(['transcribe']);
+  value.config.transcribe = config;
+  useStore.getState().dispatch({ type: 'BATCH_OPENED', batch: value });
+  await startBatch(value.id);
+  expect(native.invoke).not.toHaveBeenCalled();
 });

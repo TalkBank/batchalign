@@ -1,3 +1,4 @@
+import { commandLabel } from "../labels";
 // Per-row stage filler. Stages renders as adjacent flex children; each
 // stage shows its label below as a small caption (unless `compact`).
 //
@@ -35,7 +36,7 @@ export default function PipelineRibbon({ stages, compact = false }: Props) {
       {stages.map((s) => {
         const isRunning = s.state === "running";
         return (
-          <div key={s.verb} style={{ flex: 1, position: "relative" }}>
+          <div key={commandLabel(s.verb)} style={{ flex: 1, position: "relative" }}>
             <div
               style={{
                 height: h,
@@ -76,7 +77,7 @@ export default function PipelineRibbon({ stages, compact = false }: Props) {
                   fontWeight: isRunning ? 700 : 500,
                 }}
               >
-                {s.verb}
+                {commandLabel(s.verb)}
               </div>
             )}
           </div>

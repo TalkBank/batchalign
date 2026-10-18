@@ -86,6 +86,7 @@ class DesktopStep(BaseModel):
     gold_path: str | None = None
     use_cache: bool = True
     strip_word_timing: bool = False
+    language: str | None = None
 
 
 class DesktopRequest(BaseModel):
@@ -237,7 +238,7 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
                 emit(sid, "StageStarted", step)
                 try:
                     if step.recipe == "transcribe":
-                        inp = ba_inputs.media_from_path(path, source_id=absolute)
+                        inp = ba_inputs.media_from_path(path, source_id=absolute, language=step.language)
                     elif step.recipe == "compare":
                         inp = ba_inputs.paired_from_paths(path, _gold(step, sources[sid], sid), source_id=absolute)
                     else:

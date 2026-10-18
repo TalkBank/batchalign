@@ -132,6 +132,28 @@ def test_failed_step_never_replaces_original_or_reports_success(desktop, monkeyp
     assert source.read_text() == "original"
 
 
+def test_transcription_keeps_selected_language_on_media_input(desktop, monkeypatch):
+    client, request, source = desktop
+    recording = source.with_suffix(".wav")
+    source.rename(recording)
+    request["source_ids"] = [request["source_ids"][0].replace(".cha", ".wav")]
+    request["steps"] = [{"recipe": "transcribe", "language": "yue",
+                         "kwargs": {"asr_backend": {"kind": "AliyunAsrBackend"}}}]
+    seen = []
+    languages = []
+    inner = recipe("transcribe", seen)()
+
+    class Pipeline:
+        def run(self, inputs, **kwargs):
+            languages.extend(inp.language for inp in inputs)
+            return inner.run(inputs, **kwargs)
+
+    monkeypatch.setitem(api.RECIPES, "transcribe", lambda **kwargs: Pipeline())
+    state, _, _ = run(client, request)
+    assert state["state"] == "completed", state
+    assert languages == ["yue"]
+
+
 def test_model_construction_failure_is_a_failed_job(desktop, monkeypatch):
     client, request, source = desktop
     def fail(**kwargs):

@@ -26,12 +26,13 @@ import typer
 
 from ._common import (
     CHAT_EXTENSIONS,
+    attach_media,
     InputSelection,
     selected_inputs,
     write_outcome,
     resolve_inputs,
 )
-from ._options import cli_options
+from ._options import MediaOption, cli_options
 from .tui import Interface, Task
 
 
@@ -56,7 +57,7 @@ def _find_gold(main: Path) -> Path | None:
     return None
 
 
-def _pair_folder_with_gold(source: Path | InputSelection) -> tuple[list, Path]:
+def _pair_folder_with_gold(source: Path | InputSelection, *, media: Path | None = None) -> tuple[list, Path]:
     """Walk `folder` for `.cha` inputs and pair each with its gold template.
 
     Returns `(paired_inputs, root)`. Skips any `*.gold.cha` (those are golds,
@@ -81,6 +82,7 @@ def _pair_folder_with_gold(source: Path | InputSelection) -> tuple[list, Path]:
         raise typer.BadParameter(
             f"no transcripts to compare in {source} (only gold files, or empty)"
         )
+    attach_media(inputs, selection, media)
     return inputs, root
 
 
@@ -99,6 +101,7 @@ def register(app: typer.Typer) -> None:
             exists=True, dir_okay=False,
             help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
+        media: MediaOption = None,
         out: Path | None = typer.Option(
             None,
             "--out",
@@ -143,7 +146,7 @@ def register(app: typer.Typer) -> None:
                 workers=opts.parallel,
             )
 
-            inputs, root = _pair_folder_with_gold(selection)
+            inputs, root = _pair_folder_with_gold(selection, media=media)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

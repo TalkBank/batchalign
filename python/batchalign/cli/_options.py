@@ -9,8 +9,19 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Annotated
 
 import typer
+
+
+MediaOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--media", "-m", exists=True, file_okay=False,
+        help="Media folder mirroring the input hierarchy; match @Media or transcript filenames.",
+    ),
+]
 
 
 @dataclass
@@ -58,4 +69,4 @@ def inference_device(*, force_cpu: bool, allow_mps: bool) -> str | None:
     return None
 
 
-__all__ = ["CLIOptions", "cli_options", "inference_device"]
+__all__ = ["CLIOptions", "MediaOption", "cli_options", "inference_device"]

@@ -337,7 +337,7 @@ fn convert_py_input(py: Python<'_>, obj: Py<PyAny>) -> PyResult<BAValue> {
         return load_ai_chat_input(&ai);
     }
     if let Ok(p) = bound.extract::<PairedInput>() {
-        let main = load_chat_at(&p.main, &p.source_id)?;
+        let main = load_chat_with_media(&p.main, &p.source_id, p.media.as_deref())?;
         let gold_sid = SourceId::try_new(
             p.gold
                 .file_stem()
@@ -478,7 +478,7 @@ fn media_from_string(path_str: &str) -> PyResult<BAValue> {
 }
 
 fn load_chat_input(c: &ChatInput) -> PyResult<Chat> {
-    load_chat_at(&c.path, &c.source_id)
+    load_chat_with_media(&c.path, &c.source_id, c.media.as_deref())
 }
 
 fn load_ai_chat_input(ai: &AiChatInput) -> PyResult<BAValue> {
@@ -490,7 +490,7 @@ fn load_ai_chat_input(ai: &AiChatInput) -> PyResult<BAValue> {
             "AiChatInput path must point to a .cha/.chat transcript",
         ));
     }
-    let chat = load_chat_at(&ai.path, &ai.source_id)?;
+    let chat = load_chat_with_media(&ai.path, &ai.source_id, ai.media.as_deref())?;
     Ok(BAValue::Ai {
         instruction: ai.instruction.clone(),
         chat,
@@ -502,6 +502,18 @@ fn load_chat_at(path: &std::path::Path, sid: &SourceId) -> PyResult<Chat> {
         .map_err(|e| PyValueError::new_err(format!("cannot read {}: {e}", path.display())))?;
     Chat::parse(&text, sid.clone())
         .map_err(|e| PyValueError::new_err(format!("parse {}: {e}", path.display())))
+}
+
+fn load_chat_with_media(
+    path: &std::path::Path,
+    sid: &SourceId,
+    media: Option<&std::path::Path>,
+) -> PyResult<Chat> {
+    let chat = load_chat_at(path, sid)?;
+    Ok(match media {
+        Some(media) => chat.with_media(MediaInput::new(sid.clone(), media.to_owned())),
+        None => chat,
+    })
 }
 
 impl Drop for Pipeline {

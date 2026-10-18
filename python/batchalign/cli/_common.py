@@ -99,7 +99,8 @@ def _root_for(folder: Path) -> Path:
 
 
 def collect_chat_inputs(
-    source: Path | InputSelection, *, group_by_language: bool = False
+    source: Path | InputSelection, *, group_by_language: bool = False,
+    media: Path | None = None,
 ) -> tuple[list[Any], Path]:
     """Discover inputs for CHAT files; return (inputs, root).
 
@@ -115,7 +116,47 @@ def collect_chat_inputs(
     if group_by_language:
         paths.sort(key=_chat_language_sort_key)
     inputs = [chat_from_path(p, source_id=str(p)) for p in paths]
+    attach_media(inputs, selection, media)
     return inputs, selection.root
+
+
+def attach_media(inputs: list[Any], selection: InputSelection, media: Path | None) -> None:
+    """Pair transcripts with media in the same relative folder under `media`.
+
+    The input root also controls output mirroring: a single file uses its
+    parent; multiple inputs use their common root. Explicit media takes
+    precedence over sibling lookup without changing source IDs or CHAT headers.
+    """
+    if media is None:
+        return
+    media = media.expanduser().absolute()
+    extensions = (*MEDIA_EXTENSIONS, ".aac", ".wma", ".avi", ".mpg", ".mpeg")
+    for inp in inputs:
+        source = Path(str(inp.source_id))
+        folder = media / source.relative_to(selection.root).parent
+        stems = []
+        with source.open(encoding="utf-8-sig") as transcript:
+            for line in transcript:
+                if line.startswith("@Media:"):
+                    stems.append(Path(line.split(":", 1)[1].split(",", 1)[0].strip()).name)
+                    break
+                if line.startswith("*"):
+                    break
+        stems.append(source.stem)
+        files = sorted(folder.iterdir()) if folder.is_dir() else []
+        match = next((
+            candidate
+            for stem in stems
+            for extension in extensions
+            for candidate in files
+            if candidate.is_file() and candidate.stem == stem
+            and candidate.suffix.lower() == extension
+        ), None)
+        if match is None:
+            raise typer.BadParameter(
+                f"no matching media for {source} in {folder}", param_hint="--media"
+            )
+        inp.media = str(match)
 
 
 def _chat_language_sort_key(path: Path) -> tuple[str, int, str]:
@@ -142,7 +183,9 @@ def _chat_language_sort_key(path: Path) -> tuple[str, int, str]:
     return language_set, -path.stat().st_size, str(path)
 
 
-def collect_ai_inputs(source: Path | InputSelection, *, instruction: str) -> tuple[list[Any], Path]:
+def collect_ai_inputs(
+    source: Path | InputSelection, *, instruction: str, media: Path | None = None
+) -> tuple[list[Any], Path]:
     """Discover inputs for CHAT files and attach one AI instruction to each."""
     from batchalign.inputs import ai_from_path
 
@@ -151,6 +194,7 @@ def collect_ai_inputs(source: Path | InputSelection, *, instruction: str) -> tup
         ai_from_path(p, source_id=str(p), instruction=instruction)
         for p in selection.paths
     ]
+    attach_media(inputs, selection, media)
     return inputs, selection.root
 
 
@@ -264,6 +308,7 @@ def require_api_key(provider: str, ini_key: str, env_var: str) -> str:
 __all__ = [
     "CHAT_EXTENSIONS",
     "MEDIA_EXTENSIONS",
+    "attach_media",
     "collect_ai_inputs",
     "collect_chat_inputs",
     "collect_media_inputs",

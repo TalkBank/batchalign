@@ -7,7 +7,7 @@ from pathlib import Path
 import typer
 
 from ._common import CHAT_EXTENSIONS, collect_chat_inputs, resolve_inputs, write_outcome
-from ._options import cli_options, inference_device
+from ._options import MediaOption, cli_options, inference_device
 from .tui import Interface, Task
 
 
@@ -23,6 +23,7 @@ def register(app: typer.Typer) -> None:
         input_list: Path | None = typer.Option(
             None, "--input-list", "--file-list", "-i", exists=True, dir_okay=False
         ),
+        media: MediaOption = None,
         out: Path | None = typer.Option(
             None, "--out", "-o", help="Output directory; defaults to writing in place."
         ),
@@ -85,7 +86,7 @@ def register(app: typer.Typer) -> None:
             pipeline = ba.recipes.phonetic(
                 phonetic_backend=backend, workers=opts.parallel
             )
-            inputs, root = collect_chat_inputs(selection)
+            inputs, root = collect_chat_inputs(selection, media=media)
             for item in inputs:
                 ui.push(Task.from_input(item))
             list(

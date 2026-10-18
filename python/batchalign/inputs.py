@@ -36,18 +36,21 @@ except ImportError:
     class _CoreChatInput:  # type: ignore[no-redef]
         path: str
         source_id: str = ""
+        media: str | None = None
 
     @dataclass
     class _CoreAiChatInput:  # type: ignore[no-redef]
         path: str
         source_id: str = ""
         instruction: str = ""
+        media: str | None = None
 
     @dataclass
     class _CorePairedInput:  # type: ignore[no-redef]
         main: str
         gold: str
         source_id: str = ""
+        media: str | None = None
 
 
 def media_from_path(

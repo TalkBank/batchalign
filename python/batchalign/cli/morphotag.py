@@ -14,7 +14,7 @@ from ._common import (
     CHAT_EXTENSIONS,
     resolve_inputs,
 )
-from ._options import cli_options
+from ._options import MediaOption, cli_options
 from .tui import Interface, Task
 
 
@@ -57,6 +57,7 @@ def register(app: typer.Typer) -> None:
             exists=True, dir_okay=False,
             help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
+        media: MediaOption = None,
         out: Path | None = typer.Option(
             None,
             "--out",
@@ -113,7 +114,7 @@ def register(app: typer.Typer) -> None:
                     stanza_backend=ba.StanzaBackend(retokenize=retokenize),
                     workers=opts.parallel,
                 )
-                inputs, root = collect_chat_inputs(selection, group_by_language=True)
+                inputs, root = collect_chat_inputs(selection, group_by_language=True, media=media)
 
                 if clear_existing and inputs:
                     # Stage stripped copies in a temp dir; rewrite each input's

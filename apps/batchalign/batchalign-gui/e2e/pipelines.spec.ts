@@ -3,6 +3,11 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 const stub = readFileSync(new URL('./tauri-stubs.js', import.meta.url), 'utf8');
+const label = (verb: string) => verb === 'diarize' ? 'speaker' : verb;
+async function configureTranscribe(page: import('@playwright/test').Page) {
+  await page.getByRole('combobox', { name: 'language', exact: true }).fill('eng');
+  await page.getByRole('radio', { name: 'Rev.AI (cloud)', exact: true }).check();
+}
 const verbs = ['transcribe', 'diarize', 'align', 'morphotag', 'translate', 'compare'];
 test.setTimeout(30_000);
 
@@ -14,8 +19,9 @@ for (const pipeline of [...verbs.map(verb => [verb]), ['transcribe', 'align', 'm
     await page.goto('/');
     await page.getByRole('button', { name: 'open folder…' }).click();
     for (const verb of pipeline) {
-      await page.getByRole('button', { name: '+ add step', exact: true }).click();
-      await page.locator('div').filter({ hasText: new RegExp(`^${verb}$`) }).last().click();
+      await page.getByRole('button', { name: '+ add command', exact: true }).click();
+      await page.locator('div').filter({ hasText: new RegExp(`^${label(verb)}$`) }).last().click();
+      if (verb === 'transcribe') await configureTranscribe(page);
     }
     await page.getByRole('button', { name: 'start batch', exact: true }).click();
     await expect(page.locator('tbody > tr')).toHaveCount(1);
@@ -68,7 +74,7 @@ for (const outputPath of [null, '/outputs with spaces/é', 'C:\\Outputs with spa
       await page.getByText('in place', { exact: true }).click();
       await page.getByRole('textbox').last().fill(outputPath);
     }
-    await page.getByRole('button', { name: '+ add step', exact: true }).click();
+    await page.getByRole('button', { name: '+ add command', exact: true }).click();
     await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
     await page.getByRole('button', { name: 'start batch', exact: true }).click();
     const reveal = page.getByRole('button', { name: 'reveal outputs', exact: true });
@@ -90,7 +96,7 @@ test('completed file waits for terminal job status before the next batch', async
   await page.addInitScript({ content: stub + `\n(${install.toString()})();\nwindow.__JOB_STATE__ = 'running';` });
   await page.goto('/');
   await page.getByRole('button', { name: 'open folder…' }).click();
-  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.getByRole('button', { name: '+ add command', exact: true }).click();
   await page.locator('div').filter({ hasText: /^morphotag$/ }).last().click();
   await page.getByRole('button', { name: 'start batch', exact: true }).click();
   await expect.poll(() => page.evaluate(() => Boolean((window as any).__CURRENT_JOB__))).toBe(true);
@@ -105,7 +111,7 @@ test('completed file waits for terminal job status before the next batch', async
   await expect(page.getByRole('button', { name: 'running…', exact: true })).toBeDisabled();
   await page.evaluate(() => (window as any).__JOB_STATE__ = 'completed');
   await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.getByRole('button', { name: '+ add command', exact: true }).click();
   await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
   await page.getByRole('button', { name: 'start batch', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__SUBMISSIONS__)).toBe(2);
@@ -116,8 +122,9 @@ test('switching pipeline after transcription discovers newly created CHAT files'
   await page.addInitScript({ content: stub + `\n(${install.toString()})();\nwindow.__E2E_FILES__ = window.__E2E_FILES__.filter(file => file.kind === 'media');` });
   await page.goto('/');
   await page.getByRole('button', { name: 'open folder…' }).click();
-  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.getByRole('button', { name: '+ add command', exact: true }).click();
   await page.locator('div').filter({ hasText: /^transcribe$/ }).last().click();
+  await configureTranscribe(page);
   await page.getByRole('button', { name: 'start batch', exact: true }).click();
   await expect(page.getByText('done', { exact: true }).first()).toBeVisible();
   // Model the newly written filesystem artifact at the native scan boundary.
@@ -125,7 +132,7 @@ test('switching pipeline after transcription discovers newly created CHAT files'
     source_id: 'nested/é.cha', filename: 'é.cha', stem: 'é', kind: 'chat', size_bytes: 200, duration_ms: null,
   }));
   await page.getByRole('button', { name: 'remove transcribe', exact: true }).click();
-  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.getByRole('button', { name: '+ add command', exact: true }).click();
   await page.locator('div').filter({ hasText: /^align$/ }).last().click();
   await page.getByRole('button', { name: 'start batch', exact: true }).click();
   await expect(page.getByText('done', { exact: true }).first()).toBeVisible();
@@ -139,13 +146,13 @@ test('folder refresh failure is visible and a new first step retries discovery',
   await page.goto('/');
   await page.getByRole('button', { name: 'open folder…' }).click();
   await page.evaluate(() => (window as any).__SCAN_FAILURE__ = true);
-  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.getByRole('button', { name: '+ add command', exact: true }).click();
   await page.locator('div').filter({ hasText: /^morphotag$/ }).last().click();
   await expect(page.getByText(/folder refresh failed:.*folder unavailable/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'start batch', exact: true })).toBeDisabled();
   await page.evaluate(() => (window as any).__SCAN_FAILURE__ = false);
   await page.getByRole('button', { name: 'remove morphotag', exact: true }).click();
-  await page.getByRole('button', { name: '+ add step', exact: true }).click();
+  await page.getByRole('button', { name: '+ add command', exact: true }).click();
   await page.locator('div').filter({ hasText: /^compare$/ }).last().click();
   await expect(page.getByText(/folder refresh failed:/)).toHaveCount(0);
   await page.getByRole('button', { name: 'start batch', exact: true }).click();
@@ -171,22 +178,23 @@ for (const seed of [20260920, 0xdeadbeef, 0x12345678]) {
       const unused = verbs.filter(verb => !chain.includes(verb) && (verb !== 'transcribe' || chain.length === 0));
       if (!chain.length || (unused.length && next(3) === 0)) {
         const verb = unused[next(unused.length)];
-        await page.getByRole('button', { name: '+ add step', exact: true }).click();
+        await page.getByRole('button', { name: '+ add command', exact: true }).click();
         if (chain.length && !chain.includes('transcribe')) {
           await expect(page.locator('div').filter({ hasText: /^transcribe$/ })).toHaveCount(0);
         }
-        await page.locator('div').filter({ hasText: new RegExp(`^${verb}$`) }).last().click();
+        await page.locator('div').filter({ hasText: new RegExp(`^${label(verb)}$`) }).last().click();
+        if (verb === 'transcribe') await configureTranscribe(page);
         chain.push(verb);
       } else {
         const verb = chain[next(chain.length)];
-        await page.getByRole('button', { name: verb, exact: true }).click();
+        await page.getByRole('button', { name: label(verb), exact: true }).click();
         if (next(2) === 0) {
-          await page.getByRole('button', { name: `remove ${verb}`, exact: true }).click();
+          await page.getByRole('button', { name: `remove ${label(verb)}`, exact: true }).click();
           chain = chain.filter(item => item !== verb);
         }
       }
       for (const verb of verbs) {
-        await expect(page.getByRole('button', { name: verb, exact: true })).toHaveCount(chain.includes(verb) ? 1 : 0);
+        await expect(page.getByRole('button', { name: label(verb), exact: true })).toHaveCount(chain.includes(verb) ? 1 : 0);
       }
       if (chain.length && action % 8 === 0) {
         await page.getByRole('button', { name: 'start batch', exact: true }).click();

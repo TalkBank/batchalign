@@ -12,7 +12,7 @@ from ._common import (
     CHAT_EXTENSIONS,
     resolve_inputs,
 )
-from ._options import cli_options, inference_device
+from ._options import MediaOption, cli_options, inference_device
 from .tui import Interface, Task
 
 
@@ -30,6 +30,7 @@ def register(app: typer.Typer) -> None:
             exists=True, dir_okay=False,
             help="UTF-8 file listing input files or directories, one per line; relative to the list file.",
         ),
+        media: MediaOption = None,
         out: Path | None = typer.Option(
             None,
             "--out",
@@ -85,7 +86,7 @@ def register(app: typer.Typer) -> None:
                 ),
                 workers=opts.parallel,
             )
-            inputs, root = collect_chat_inputs(selection)
+            inputs, root = collect_chat_inputs(selection, media=media)
             for inp in inputs:
                 ui.push(Task.from_input(inp))
             list(

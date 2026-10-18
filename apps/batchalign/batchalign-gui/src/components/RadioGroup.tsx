@@ -1,18 +1,19 @@
 // Vertical radio group. Used by panels for engine selection etc.
+import EngineLabel from "./EngineLabel";
 
 interface Props {
   value: string;
   options: Array<[string, string]>;
+  descriptions?: Record<string, string>;
   onChange?: (v: string) => void;
 }
 
-export default function RadioGroup({ value, options, onChange }: Props) {
+export default function RadioGroup({ value, options, descriptions, onChange }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {options.map(([v, label]) => (
         <label
           key={v}
-          onClick={() => onChange?.(v)}
           style={{
             display: "flex",
             alignItems: "center",
@@ -21,10 +22,16 @@ export default function RadioGroup({ value, options, onChange }: Props) {
             cursor: onChange ? "pointer" : "default",
           }}
         >
-          <span
+          <input
+            type="radio"
+            checked={value === v}
+            onChange={() => onChange?.(v)}
+            aria-label={label}
             style={{
               width: 12,
               height: 12,
+              appearance: "none",
+              margin: 0,
               borderRadius: "50%",
               border: "1px solid var(--gray-3)",
               background:
@@ -34,7 +41,8 @@ export default function RadioGroup({ value, options, onChange }: Props) {
               flexShrink: 0,
             }}
           />
-          {label}
+          <EngineLabel label={label} />
+          {descriptions?.[v] && <span style={{ color: "var(--fg-muted)", fontSize: "var(--fs-xs)" }}>{descriptions[v]}</span>}
         </label>
       ))}
     </div>

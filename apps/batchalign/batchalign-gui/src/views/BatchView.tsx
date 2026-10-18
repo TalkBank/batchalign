@@ -26,12 +26,12 @@ export default function BatchView() {
 
   // The right pane shows ONLY what the daemon would genuinely process:
   //   - while idle (no batch started), it's a silhouette placeholder
-  //     with a one-line reason ("pick a pipeline step", or "no files
+  //     with a one-line reason ("pick a command", or "no files
   //     match the chosen verb")
   //   - while running / done / failed, it's the real FileTable
   const isIdle = batch?.state === "idle";
   const reason = batch?.discoveryError
-    ? `folder refresh failed: ${batch.discoveryError}. reopen the folder or change the first pipeline step to retry.`
+    ? `folder refresh failed: ${batch.discoveryError}. reopen the folder or change the first command to retry.`
     : pickReason(batch?.pipeline.length ?? 0, visible.length);
 
   return (
@@ -85,7 +85,7 @@ export default function BatchView() {
 
 function pickReason(pipelineLen: number, visibleCount: number): string {
   if (pipelineLen === 0) {
-    return "pick a pipeline step to preview the files batchalign will process.";
+    return "pick a command to preview the files batchalign will process.";
   }
   if (visibleCount === 0) {
     return "no files in this folder match the first step's input kind. add a different step, or drop in a folder with matching files.";

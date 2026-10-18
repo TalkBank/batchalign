@@ -3,7 +3,7 @@
 
 import DropZone from "../components/DropZone";
 
-export default function EmptyView() {
+export default function EmptyView({ dragging = false }: { dragging?: boolean }) {
   return (
     <div
       style={{
@@ -14,7 +14,7 @@ export default function EmptyView() {
       }}
     >
       <Silhouette />
-      <DropZone />
+      <DropZone dragging={dragging} />
     </div>
   );
 }
@@ -41,7 +41,7 @@ function Silhouette() {
         }}
       >
         <SilhouetteBlock label="1 · files" rows={3} />
-        <SilhouetteBlock label="2 · pipeline" rows={5} />
+        <SilhouetteBlock label="2 · command" rows={5} />
         <SilhouetteBlock label="3 · execution" rows={1} short />
       </div>
       <div
@@ -83,7 +83,7 @@ function Silhouette() {
               <th>file</th>
               <th>lang</th>
               <th>size</th>
-              <th>pipeline</th>
+              <th>command</th>
               <th>status</th>
               <th style={{ textAlign: "right" }}>eta</th>
             </tr>

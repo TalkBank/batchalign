@@ -63,7 +63,7 @@ export default function JobsPlaceholder({ reason }: JobsPlaceholderProps) {
               <th>file</th>
               <th>lang</th>
               <th>size</th>
-              <th>pipeline</th>
+              <th>command</th>
               <th>status</th>
               <th style={{ textAlign: "right" }}>eta</th>
             </tr>

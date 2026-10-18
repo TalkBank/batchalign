@@ -1,7 +1,7 @@
 // Right-pane header: "N of M done|processing|queued · eta · elapsed ·
 // workers · cancel|reveal". Reads the active batch and opens its output folder.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useStore } from "../store";
 import Stat from "./Stat";
@@ -21,6 +21,11 @@ function fmtHMS(ms: number): string {
 
 export default function JobsHeader() {
   const { activeBatchId, batches } = useStore();
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [revealError, setRevealError] = useState<{ batchId: string; message: string } | null>(null);
   const batch = activeBatchId ? batches[activeBatchId] : null;
   if (!batch) return null;
@@ -55,7 +60,7 @@ export default function JobsHeader() {
 
   const elapsed =
     batch.startedAt != null
-      ? fmtHMS((batch.finishedAt ?? Date.now()) - batch.startedAt)
+      ? fmtHMS(Math.max(0, (batch.finishedAt ?? now) - batch.startedAt))
       : "—";
 
   return (
@@ -95,8 +100,7 @@ export default function JobsHeader() {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-        {!isDone && <Stat label="elapsed" value={elapsed} mono />}
-        {isDone && <Stat label="elapsed" value={elapsed} mono />}
+        <Stat label="elapsed" value={elapsed} mono />
         {isRunning ? (
           <button className="ba-btn ba-btn--sm">cancel batch</button>
         ) : isDone ? (
