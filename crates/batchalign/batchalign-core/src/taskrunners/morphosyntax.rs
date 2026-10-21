@@ -228,7 +228,7 @@ async fn process_chat(
 const SUPPORTED_STANZA_CODES: &[&str] = &[
     "afr", "ara", "bul", "cat", "ces", "cmn", "cym", "dan", "deu", "ell", "eng", "est", "eus",
     "fas", "fin", "fra", "gla", "gle", "glg", "heb", "hin", "hrv", "hun", "hye", "ind", "isl",
-    "ita", "jpn", "kat", "kor", "lat", "lav", "lit", "mlt", "nld", "nor", "pol", "por", "ron",
+    "ita", "jpn", "kat", "kaz", "kor", "lat", "lav", "lit", "mlt", "nld", "nor", "pol", "por", "ron",
     "rus", "slk", "slv", "spa", "swe", "tam", "tel", "tha", "tur", "ukr", "urd", "vie", "yue",
     "zho",
 ];

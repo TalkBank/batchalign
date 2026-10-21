@@ -347,6 +347,38 @@ class StanzaBackend(Morphosyntax):
         if lang == "ja":
             for proc in ("tokenize", "pos", "lemma", "depparse"):
                 config["processors"][proc] = "combined"
+        if lang == "kk":
+            import gzip
+            import torch
+            from huggingface_hub import snapshot_download
+
+            # Kazakh uses TalkBank's custom Stanza catalog and small models.
+            config["model_dir"] = snapshot_download("talkbank/stanza-kazakh")
+            config["processors"] = dict.fromkeys(config["processors"], "small")
+            config["package"] = "small"
+            config["download_method"] = None
+            # The bundled lemma dictionaries are compressed; Stanza 1.12
+            # expects the word dictionary and (word, POS) dictionary directly.
+            checkpoint = torch.load(
+                Path(config["model_dir"]) / "kk/lemma/small.pt",
+                map_location="cpu", weights_only=False,
+            )
+            if isinstance(checkpoint["dicts"], bytes):
+                dictionaries = json.loads(gzip.decompress(checkpoint["dicts"]))
+                checkpoint["dicts"] = (
+                    dictionaries.pop("*"),
+                    {
+                        (word, pos): lemma
+                        for pos, words in dictionaries.items()
+                        for word, lemma in words.items()
+                    },
+                )
+                checkpoint.pop("dicts_version", None)
+                model = Path(config["model_dir"]) / "kk/lemma/small-stanza-1.12.pt"
+                temporary_model = model.with_suffix(f".{os.getpid()}.tmp")
+                torch.save(checkpoint, temporary_model)
+                os.replace(temporary_model, model)
+                config["lemma_model_path"] = str(model)
         # When NOT retokenizing, force Stanza's tokenizer to honor the
         # upstream word split (BA2's `tokenize_postprocessor`). The closure
         # reads the "current sentence" from a module-level thread-local
@@ -432,11 +464,12 @@ class StanzaBackend(Morphosyntax):
         version = getattr(self._stanza, "__version__", "unknown")
         retok = "retok" if self._retokenize else "noretok"
         # Cache identity covers both model/runtime behavior and Batchalign's
-        # token-alignment/rendering contract. ``native-mwt9`` admits only the
+        # token-alignment/rendering contract. ``native-mwt10`` admits only the
         # regression-covered Italian MWT inventory, preserves Italian
         # elisions, reflects realized English present-tense agreement, and
-        # emits canonical feature and dependency-relation spellings.
-        return f"stanza:{version}:{retok}:native-mwt9"
+        # emits canonical feature and dependency-relation spellings, and
+        # omits model padding values from morphological features.
+        return f"stanza:{version}:{retok}:native-mwt10"
 
     @property
     def batch_policy(self) -> BatchPolicy:

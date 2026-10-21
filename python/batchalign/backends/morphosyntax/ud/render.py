@@ -848,9 +848,12 @@ def _apply_english_copula_progressive(
 
 
 def parse_feats(word: Any) -> dict[str, str]:
-    """Parse a Stanza ``feats`` string into a ``{Key: Value}`` dict."""
+    """Parse Stanza features, treating explicit padding values as empty."""
     try:
-        return {i.split("=")[0]: i.split("=")[1] for i in word.feats.split("|")}
+        return {
+            key: "" if value == "<PAD>" else value
+            for key, value in (feat.split("=", 1) for feat in word.feats.split("|"))
+        }
     except AttributeError:
         return {}
 
@@ -999,7 +1002,7 @@ def handler__DET(word: Any, lang: str | None = None) -> tuple[str, str, list[str
     features: list[str] = []
     if gender:
         features.append(gender)
-    features.append(feats.get("Definite", "Def"))
+    features += feat_list(feats.get("Definite", "Def"))
     features += feat_list(feats.get("PronType", ""), number, psor)
     return pos, lemma, features
 
@@ -1008,7 +1011,7 @@ def handler__ADJ(word: Any, lang: str | None = None) -> tuple[str, str, list[str
     feats = parse_feats(word)
     deg = feats.get("Degree", "Pos")
     case = feats.get("Case", "").replace(",", "")
-    number = feats.get("Number", "S")[0]
+    number = feats.get("Number", "S")[:1]
     person = str(feats.get("Person", 1))
     if person == "0":
         person = "4"
@@ -1117,7 +1120,8 @@ def handler__VERB(word: Any, lang: str | None = None) -> tuple[str, str, list[st
             return pos, lemma, feat_list("Inf", "S")
         return pos, lemma, []
     # BA2: res + flag + stringify_feats(...) where flag = "-" + VerbForm
-    features = [verbform] + feat_list(
+    features = feat_list(
+        verbform,
         aspect,
         mood,
         tense,

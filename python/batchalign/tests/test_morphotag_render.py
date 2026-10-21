@@ -115,6 +115,31 @@ def _gra_str(analysis: render.SentenceAnalysis) -> str:
     return " ".join(rels)
 
 
+@pytest.mark.parametrize("upos", ["PRON", "NOUN", "DET", "ADJ", "VERB"])
+def test_padding_features_do_not_reach_mor(upos):
+    fields = (
+        "Case Gender Number Person PronType Degree VerbForm Aspect Mood Tense "
+        "Polarity Polite Reflex Definite HebBinyan HebExistential"
+    ).split()
+    sentence = _sentence([
+        ("мысал", "мысал", upos, "|".join(f"{key}=<PAD>" for key in fields), 0, "root"),
+        (".", ".", "PUNCT", None, 1, "punct"),
+    ])
+    analysis = render.parse_sentence(sentence, lang="kk")
+    assert analysis.words[0].units[0].features == []
+    assert _mor_str(analysis, ".") == f"{upos.lower()}|мысал ."
+
+
+def test_padding_features_preserve_real_agreement():
+    word = FakeWord(
+        "барады", "бар", "VERB",
+        "VerbForm=Fin|Number=Sing|Person=3|Tense=Pres|Mood=<PAD>", 0, "root",
+    )
+    assert render.handler__VERB(word, lang="kk") == (
+        "verb", "бар", ["Fin", "Pres", "S3"],
+    )
+
+
 def test_english_declarative_matches_ba2():
     # "I want the red ball ."
     sent = _sentence(
