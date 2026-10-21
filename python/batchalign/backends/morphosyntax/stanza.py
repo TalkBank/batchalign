@@ -353,7 +353,10 @@ class StanzaBackend(Morphosyntax):
             from huggingface_hub import snapshot_download
 
             # Kazakh uses TalkBank's custom Stanza catalog and small models.
-            config["model_dir"] = snapshot_download("talkbank/stanza-kazakh")
+            config["model_dir"] = snapshot_download(
+                "talkbank/stanza-kazakh",
+                revision="cc9c088f70eda8b1be3589c9e8bedb4d0e77f9de",
+            )
             config["processors"] = dict.fromkeys(config["processors"], "small")
             config["package"] = "small"
             config["download_method"] = None

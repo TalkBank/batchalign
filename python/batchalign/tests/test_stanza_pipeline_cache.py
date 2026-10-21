@@ -194,6 +194,28 @@ def test_language_group_releases_postprocessor_sentences() -> None:
     assert stanza_backend_mod._current_sentences_for(key) == []
 
 
+def test_kazakh_download_uses_the_pinned_revision(tmp_path) -> None:
+    """Never resolve Kazakh checkpoints from a moving Hub branch."""
+    _reset_cache()
+    from batchalign.backends.morphosyntax.stanza import StanzaBackend
+
+    fake_stanza = mock.MagicMock()
+    with (
+        _fake_runtime(fake_stanza),
+        mock.patch(
+            "huggingface_hub.snapshot_download", return_value=str(tmp_path)
+        ) as download,
+        mock.patch("torch.load", return_value={"dicts": ({}, {})}),
+    ):
+        StanzaBackend(lang="kaz")
+
+    download.assert_called_once_with(
+        "talkbank/stanza-kazakh",
+        revision="cc9c088f70eda8b1be3589c9e8bedb4d0e77f9de",
+    )
+    assert fake_stanza.Pipeline.call_args.kwargs["model_dir"] == str(tmp_path)
+
+
 def test_hindi_pipeline_does_not_request_missing_mwt_model() -> None:
     """Hindi's Stanza package has no MWT processor/model."""
     _reset_cache()
