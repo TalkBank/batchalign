@@ -50,12 +50,67 @@ def test_stanza_runtime_eagerly_prepares_worker_thread_dependencies() -> None:
         imported.append(name)
         return fake_stanza if name == "stanza" else mock.sentinel.TORCH_MODULE
 
-    with mock.patch.object(stanza_backend_mod.importlib, "import_module", _import):
+    with (
+        mock.patch.object(stanza_backend_mod.importlib, "import_module", _import),
+        mock.patch.object(stanza_backend_mod, "_prepare_stanza_checkpoint_loading") as prepare,
+    ):
         result = stanza_backend_mod._import_stanza_runtime()
 
     assert result is fake_stanza
+    prepare.assert_called_once_with(mock.sentinel.TORCH_MODULE)
     assert imported == ["torch", "torch._functorch.config", "stanza"]
     fake_stanza.resources.common.tqdm.get_lock.assert_called_once_with()
+
+
+def test_stanza_older_torch_loads_bytes_with_weights_only():
+    import gzip
+    import io
+    import torch
+    from batchalign.backends.morphosyntax.stanza import _prepare_stanza_checkpoint_loading
+
+    compressed = gzip.compress(b'{"*":{"word":"lemma"}}')
+    buffer = io.BytesIO()
+    torch.save({"dicts": compressed, "model": torch.ones(2)}, buffer,
+               _use_new_zipfile_serialization=False)
+    allowed = torch._weights_only_unpickler._get_allowed_globals()
+    with mock.patch.dict(allowed):
+        allowed.pop("_codecs.encode", None)
+        before = dict(allowed)
+        _prepare_stanza_checkpoint_loading(torch)
+        assert set(allowed) - set(before) == {"_codecs.encode"}
+        buffer.seek(0)
+        loaded = torch.load(buffer, weights_only=True)
+    assert loaded["dicts"] == compressed
+    assert torch.equal(loaded["model"], torch.ones(2))
+
+
+def test_stanza_bytes_compatibility_rejects_executable_pickle():
+    import io
+    import pickle
+    import torch
+    from batchalign.backends.morphosyntax.stanza import _prepare_stanza_checkpoint_loading
+
+    class Executable:
+        def __reduce__(self):
+            return eval, ("40 + 2",)
+
+    buffer = io.BytesIO()
+    torch.save(Executable(), buffer, _use_new_zipfile_serialization=False)
+    allowed = torch._weights_only_unpickler._get_allowed_globals()
+    with mock.patch.dict(allowed):
+        allowed.pop("_codecs.encode", None)
+        _prepare_stanza_checkpoint_loading(torch)
+        buffer.seek(0)
+        with pytest.raises((RuntimeError, pickle.UnpicklingError), match="eval|Weights only"):
+            torch.load(buffer, weights_only=True)
+
+
+@pytest.mark.parametrize("encoding", ["utf8", "rot13", None])
+def test_stanza_checkpoint_bytes_do_not_select_arbitrary_codecs(encoding):
+    from batchalign.backends.morphosyntax.stanza import _checkpoint_latin1_bytes
+
+    with pytest.raises(ValueError, match="latin1"):
+        _checkpoint_latin1_bytes("data", encoding)
 
 
 def test_pipeline_cache_hits_on_same_key() -> None:
@@ -205,7 +260,7 @@ def test_kazakh_download_uses_the_pinned_revision(tmp_path) -> None:
         mock.patch(
             "huggingface_hub.snapshot_download", return_value=str(tmp_path)
         ) as download,
-        mock.patch("torch.load", return_value={"dicts": ({}, {})}),
+        mock.patch("torch.load") as load,
     ):
         StanzaBackend(lang="kaz")
 
@@ -213,7 +268,14 @@ def test_kazakh_download_uses_the_pinned_revision(tmp_path) -> None:
         "talkbank/stanza-kazakh",
         revision="cc9c088f70eda8b1be3589c9e8bedb4d0e77f9de",
     )
-    assert fake_stanza.Pipeline.call_args.kwargs["model_dir"] == str(tmp_path)
+    config = fake_stanza.Pipeline.call_args.kwargs
+    assert config["model_dir"] == str(tmp_path)
+    assert set(config["processors"].values()) == {"small"}
+    assert config["package"] == "small"
+    assert config["download_method"] is None
+    assert "pos_model_path" not in config
+    assert "lemma_model_path" not in config
+    load.assert_not_called()
 
 
 def test_hindi_pipeline_does_not_request_missing_mwt_model() -> None:

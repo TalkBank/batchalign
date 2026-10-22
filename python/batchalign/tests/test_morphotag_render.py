@@ -140,6 +140,19 @@ def test_padding_features_preserve_real_agreement():
     )
 
 
+def test_kazakh_model_features_reach_mor():
+    sentence = _sentence([
+        ("Мен", "мен", "PRON", "Case=Nom|Number=Sing|Person=1|PronType=Prs", 3, "nsubj"),
+        ("кітап", "кітап", "VERB", "Aspect=Perf|VerbForm=Inf", 3, "nsubj"),
+        ("оқимын", "оқим", "VERB", "Aspect=Hab|Mood=Ind|Number=Sing|Person=1|Tense=Pres|VerbForm=Fin", 0, "root"),
+        (".", ".", "PUNCT", None, 3, "punct"),
+    ])
+    analysis = render.parse_sentence(sentence, lang="kk")
+    assert _mor_str(analysis, ".") == (
+        "pron|мен-Prs-Nom-S1 verb|кітап-Inf-Perf-S verb|оқим-Fin-Hab-Ind-Pres-S1 ."
+    )
+
+
 def test_english_declarative_matches_ba2():
     # "I want the red ball ."
     sent = _sentence(

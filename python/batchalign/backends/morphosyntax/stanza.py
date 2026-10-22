@@ -121,6 +121,25 @@ _pipeline_failures: dict[tuple, str] = {}
 _runtime_import_lock = threading.Lock()
 
 
+def _checkpoint_latin1_bytes(value: str, encoding: str) -> bytes:
+    """Decode pickle protocol 2's bytes representation without codec lookup."""
+    if type(value) is not str or type(encoding) is not str or encoding != "latin1":
+        raise ValueError("Checkpoint bytes must use latin1 encoding")
+    return str.encode(value, "latin1")
+
+
+def _prepare_stanza_checkpoint_loading(torch: Any) -> None:
+    """Backport bytes-only safe loading for Torch 2.2/2.3, including Intel Macs.
+
+    Newer Torch already allows ``_codecs.encode`` for protocol 2 bytes.
+    Older releases have no public safe-globals API; allow only our fixed
+    latin1 encoder, never a checkpoint-selected codec or arbitrary callable.
+    The caller holds ``_runtime_import_lock`` during this one-time setup.
+    """
+    allowed = torch._weights_only_unpickler._get_allowed_globals()
+    allowed.setdefault("_codecs.encode", _checkpoint_latin1_bytes)
+
+
 def _import_stanza_runtime() -> Any:
     """Prepare lazy runtime state before Stanza can reach worker threads.
 
@@ -132,7 +151,8 @@ def _import_stanza_runtime() -> Any:
     real terminal.
     """
     with _runtime_import_lock:
-        importlib.import_module("torch")
+        torch = importlib.import_module("torch")
+        _prepare_stanza_checkpoint_loading(torch)
         importlib.import_module("torch._functorch.config")
         stanza = importlib.import_module("stanza")
         stanza.resources.common.tqdm.get_lock()
@@ -348,8 +368,6 @@ class StanzaBackend(Morphosyntax):
             for proc in ("tokenize", "pos", "lemma", "depparse"):
                 config["processors"][proc] = "combined"
         if lang == "kk":
-            import gzip
-            import torch
             from huggingface_hub import snapshot_download
 
             # Kazakh uses TalkBank's custom Stanza catalog and small models.
@@ -360,28 +378,6 @@ class StanzaBackend(Morphosyntax):
             config["processors"] = dict.fromkeys(config["processors"], "small")
             config["package"] = "small"
             config["download_method"] = None
-            # The bundled lemma dictionaries are compressed; Stanza 1.12
-            # expects the word dictionary and (word, POS) dictionary directly.
-            checkpoint = torch.load(
-                Path(config["model_dir"]) / "kk/lemma/small.pt",
-                map_location="cpu", weights_only=False,
-            )
-            if isinstance(checkpoint["dicts"], bytes):
-                dictionaries = json.loads(gzip.decompress(checkpoint["dicts"]))
-                checkpoint["dicts"] = (
-                    dictionaries.pop("*"),
-                    {
-                        (word, pos): lemma
-                        for pos, words in dictionaries.items()
-                        for word, lemma in words.items()
-                    },
-                )
-                checkpoint.pop("dicts_version", None)
-                model = Path(config["model_dir"]) / "kk/lemma/small-stanza-1.12.pt"
-                temporary_model = model.with_suffix(f".{os.getpid()}.tmp")
-                torch.save(checkpoint, temporary_model)
-                os.replace(temporary_model, model)
-                config["lemma_model_path"] = str(model)
         # When NOT retokenizing, force Stanza's tokenizer to honor the
         # upstream word split (BA2's `tokenize_postprocessor`). The closure
         # reads the "current sentence" from a module-level thread-local

@@ -38,4 +38,4 @@ def test_checkpoint_allowlist_is_scoped_to_pipeline_load(tmp_path, monkeypatch, 
             PyannoteBackend(hf_token='')
     else:
         assert PyannoteBackend(hf_token='').name.startswith('pyannote:talkbank/dia-fork:')
-    assert torch.serialization.get_safe_globals() == before
+    assert set(torch.serialization.get_safe_globals()) == set(before)
