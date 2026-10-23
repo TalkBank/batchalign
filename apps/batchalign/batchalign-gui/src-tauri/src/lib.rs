@@ -10,6 +10,8 @@
 
 mod commands;
 mod daemon;
+#[cfg(any(windows, test))]
+mod daemon_environment;
 mod daemon_http;
 mod daemon_protocol;
 mod events;

@@ -4,7 +4,9 @@
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, mkdir, readFile, readlink, realpath, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { access, mkdtemp, mkdir, readFile, readlink, realpath, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
@@ -17,7 +19,16 @@ const sidecarReport = JSON.parse(await readFile(process.argv[3], 'utf8'));
 assert(process.argv[2] && sidecarReport.root, 'usage: native-webview-smoke.mjs installed-app packaged-report.json');
 const evidence = resolve('native-webview-evidence');
 await mkdir(evidence, { recursive: true });
-const environment = join(await mkdtemp(join(sidecarReport.root, 'native-cleanroom-')), 'environment');
+let environment;
+if (process.platform === 'win32') {
+  // Exercise the installed app's default path, not a shorter test override.
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(sidecarReport.binary)) hash.update(chunk);
+  environment = join(process.env.LOCALAPPDATA, 'Batchalign', 'r', hash.digest('hex').slice(0, 32));
+  await assert.rejects(access(environment), { code: 'ENOENT' }, 'Windows default runtime must start cold');
+} else {
+  environment = join(await mkdtemp(join(sidecarReport.root, 'native-cleanroom-')), 'environment');
+}
 const report = { application, environment, launches: [], startupProgress: [] };
 let tail = '';
 let driverError;
@@ -26,12 +37,14 @@ const windowManager = process.platform === 'linux'
   ? spawn('openbox', [], { stdio: 'ignore' }) : null;
 windowManager?.on('error', error => { driverError = error; });
 function startDriver() {
+  const env = {
+    ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: environment,
+    XDG_CACHE_HOME: join(sidecarReport.root, 'cache'), HF_HOME: join(sidecarReport.root, 'models'),
+    PYTHONNOUSERSITE: '1', TAURI_WEBDRIVER_PORT: '4444',
+  };
+  if (process.platform === 'win32') delete env.PYAPP_INSTALL_DIR_BATCHALIGN;
   const child = spawn(embedded ? application : process.platform === 'win32' ? 'tauri-driver.exe' : 'tauri-driver', [], {
-    stdio: ['ignore', 'pipe', 'pipe'], env: {
-      ...process.env, PYAPP_INSTALL_DIR_BATCHALIGN: environment,
-      XDG_CACHE_HOME: join(sidecarReport.root, 'cache'), HF_HOME: join(sidecarReport.root, 'models'),
-      PYTHONNOUSERSITE: '1', TAURI_WEBDRIVER_PORT: '4444',
-    },
+    stdio: ['ignore', 'pipe', 'pipe'], env,
   });
   for (const pipe of [child.stdout, child.stderr]) pipe.on('data', data => {
     tail = (tail + data).slice(-32768);
@@ -186,6 +199,7 @@ try {
     const port = await invoke('ensure_daemon');
     assert(Number.isInteger(port) && port > 0);
     const capabilities = await invoke('daemon_request', { method: 'GET', path: '/capabilities', body: null });
+    if (process.platform === 'win32') await access(join(environment, 'python', 'python.exe'));
     for (const recipe of ['transcribe', 'diarize', 'align', 'morphotag', 'translate', 'compare']) {
       assert(recipe in capabilities.recipes, `missing ${recipe}`);
     }

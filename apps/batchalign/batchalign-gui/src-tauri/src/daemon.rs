@@ -18,13 +18,15 @@ use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{Command, CommandEvent};
 use tokio::sync::watch;
 
+#[cfg(windows)]
+use crate::daemon_environment::windows_environment;
 use crate::daemon_protocol::{parse_port, push_tail};
 use crate::protocol::{DaemonFailedPayload, DaemonProgressPayload, DaemonReadyPayload, events};
 use crate::state::{AppState, DaemonHandle};
 
 const SIDECAR: &str = "sidecar";
 
-// A different embedded sidecar must never reuse an older environment.
+// Separate environments for different embedded sidecars.
 const SIDECAR_ID: &str = env!("BATCHALIGN_SIDECAR_ID");
 
 /// Spawn the sidecar daemon at most once. The first caller to flip the
@@ -63,6 +65,12 @@ async fn start(app: &AppHandle) -> Result<(), DaemonError> {
         .map(std::path::PathBuf::from)
         .map(Ok)
         .unwrap_or_else(|| {
+            #[cfg(windows)]
+            return app
+                .path()
+                .local_data_dir()
+                .map(|root| windows_environment(&root, SIDECAR_ID));
+            #[cfg(not(windows))]
             app.path()
                 .app_local_data_dir()
                 .map(|root| root.join("environments").join(SIDECAR_ID))

@@ -53,6 +53,10 @@ unit:
 native-protocol:
     bazel test --jobs=1 //apps/batchalign/batchalign-gui/src-tauri:daemon_protocol_test
 
+# Windows runtime path budget, including Torch's deeply nested headers.
+native-environment:
+    bazel test --jobs=1 //apps/batchalign/batchalign-gui/src-tauri:daemon_environment_test
+
 # Exercise the actual Rust HTTP relay against local socket servers.
 native-http:
     bazel test --jobs=1 //apps/batchalign/batchalign-gui/src-tauri:daemon_http_test

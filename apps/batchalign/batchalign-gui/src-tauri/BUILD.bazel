@@ -28,6 +28,13 @@ rust_test(
 )
 
 rust_test(
+    name = "daemon_environment_test",
+    srcs = ["src/daemon_environment.rs"],
+    crate_root = "src/daemon_environment.rs",
+    edition = "2024",
+)
+
+rust_test(
     name = "daemon_protocol_test",
     srcs = ["src/daemon_protocol.rs"],
     crate_root = "src/daemon_protocol.rs",

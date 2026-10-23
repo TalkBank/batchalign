@@ -195,6 +195,7 @@ jobs:
       - name: Native startup and process-lifetime regression tests
         run: |
           just batchalign bootstrap-progress
+          just batchalign gui native-environment
           just batchalign gui native-unit --target ${{ matrix.runner.target }}
 
       - name: Release build-server memory before model inference
@@ -270,6 +271,15 @@ jobs:
           msedgedriver-tool.exe
           if ($LASTEXITCODE -ne 0) { throw "matching Edge driver download failed" }
           "$env:GITHUB_WORKSPACE" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Test startup with Windows long paths disabled
+        if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          # Match Windows 10's default policy on this disposable test runner.
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -Value 0
+          $value = Get-ItemPropertyValue -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled
+          if ($value -ne 0) { throw "Windows long-path policy is still enabled" }
 
       - name: Install MSI and test the real Windows webview
         if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'Windows' }}
