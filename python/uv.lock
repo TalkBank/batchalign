@@ -518,7 +518,6 @@ all = [
     { name = "cos-python-sdk-v5" },
     { name = "dspy-ai" },
     { name = "epitran" },
-    { name = "eunjeon", marker = "python_full_version >= '3.11' and sys_platform == 'win32'" },
     { name = "fastapi" },
     { name = "funasr" },
     { name = "google-genai" },
@@ -537,7 +536,7 @@ all = [
     { name = "pyannote-audio" },
     { name = "pycantonese" },
     { name = "pycountry" },
-    { name = "python-mecab-ko", marker = "python_full_version >= '3.11' and sys_platform != 'win32'" },
+    { name = "python-mecab-ko", marker = "python_full_version >= '3.11'" },
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "qwen-asr" },
@@ -604,11 +603,10 @@ nllb = [
 ]
 phonetic = [
     { name = "epitran" },
-    { name = "eunjeon", marker = "python_full_version >= '3.11' and sys_platform == 'win32'" },
     { name = "huggingface-hub" },
     { name = "langcodes" },
     { name = "piper-plus-g2p", extra = ["all"], marker = "python_full_version >= '3.11'" },
-    { name = "python-mecab-ko", marker = "python_full_version >= '3.11' and sys_platform != 'win32'" },
+    { name = "python-mecab-ko", marker = "python_full_version >= '3.11'" },
     { name = "pyyaml" },
     { name = "safetensors" },
     { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
@@ -711,8 +709,6 @@ requires-dist = [
     { name = "dspy-ai", marker = "extra == 'all'" },
     { name = "epitran", marker = "extra == 'all'", specifier = ">=1.35,<2" },
     { name = "epitran", marker = "extra == 'phonetic'", specifier = ">=1.35,<2" },
-    { name = "eunjeon", marker = "python_full_version >= '3.11' and sys_platform == 'win32' and extra == 'all'", specifier = "==0.4.0" },
-    { name = "eunjeon", marker = "python_full_version >= '3.11' and sys_platform == 'win32' and extra == 'phonetic'", specifier = "==0.4.0" },
     { name = "fastapi", marker = "extra == 'all'", specifier = ">=0.110" },
     { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.110" },
     { name = "funasr", marker = "extra == 'all'", specifier = "==1.3.1" },
@@ -760,8 +756,8 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7" },
     { name = "pytest-xdist", marker = "extra == 'dev'" },
-    { name = "python-mecab-ko", marker = "python_full_version >= '3.11' and sys_platform != 'win32' and extra == 'all'", specifier = ">=1.3,<2" },
-    { name = "python-mecab-ko", marker = "python_full_version >= '3.11' and sys_platform != 'win32' and extra == 'phonetic'", specifier = ">=1.3,<2" },
+    { name = "python-mecab-ko", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=1.3.7,<2" },
+    { name = "python-mecab-ko", marker = "python_full_version >= '3.11' and extra == 'phonetic'", specifier = ">=1.3.7,<2" },
     { name = "python-multipart", marker = "extra == 'all'", specifier = ">=0.0.9" },
     { name = "python-multipart", marker = "extra == 'api'", specifier = ">=0.0.9" },
     { name = "pyyaml", marker = "extra == 'all'" },
@@ -1810,12 +1806,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/49/2c/22effafa0be43490d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/a8/37e70ed73d885baedc36391d76350b3d9dbaa823b5996279fa4a384dda8f/epitran-1.35.2-py3-none-any.whl", hash = "sha256:b5b52c35602a4982009a68b3b9bb850c61e72636e8a3c7ba5a6f9438e060fe8a", size = 222057, upload-time = "2026-06-18T20:11:46.316Z" },
 ]
-
-[[package]]
-name = "eunjeon"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/68/90/3232725f974abf6d38f1e2cfd7a6b958337133b3fdc5b3e8994e03d7c2d3/eunjeon-0.4.0.tar.gz", hash = "sha256:60865fbe28537e820ab864cd135467ea277c8182908e2bc364e83e5fd29ef07f", size = 34741800, upload-time = "2019-01-17T00:42:32.268Z" }
 
 [[package]]
 name = "exceptiongroup"
@@ -6173,7 +6163,7 @@ name = "python-mecab-ko"
 version = "1.3.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "python-mecab-ko-dic", marker = "python_full_version >= '3.11' and sys_platform != 'win32'" },
+    { name = "python-mecab-ko-dic", marker = "python_full_version >= '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5b/22/81584e36d231b009075b6440da0eda4400f7293f853097b028263074f280/python_mecab_ko-1.3.7.tar.gz", hash = "sha256:69cbb2ac559a3169c22b1a3aa5d3c247d2f7902d9fe7dc9966189a9c7694af0b", size = 13830, upload-time = "2024-07-14T16:06:24.803Z" }
 wheels = [
@@ -6182,16 +6172,25 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/18/b685841eb245560903732b50f2a45c488452ad4162a01320acedfc622c4a/python_mecab_ko-1.3.7-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d8d2539e7ea91eb0705381f75e64c626be4eba69824a8c82fbdf2c4e48a1d389", size = 558829, upload-time = "2024-07-14T16:05:17.263Z" },
     { url = "https://files.pythonhosted.org/packages/c3/a9/b121faaa74c41adc9f5f9c1862e5ba6873886610fcae8328ddd5386f2a39/python_mecab_ko-1.3.7-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c2bad59670b280548b9060c1b511f6f088c09b977355de7192e9d0044b8f724b", size = 599923, upload-time = "2024-07-14T16:05:19.327Z" },
     { url = "https://files.pythonhosted.org/packages/b9/e0/b0be8e17b4ace180a323bb8ddf6213a6e984c18c403c65c6e71e88c4cb4f/python_mecab_ko-1.3.7-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e8c4347f075b8748cbc5695f6b91120b0e388344eab5d9c26d50ad3c57c35754", size = 577095, upload-time = "2024-07-14T16:05:21.431Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/69/c3417d6e0f207095b6d20128b389a667b18bdd97bc1c927449208bf4f16a/python_mecab_ko-1.3.7-cp310-cp310-win32.whl", hash = "sha256:682875cd1cafeeb2946b856b1b479144b4e8d28363b6bff3ae1c8b294994742b", size = 563265, upload-time = "2024-07-14T16:05:23.551Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/61/778f76722fbd67143d3615fd063527c287db47a7f65905ec2359ab0a06b5/python_mecab_ko-1.3.7-cp310-cp310-win_amd64.whl", hash = "sha256:ef5a6bb8d4611dd621436492adb140c280fe4e155097c5dcc8b1fcdd203abfb6", size = 652425, upload-time = "2024-07-14T16:05:25.129Z" },
+    { url = "https://files.pythonhosted.org/packages/75/39/d04453e3a03f5a60b74c9daa2ed8c2143052eea120c1ec148dbafebf5e80/python_mecab_ko-1.3.7-cp310-cp310-win_arm64.whl", hash = "sha256:14b070b886d864964710c6a396556d8509be2dce1618f401192fd7c213eb4608", size = 789232, upload-time = "2024-07-14T16:05:26.676Z" },
     { url = "https://files.pythonhosted.org/packages/c6/77/6d6bffa6217550d1dde3c421e40f422c924be1ed82effa1012cf7d24d215/python_mecab_ko-1.3.7-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:da1cc9de07e75beb2d4067c1c072ecabdb293440633fc0e32f2875a14e703829", size = 414576, upload-time = "2024-07-14T16:05:28.408Z" },
     { url = "https://files.pythonhosted.org/packages/06/a6/ab4405b9228e62ced5d7134e202ec8970296d58ceca5e991c76abbe04701/python_mecab_ko-1.3.7-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:523153de14262c413838852742541d48ad99d41ab8f6c5413a226319ee4c25ef", size = 350486, upload-time = "2024-07-14T16:05:30.115Z" },
     { url = "https://files.pythonhosted.org/packages/e5/73/6768de76a1b0b1120b07a58334b89db214d740d62504a3fe691fd8738df4/python_mecab_ko-1.3.7-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:010ca2297e63d08a772466dd401d36ed9914502b8794c08948427a4083b3202c", size = 560126, upload-time = "2024-07-14T16:05:31.331Z" },
     { url = "https://files.pythonhosted.org/packages/5c/7d/28552e79b7bd4bc9d39b0bf1a037f541c5b2cf07467c1a274715b1afecde/python_mecab_ko-1.3.7-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d7b35116e98fb736f7c9550eb1a74cfb6aa35c39b0b43cbe7a8837bfa3cd39d4", size = 602904, upload-time = "2024-07-14T16:05:32.844Z" },
     { url = "https://files.pythonhosted.org/packages/c4/5e/2986910cb757eb49f592b33977be05396ebeeb6e18ec6a4643f6c9fdce2e/python_mecab_ko-1.3.7-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0933d3fcb84f6ed36cce49f1939604ac0fcaf4460441e832cb98ca1bdce74a37", size = 580930, upload-time = "2024-07-14T16:05:34.825Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/fb/4e13d76ae372ae635af4d072dbf4d3429d0c604332c3f8d0109f3cb4fec5/python_mecab_ko-1.3.7-cp311-cp311-win32.whl", hash = "sha256:644207821de8c76ff2442d84c8902dd16b239fdc80c79d0774f8b9ea446c4218", size = 561346, upload-time = "2024-07-14T16:05:36.602Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/10/ee4b238cac3375a5a23636a358d094989adfe92a996c843d609537339f80/python_mecab_ko-1.3.7-cp311-cp311-win_amd64.whl", hash = "sha256:a456e40817dc73f58d7f11ff01af4394cdd1ceab2e98feddde625587603d65f7", size = 656921, upload-time = "2024-07-14T16:05:38.117Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/41/f9dc3a8edea915b662fe488bcb690b851430334b238476730f895106da1f/python_mecab_ko-1.3.7-cp311-cp311-win_arm64.whl", hash = "sha256:9f5e40101426b87c99ecb1268f56402f9c44f9d06271b28ccc1ec1bc6bc582ac", size = 790108, upload-time = "2024-07-14T16:05:39.348Z" },
     { url = "https://files.pythonhosted.org/packages/c2/7a/980c48f19367353da0d0ea4ffc5c73be0893987bc4c8bf4522391b4e0b14/python_mecab_ko-1.3.7-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:7721f69381dac572a1598e5906cc5faba233ed48bc6ff8672082a519d7db0ba1", size = 414066, upload-time = "2024-07-14T16:05:41.139Z" },
     { url = "https://files.pythonhosted.org/packages/ee/3d/8c13f7d6cbcc9b84b1797552de60fc2ff10012d801598b75aa41ff17db41/python_mecab_ko-1.3.7-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:eae5eb6178b06019e3773e9dde126dd29df5ed417406be5611ebdd0f8839c1e1", size = 349619, upload-time = "2024-07-14T16:05:42.786Z" },
     { url = "https://files.pythonhosted.org/packages/e7/01/3a4032f78370375d79b7f6b7eaa1602a4070d28dee8f7f3dfa8c87e73940/python_mecab_ko-1.3.7-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8e90e8c1009f8f6aa0dfc43c916ff481dc79aa5a7e528a41a193add9c61ac6d1", size = 560604, upload-time = "2024-07-14T16:05:44.062Z" },
     { url = "https://files.pythonhosted.org/packages/f4/cb/169c68047a569e2e4f2a2243c4576df72255d1a4ab0b5a286ff75bc41a76/python_mecab_ko-1.3.7-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a205ca4da908df39d6d70f968426d0e9dc79274a6d34b13a5588ab52f0e12be8", size = 602363, upload-time = "2024-07-14T16:05:45.667Z" },
     { url = "https://files.pythonhosted.org/packages/aa/88/dd2e5e7d44351bba0c9fb462273df9dcd43c3e000bfd0a4279e52584e2f7/python_mecab_ko-1.3.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3c0e98a7d94278f4f5d93f03e35cc8044460c0076ab4698b764d5c44bd897dbe", size = 579619, upload-time = "2024-07-14T16:05:47.166Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/e0/426d401c6d12442ad564546d690ef174ff99a4ecd24e1e263616314ecf03/python_mecab_ko-1.3.7-cp312-cp312-win32.whl", hash = "sha256:3145c53772e842a046fdbf0659f0e5235e16d51b0bb8c0d3e8e078dc57d22373", size = 562212, upload-time = "2024-07-14T16:05:48.77Z" },
+    { url = "https://files.pythonhosted.org/packages/30/60/0e898750bf06b23bb2b270cd6273c5820254b6f6c453459ff5ef4a04ac13/python_mecab_ko-1.3.7-cp312-cp312-win_amd64.whl", hash = "sha256:3387906e66109989603b877899d1ae3a0132795c9c73ad91a5e7c4c077177351", size = 653484, upload-time = "2024-07-14T16:05:50.14Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/78/dc974259c3571a2436041c338a7a95a62e47c3da62c973fa98a55ab6399f/python_mecab_ko-1.3.7-cp312-cp312-win_arm64.whl", hash = "sha256:13126509630e47fc89a8c575f5af3eed1bc09370e978b331caf32325e6b98383", size = 785719, upload-time = "2024-07-14T16:05:51.689Z" },
 ]
 
 [[package]]

@@ -178,6 +178,41 @@ def test_piper_asian_backends(language, word, expected, monkeypatch, tmp_path):
     assert Pronunciations()(word, language) == expected
 
 
+def test_korean_windows_uses_wheel_backend_without_running_pip(monkeypatch, tmp_path):
+    import mecab
+    import nltk
+    import platform
+    import subprocess
+    from piper_plus_g2p import korean
+
+    monkeypatch.setattr(nltk.data, "path", [str(tmp_path)])
+    monkeypatch.setattr(platform, "system", lambda: "Windows")
+    monkeypatch.setattr(korean, "_g2p_instance", None)
+    monkeypatch.setattr(korean, "_g2p_unavailable", False)
+
+    def no_installer(*args, **kwargs):
+        pytest.fail("Korean G2P must not install eunjeon or launch pip at runtime")
+
+    monkeypatch.setattr(subprocess, "Popen", no_installer)
+    pronunciations = Pronunciations()
+    assert pronunciations("가", "kor") == "ka"
+    # Nasal assimilation proves g2pk2 ran rather than Piper's raw-text fallback.
+    assert pronunciations("국물", "kor") == "kuŋmul"
+    assert isinstance(korean._g2p_instance.mecab, mecab.MeCab)
+
+
+def test_korean_missing_backend_fails_before_downloading(monkeypatch):
+    from importlib import util
+    import nltk
+    from batchalign.backends.phonetic.utils.piper import prepare_piper
+
+    original_find_spec = util.find_spec
+    monkeypatch.setattr(util, "find_spec", lambda name: None if name == "mecab" else original_find_spec(name))
+    monkeypatch.setattr(nltk, "download", lambda *args, **kwargs: pytest.fail("missing MeCab must fail before downloads"))
+    with pytest.raises(ImportError, match="batchalign\\[phonetic\\]"):
+        prepare_piper("ko")
+
+
 @pytest.mark.parametrize(
     "language,tokens,expected",
     [

@@ -14,8 +14,8 @@ entirely in `pyproject.toml`. This is a list of *which marker-
 conditional names rules_python skips*, derived from grepping
 requirements.lock.txt for `; python_full_version` / `; sys_platform`
 markers that don't satisfy our pinned 3.12 + cross-platform set.
-Korean G2P's two platform-specific analyzer roots also need an explicit
-select because the hub omits them from all_requirements on matching hosts.
+Korean G2P's analyzer root also needs an explicit dependency because the
+hub can omit it from all_requirements despite matching the interpreter.
 
 Track upstream: bazel-contrib/rules_python#2244 (and friends) — once
 fixed, this whole file collapses to `_RUNTIME_DEPS = all_requirements`
@@ -66,8 +66,7 @@ _MARKER_FILTERED = [
     # sys_platform == 'win32'
     "pywin32_ctypes",
     "tzdata",
-    # Korean G2P's platform-specific roots are selected explicitly below.
-    "eunjeon",
+    # Korean G2P's wheel-backed analyzer is added explicitly below.
     "python_mecab_ko",
 ]
 
@@ -81,12 +80,8 @@ def all_runtime_deps():
     """Every dep the lockfile resolves for the current platform.
 
     Call this from py_library/py_binary/py_test `deps =`. Packages come from
-    pyproject.toml + requirements.lock.txt, with the Korean analyzer selected
-    for the target platform below.
+    pyproject.toml + requirements.lock.txt, including the Korean analyzer.
     """
-    # The hub omits these marker-conditional roots from all_requirements even
-    # on matching hosts. Keep them available to g2pk2 without runtime pip calls.
-    return [d for d in _all_requirements if not _is_filtered(d)] + select({
-        "@platforms//os:windows": [_requirement("eunjeon")],
-        "//conditions:default": [_requirement("python-mecab-ko")],
-    })
+    # Keep this marker-conditional root available to g2pk2 on every supported
+    # platform without runtime pip calls.
+    return [d for d in _all_requirements if not _is_filtered(d)] + [_requirement("python-mecab-ko")]

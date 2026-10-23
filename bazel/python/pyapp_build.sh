@@ -241,7 +241,8 @@ export PYAPP_FULL_ISOLATION="${PYAPP_FULL_ISOLATION:-1}"
 # / sse-starlette are available at runtime without the operator picking
 # the right extra. PyApp passes this string straight to pip.
 export PYAPP_PROJECT_DEPENDENCY_FILE=""
-export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:-}"
+# Korean tokenization must not require a C++ compiler on the user's machine.
+export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:+$PYAPP_PIP_EXTRA_ARGS }--only-binary=python-mecab-ko,python-mecab-ko-dic"
 # Bundle every backend extra — see the matching comment in
 # pyapp_install.sh. Without `all` the sidecar's pip install at first
 # run skips stanza / torch / transformers / etc. and the daemon hits

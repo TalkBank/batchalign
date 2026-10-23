@@ -33,11 +33,9 @@ def prepare_piper(language: str) -> None:
         return
     if language == "ko":
         from importlib.util import find_spec
-        import sys
 
         # g2pk2 otherwise tries to run pip itself at inference time.
-        module = "eunjeon" if sys.platform == "win32" else "mecab"
-        if find_spec(module) is None:
+        if find_spec("mecab") is None:
             raise ImportError("Korean G2P requires the complete batchalign[phonetic] extra")
     import nltk
 
@@ -54,6 +52,28 @@ def prepare_piper(language: str) -> None:
             nltk.download(
                 package, download_dir=nltk.data.path[0], quiet=True, raise_on_error=True
             )
+    if language == "ko":
+        _prepare_korean_g2p()
+
+
+def _prepare_korean_g2p() -> None:
+    """Use the bundled MeCab wheels instead of g2pk2's Windows eunjeon build."""
+    from g2pk2 import G2p
+    from mecab import MeCab
+    from piper_plus_g2p import korean
+
+    if korean._g2p_instance is None:
+        class WheelG2p(G2p):
+            def check_mecab(self):
+                # Import above already verified the installed backend.
+                # The upstream check can invoke pip on the user's machine.
+                pass
+
+            def get_mecab(self):
+                return MeCab()
+
+        korean._g2p_instance = WheelG2p()
+        korean._g2p_unavailable = False
 
 
 def piper_ipa(tokens: list[str], language: str) -> str:

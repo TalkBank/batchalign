@@ -1113,10 +1113,6 @@ epitran==1.35.2 \
     --hash=sha256:14dfa6265ac51ca8972d00704712a01dcb10275e122e407da23dcec74669f0e1 \
     --hash=sha256:b5b52c35602a4982009a68b3b9bb850c61e72636e8a3c7ba5a6f9438e060fe8a
     # via batchalign (python/pyproject.toml)
-eunjeon==0.4.0 ; sys_platform == 'win32' \
-    --hash=sha256:60865fbe28537e820ab864cd135467ea277c8182908e2bc364e83e5fd29ef07f \
-    --hash=sha256:ba87fdb93ddac1a34bbb1327fc87db64ce86106abda21e3230d8e6aeb1ece44a
-    # via batchalign (python/pyproject.toml)
 execnet==2.1.2 \
     --hash=sha256:63d83bfdd9a23e35b9c6a3261412324f964c2ec8dcd8d3c6916ee9373e0befcd \
     --hash=sha256:67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec
@@ -3947,7 +3943,7 @@ python-dotenv==1.2.2 \
     # via
     #   litellm
     #   uvicorn
-python-mecab-ko==1.3.7 ; sys_platform != 'win32' \
+python-mecab-ko==1.3.7 \
     --hash=sha256:010ca2297e63d08a772466dd401d36ed9914502b8794c08948427a4083b3202c \
     --hash=sha256:0933d3fcb84f6ed36cce49f1939604ac0fcaf4460441e832cb98ca1bdce74a37 \
     --hash=sha256:10ea3c549eac11cdf9e994ce65fb34653a142d04eaa519c2ba3a99646cb21991 \
@@ -3995,7 +3991,7 @@ python-mecab-ko==1.3.7 ; sys_platform != 'win32' \
     --hash=sha256:ec22b9f8b7d5ec62d2af48d252f0172e1c4dfdf1387bad356f62b73084bac675 \
     --hash=sha256:ef5a6bb8d4611dd621436492adb140c280fe4e155097c5dcc8b1fcdd203abfb6
     # via batchalign (python/pyproject.toml)
-python-mecab-ko-dic==2.1.1.post2 ; sys_platform != 'win32' \
+python-mecab-ko-dic==2.1.1.post2 \
     --hash=sha256:2c423713bdc475345ec98cd084b30759458f8f06c38a9ef94ab8687942c2cd34 \
     --hash=sha256:ef8f4e80c8976f1340a7264abb0c96f384fe059fd897584aeba0151753c6ae9b
     # via python-mecab-ko

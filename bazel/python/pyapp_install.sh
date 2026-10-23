@@ -166,6 +166,8 @@ export PYAPP_FULL_ISOLATION="1"
 # desktop bundle that does NOT ask the user to manage a Python
 # environment.
 export PYAPP_PROJECT_FEATURES="api,all"
+# Korean tokenization must not require a C++ compiler on the user's machine.
+export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:+$PYAPP_PIP_EXTRA_ARGS }--only-binary=python-mecab-ko,python-mecab-ko-dic"
 
 echo "pyapp_install.sh: cargo=$(command -v cargo)"
 echo "pyapp_install.sh: pyapp source = $PYAPP_SRC_DIR"
