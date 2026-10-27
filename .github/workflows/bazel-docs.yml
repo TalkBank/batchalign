@@ -1,6 +1,6 @@
 name: bazel · docs
 
-# Build the mdBook and run the linkcheck.
+# Build the mdBook website, then publish to GitHub Pages.
 
 on:
   workflow_dispatch: {}
@@ -9,11 +9,13 @@ on:
     paths:
       - "book/**"
       - "bazel/book/**"
+      - "just/docs.just"
       - ".github/workflows/bazel-docs.yml"
   pull_request:
     paths:
       - "book/**"
       - "bazel/book/**"
+      - "just/docs.just"
       - ".github/workflows/bazel-docs.yml"
 
 concurrency:
@@ -22,6 +24,9 @@ concurrency:
 
 env:
   BAZELISK_SKIP_WRAPPER: true
+
+permissions:
+  contents: read
 
 jobs:
   build-and-linkcheck:
@@ -34,13 +39,33 @@ jobs:
           disk-cache: ${{ github.workflow }}
           cache-version: 2-${{ runner.os }}-${{ runner.arch }}
       - uses: dtolnay/rust-toolchain@stable
+      - uses: extractions/setup-just@v2
       - name: Install mdbook + mdbook-mermaid + mdbook-linkcheck2
-        run: cargo install mdbook mdbook-mermaid mdbook-linkcheck2 --locked
-      - name: bazel build //book:html
-        run: bazel run //book:html
-      - name: bazel run //book:linkcheck
-        run: bazel run //book:linkcheck
+        run: just docs setup
+      - name: Build mdBook website
+        run: just docs build
+      - name: Check download script syntax
+        run: node --check book/src/downloads.js
       - uses: actions/upload-artifact@v4
         with:
           name: book-html
           path: book/build/html
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          path: book/build/html
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build-and-linkcheck
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deployment

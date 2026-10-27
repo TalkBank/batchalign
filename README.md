@@ -58,6 +58,37 @@ The main source areas are:
 - `resources/test_fixtures/` — integration and parity fixtures
 - `scripts/parity/` — bounded pre/post parity tooling
 
+## Website and book
+
+The website is an mdBook. Edit the homepage in `book/src/index.md`, the other
+pages in `book/src/`, and navigation in `book/src/SUMMARY.md`.
+
+```bash
+just docs setup       # once: install mdBook and its plugins; requires Rust/Cargo
+just docs serve       # http://localhost:3000/; automatically reloads edits
+# Or choose another port: just docs serve 8000
+```
+
+`just docs build` builds the website into `book/build/html/`.
+Live previews use separate `book/build/preview-<port>/` directories, so builds
+and previews can run at the same time.
+The docs workflow checks pull requests and deploys that directory on pushes to
+`main`. Enable **Settings → Pages → Build and deployment → Source: GitHub
+Actions** once in the repository before deploying.
+
+The homepage loads `book/src/downloads.js` and shows macOS, Windows, and Linux
+download buttons. It scans published stable releases, falling back to older
+releases when necessary. macOS links to a DMG, Windows to an x86-64 installer,
+and Linux offers only x86-64 DEB and RPM packages. Other builds are available
+through the all-releases link. Each main button shows its installer version.
+Download URLs come from `assets[].browser_download_url`, so links update
+without rebuilding the site. A manual releases link works when JavaScript or
+the API is unavailable. To inspect the latest tag yourself:
+
+```bash
+curl -fsSL https://api.github.com/repos/TalkBank/batchalign/releases/latest | jq -r .tag_name
+```
+
 ## License
 
 BSD-3-Clause. Copyright (c) 2026, Carnegie Mellon University.

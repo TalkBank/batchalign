@@ -1,0 +1,26 @@
+.platform-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.platform-option { flex: 1; min-width: 150px; }
+
+.platform-download {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1.5rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.platform-download:hover { background: var(--quote-bg); text-decoration: none; }
+.platform-download svg { width: 2.5rem; height: 2.5rem; }
+.platform-download strong { font-size: 1.2em; }
+.platform-download small, .download-options { font-size: 0.85em; }
+.download-options { text-align: center; }

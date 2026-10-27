@@ -18,6 +18,7 @@ traverse-parent-directories = false
 warning-policy = "error"
 
 [output.html]
+additional-css = ["theme/downloads.css"]
 no-section-label = true
 git-repository-url = "https://github.com/TalkBank/batchalign"
 edit-url-template = "https://github.com/TalkBank/batchalign/edit/main/book/{path}"

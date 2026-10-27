@@ -1,5 +1,6 @@
 # Summary
 
+[Home](index.md)
 [Start here](introduction.md)
 [Batchalign documentation](batchalign/introduction.md)
 

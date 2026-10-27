@@ -43,4 +43,4 @@ MDBOOK="$(resolve_mdbook "$MDBOOK_HINT")" || {
     exit 1
 }
 cd "$BUILD_WORKSPACE_DIRECTORY/book"
-"$MDBOOK" serve --open
+"$MDBOOK" serve --open "$@"
