@@ -10,12 +10,16 @@ on:
       - "book/**"
       - "bazel/book/**"
       - "just/docs.just"
+      - "MODULE.bazel"
+      - "multitool.lock.json"
       - ".github/workflows/bazel-docs.yml"
   pull_request:
     paths:
       - "book/**"
       - "bazel/book/**"
       - "just/docs.just"
+      - "MODULE.bazel"
+      - "multitool.lock.json"
       - ".github/workflows/bazel-docs.yml"
 
 concurrency:
@@ -38,9 +42,8 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           cache-version: 2-${{ runner.os }}-${{ runner.arch }}
-      - uses: dtolnay/rust-toolchain@stable
       - uses: extractions/setup-just@v2
-      - name: Install mdbook + mdbook-mermaid + mdbook-linkcheck2
+      - name: Build Bazel-managed documentation tools
         run: just docs setup
       - name: Build mdBook website
         run: just docs build

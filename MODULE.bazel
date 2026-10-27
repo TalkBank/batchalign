@@ -409,6 +409,21 @@ exports_files(["Cargo.toml"])
 """,
 )
 
+# Documentation link checker: build with Bazel's Rust tools. The published
+# crate includes Cargo.lock, pinning the transitive dependency graph.
+http_archive(
+    name = "mdbook_linkcheck_src",
+    urls = ["https://static.crates.io/crates/mdbook-linkcheck2/mdbook-linkcheck2-0.11.0.crate"],
+    sha256 = "abd1fc1d0986cde3542c9cd35f69eb126577bca499322b4a15718d2094af17fa",
+    strip_prefix = "mdbook-linkcheck2-0.11.0",
+    type = "tar.gz",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+filegroup(name = "srcs", srcs = glob(["**"], exclude = ["BUILD.bazel", "BUILD"]))
+exports_files(["Cargo.toml"])
+""",
+)
+
 # crates.io packages omit Cargo.lock. Pair the pinned CLI source with the lock
 # from its matching upstream release tag so fresh CI runs cannot resolve a
 # different, internally incompatible transitive graph.
@@ -577,7 +592,7 @@ register_toolchains("@llvm_toolchain//:all")
 # =============================================================================
 # Hermetic external binaries via rules_multitool
 # =============================================================================
-# Tools that don't have a first-class Bazel ruleset (currently uv and mdbook)
+# Tools that don't have a first-class Bazel ruleset (uv, mdbook, and mdbook-mermaid)
 # are fetched as platform-specific
 # prebuilt binaries from their upstream GitHub releases and exposed as
 # `@multitool//tools/<name>`. SHA256s live in `multitool.lock.json`.

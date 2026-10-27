@@ -1,6 +1,24 @@
-"""Shell scripts that drive mdBook build / serve / linkcheck."""
+"""Bazel-managed documentation tools and launcher."""
 
-# Only the book package consumes these.
 package(default_visibility = ["//book:__pkg__"])
 
-exports_files(["serve.sh", "build.sh", "linkcheck.sh"])
+exports_files(["run.sh"])
+
+genrule(
+    name = "linkcheck_tool",
+    srcs = ["@mdbook_linkcheck_src//:srcs", "@mdbook_linkcheck_src//:Cargo.toml"],
+    outs = ["mdbook-linkcheck2"],
+    tools = [
+        "build_linkcheck.sh",
+        "@rules_rust//rust/toolchain:current_cargo_files",
+        "@rules_rust//rust/toolchain:current_rustc_files",
+    ],
+    cmd = " ".join([
+        "BOOK_RUST_FILES='$(execpaths @rules_rust//rust/toolchain:current_cargo_files) $(execpaths @rules_rust//rust/toolchain:current_rustc_files)'",
+        "$(execpath build_linkcheck.sh)",
+        "$@",
+        "$(execpath @mdbook_linkcheck_src//:Cargo.toml)",
+    ]),
+    # Cargo fetches locked dependencies, as in //bazel/tauri:cargo_tauri.
+    local = True,
+)

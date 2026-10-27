@@ -11,6 +11,6 @@ serve port="3000":
 linkcheck:
     bazel run //book:linkcheck
 
-# One-time installation of the book tools (mdBook 0.5-compatible plugins).
+# Fetch/build the same Bazel-managed tools used by build and serve.
 setup:
-    cargo install --locked mdbook@0.5.2 mdbook-mermaid@0.17.1 mdbook-linkcheck2@0.11.0
+    bazel build @multitool//tools/mdbook @multitool//tools/mdbook-mermaid //bazel/book:linkcheck_tool

@@ -2,9 +2,18 @@
 
 Welcome to Batchalign. Batchalign is a audio and ML pipeline for producing and enriching CHAT transcripts. It supports transcription, forced alignment, morphotagging, utterance segmentation, translation, diarization, comparison, and the Batchalign desktop shell.
 
+## User Guides
+
+User guides for getting started are available via the following links:
+
+- [basic usage](./assets/BA-usage.pdf)
+- [cleanup](./assets/BA-cleanup.pdf)
+
+## Installation
+
 Batchalign is available in two variants: as an application or as an a command-line tool. Downloads for both versions follows:
 
-## GUI Application
+### GUI Application
 ![Batchalign Application](./screenshot.png)
 
 Press the blue rectangle corresponding to the operating system which you use to download the Batchalign application:
@@ -42,7 +51,7 @@ Press the blue rectangle corresponding to the operating system which you use to 
 
 <script src="downloads.js" defer></script>
 
-## Terminal Interface (Advanced)
+### Terminal Interface (Advanced)
 ![Batchalign CLI](./cli.png)
 
 For the advanced terminal interface, the following scripts allows you to install Batchalign via `uv`.
