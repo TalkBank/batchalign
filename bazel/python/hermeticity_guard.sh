@@ -81,6 +81,28 @@ _guard_skip() {
     esac
 }
 
+# uv 0.5.18 has no configurable HTTP retry count. Retry only the pinned
+# standalone Python download when its release server returns a transient error.
+_guard_sync() (
+    local uv="$1" log attempt result
+    log="$(mktemp)"
+    trap 'rm -f "$log"' EXIT
+    for attempt in 1 2 3; do
+        if "$uv" sync --extra dev --no-install-project --quiet 2>&1 | tee "$log" >&2; then
+            return 0
+        else
+            result=$?
+        fi
+        if [[ "$attempt" == 3 ]] \
+            || ! grep -Fq 'error: Failed to download https://github.com/astral-sh/python-build-standalone/' "$log" \
+            || ! grep -Eq 'HTTP status (client|server) error \((408|429|500|502|503|504)( |\))' "$log"; then
+            return "$result"
+        fi
+        echo "Retrying transient Python runtime download failure (attempt $attempt of 3)" >&2
+        sleep "$((attempt * 15))"
+    done
+)
+
 hermeticity_guard() {
     # The caller passes the multitool uv binary as $1; Bazel substitutes
     # a runfiles-relative path (e.g. `../rules_multitool~~...~uv/uv`),
@@ -117,8 +139,7 @@ hermeticity_guard() {
     # On Windows that `_core.pyd` collides with the module maturin adds while
     # assembling the wheel. The wheel build below is the sole project build.
     if ! _guard_skip sync; then
-        ( cd "$BUILD_WORKSPACE_DIRECTORY/python" \
-            && "$uv" sync --extra dev --no-install-project --quiet ) || {
+        ( cd "$BUILD_WORKSPACE_DIRECTORY/python" && _guard_sync "$uv" ) || {
             echo "hermeticity_guard: failed to sync the uv venv ($BUILD_WORKSPACE_DIRECTORY/python)" >&2
             echo "  fix: run 'cd python && uv sync --extra dev --no-install-project' to surface uv's full error message" >&2
             return 1
