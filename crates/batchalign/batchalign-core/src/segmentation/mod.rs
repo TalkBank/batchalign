@@ -1305,7 +1305,7 @@ mod tests {
     /// the replacement words.
     ///
     /// Coverage gap discovered 2026-04-27 while writing replacements
-    /// docs (`book/src/architecture/replacements-handling.md`); analogous
+    /// docs (`book/src/batchalign/reference/morphosyntax.md`); analogous
     /// to the FA bug shape from 2026-04-08. The current code is correct
     /// by construction (extract + split both use TierDomain::Mor); these
     /// tests pin that invariant against future drift.

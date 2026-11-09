@@ -82,7 +82,7 @@ Accepts the shared input selection and `-o/--out` options above.
 
 | Option or argument | Default | Details |
 |---|---|---|
-| `--engine` | rev | Choices: `rev`, `whisper`, `chatwhisper`, `openai`, `funaudio`, `tencent`, `qwen3`, `aliyun`, `malayalam`, `google`. ASR engine: rev \| google \| whisper \| chatwhisper \| openai \| funaudio \| tencent \| qwen3 \| malayalam. |
+| `--engine` | rev | Choices: `rev`, `whisper`, `chatwhisper`, `openai`, `funaudio`, `tencent`, `qwen3`, `aliyun`, `malayalam`, `google`, `pasketti`. Pasketti supports English only. |
 | `--lang` | Required | ISO-639-3 alpha_3 code: eng, cmn, yue, spa, … (Required.) |
 | `--model` | Unset | ASR model id (engine-specific default if omitted). |
 | `--diarize/--no-diarize` | False | Run speaker diarization with --diarize-engine after utterance segmentation. |
@@ -161,7 +161,7 @@ Accepts the shared input selection and `-o/--out` options above.
 ## phonetic
 
 Accepts timed CHAT and matching audio, using shared input selection and
-`-o/--out`. Install the `phonetic` extra for PhoneticXeus, Piper Plus G2P, and Epitran.
+`-o/--out`. Install the `phonetic` extra for PhoneticXeus, Pasketti, Piper Plus G2P, and Epitran.
 Phonetic transcription requires Python 3.11 or newer.
 The first inference downloads the pinned model revision;
 building the CLI and displaying help do not download model weights.
@@ -173,14 +173,18 @@ just batchalign cli phonetic recording.cha --out phonetic-output --force-cpu
 The command recognizes phones from audio and DP-aligns them against reference
 IPA pronunciations to recover word boundaries. `%pho` retains the observed IPA,
 including pronunciation differences. Existing `%pho` tiers are preserved.
-The input must have utterance timing bullets; use `utr` first when needed.
+The input must have utterance timing bullets. Prepare an aligned transcript
+with [align](commands/align.md) first if timing is missing.
 Word-level forced alignment is not required.
 
-Like Whisper forced alignment, phonetic inference groups consecutive utterances
+The default PhoneticXeus engine groups consecutive utterances
 into approximately 20-second audio windows, then projects phones back to their
 original words and utterances. Gaps over two seconds and backwards timings start
 a new window; an utterance longer than 20 seconds stays whole. Words receiving
 no phones are marked `…` (uncoded) and reported with their utterance timing.
+
+Pasketti processes each English utterance separately using a full-precision
+WavLM CTC model; it does not combine adjacent turns.
 
 Windows of similar duration are batched using padding and real encoder lengths.
 Normalization is performed independently per window, and padded output frames
@@ -191,6 +195,7 @@ the upstream encoder's convolution branches remain sensitive to padding.
 
 | Option | Default | Details |
 |---|---|---|
+| `--engine` | phoneticxeus | `phoneticxeus` or `pasketti` (English child speech) |
 | `--pronunciations` | None | UTF-8 CSV with header `word,ipa`; one word or whole phonological unit and its IPA per row, overriding the generated pronunciation. |
 | `--force-cpu` | False | Use CPU instead of automatic CUDA selection. MPS is not selected. |
 | `--batch-size` | CPU 1, CUDA 2 | Maximum audio windows per model batch; must be positive. |
@@ -225,9 +230,9 @@ the cat,ðəkæt
 
 The header is required. Use standard CSV quoting for cells containing commas.
 Words are matched without case; empty cells and duplicate words are errors.
-An unknown pronunciation, invalid
-audio window, or alignment leaving a word without phones fails the file without
-overwriting it. Insertions between word anchors attach to the preceding word;
+An unknown pronunciation or invalid audio window fails the file without
+overwriting it. A word without aligned phones receives `…`. Insertions between
+word anchors attach to the preceding word;
 review inferred boundaries, especially around reduced or atypical speech.
 
 Python pipelines can compose `recipes.phonetic(phonetic_backend=backend,

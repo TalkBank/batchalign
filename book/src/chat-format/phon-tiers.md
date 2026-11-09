@@ -88,27 +88,15 @@ Because the syllabification tiers are derived views, word counts must match:
 - `%xphoaln` word count = `%mod` word count = `%pho` word count
 
 Mismatches are flagged as errors E725–E728. See
-[Alignment Architecture](../architecture/alignment.md#phon-tier-to-tier-alignment)
+[Chatter alignment documentation](../related-tools.md#chatter-and-chat-format-tools)
 for implementation details.
 
-## Parsing Strategy
+## Implementation ownership
 
-We parse the structure that alignment validation needs, but not the IPA
-content itself:
-
-- **%xmodsyl / %xphosyl**: word boundaries are recognized for word-count
-  alignment; the `phoneme:Position` sequence inside each word stays as
-  an opaque string (`talkbank-model::dependent_tier::phon::SylTier`'s
-  `words: Vec<NonEmptyString>`).
-- **%xphoaln**: each word is parsed into a `Vec<AlignmentPair>`, where
-  `AlignmentPair { source: Option<NonEmptyString>, target: Option<NonEmptyString> }`
-  represents one `source↔target` mapping and `None` represents `∅`.
-  Segment topology (which target phone maps to which actual phone, and
-  where insertions / deletions occur) is therefore queryable in code;
-  the IPA characters themselves remain opaque.
-
-Deep phonological analysis is Phon's domain — we avoid duplicating that
-work.
+Phonological analysis belongs to [Phon](https://www.phon.ca/).
+CHAT parsing and tier-alignment validation belong to
+[Chatter](../related-tools.md#chatter-and-chat-format-tools).
+Batchalign can add observed IPA with the [phonetic command](../batchalign/user-guide/commands/phonetic.md).
 
 ## Phon XML Source Format
 

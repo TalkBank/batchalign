@@ -37,11 +37,7 @@ and contains one or more replacement words inside the brackets:
 *CHI:	rocking+house [: rocking+horse] [*] ?
 ```
 
-The grammar rules are
-`word_with_optional_annotations` and `replacement` in
-[`grammar/grammar.js`](https://github.com/TalkBank/batchalign/blob/main/grammar/grammar.js)
-— grep for the rule names rather than line numbers so this stays
-accurate as the grammar evolves. Replacement words can be separated
+Replacement words can be separated
 by whitespace, so `[: going to]` is a single replacement of `gonna`
 with two words.
 
@@ -104,77 +100,8 @@ generalizes consistently:
 - `%mor` produces **two** entries — for `going` and `to`.
 - `%gra` produces **two** entries — paired to the two `%mor` items.
 
-The alignment-counting code that enforces this is in
-[`alignment/units.rs`](https://github.com/TalkBank/batchalign/blob/main/crates/core/talkbank-model/src/model/file/utterance/metadata/alignment/units.rs)
-— look for the `UtteranceContent::ReplacedWord` arm. The full table
-of per-domain rules is in
+The full table of per-domain rules is in
 [`resources/spec/docs/ALIGNMENT_RULES.md`](https://github.com/TalkBank/batchalign/blob/main/resources/spec/docs/ALIGNMENT_RULES.md).
-
-## Rust AST
-
-A replacement is modeled as a first-class `UtteranceContent` variant,
-not as a flag on `Word`:
-
-```rust,ignore
-// crates/core/talkbank-model/src/model/annotation/replacement.rs
-pub struct ReplacedWord {
-    pub word: Word,                       // left side: original spoken word
-    pub replacement: Replacement,         // right side: 1+ intended words
-    pub scoped_annotations: ReplacedWordAnnotations,
-}
-```
-
-Two consequences of this shape:
-
-1. **A replacement is a wrapper around a `Word`, not a kind of `Word`.**
-   `ReplacedWord` lives as its own variant of `UtteranceContent`
-   (and `BracketedItem`), holding an inner `word: Word` plus the
-   replacement payload. Contrast with retraces: `Retrace` is *also*
-   a variant of `UtteranceContent`/`BracketedItem`, but it wraps a
-   *group of content* (a single word or a `<...>` group), not a
-   single `Word`. Different mechanism, different scope — same
-   top-level slot in the AST.
-2. **The `walk_words()` content walker yields `WordItem::ReplacedWord`
-   as a distinct leaf** (defined in
-   `crates/core/talkbank-model/src/alignment/helpers/walk/mod.rs`).
-   Domain-aware extraction code branches on this leaf type and
-   chooses original or replacement per the table above.
-
-## Validation
-
-### Each Replacement Word Is Validated Like a Main-Tier Word
-
-The replacement is a `Vec<Word>`. Each `Word` inside it goes through
-the same validator that runs on main-tier words:
-
-```chat
-*CHI:	dog [: C-3PO] .
-```
-
-This produces `[E220] "C-3PO" is not a legal word in language(s) "eng":
-numeric digits not allowed` — exactly as if `C-3PO` had appeared on the
-main tier directly. **The replacement does not provide an escape from
-word-level validation.** The implementation is in
-[`replacement.rs:117-202`](https://github.com/TalkBank/batchalign/blob/main/crates/core/talkbank-model/src/model/annotation/replacement.rs).
-
-This is critical for any code generating replacements programmatically:
-do not assume `[: ...]` lets you smuggle arbitrary text past the word
-validator. If your producer emits a replacement, both sides must be
-CHAT-legal under the utterance's declared language.
-
-### Replacement-Specific Error Codes
-
-Three error codes are specific to replacements and do not apply to
-main-tier words:
-
-| Code | Meaning |
-|------|---------|
-| `E208` | Empty replacement `[:]` (no words provided between `:` and `]`) |
-| `E390` | Replacement contains an omission (`0prefix` form) — disallowed inside replacements |
-| `E391` | Replacement contains untranscribed material (`xxx`, `yyy`, `www`) — disallowed inside replacements |
-
-The principle: a replacement must be a **concrete intended form**. Empty,
-omitted, or unintelligible content defeats that purpose.
 
 ## Interactions with Other Annotations
 
@@ -236,18 +163,6 @@ them here so future contributors don't reinvent them.
 5. **"`<a b> [: c d]` is a group-level replacement."** No.
    Group-level replacements don't exist. Either replace inside
    (`<a [: c] b [: d]>`) or rephrase the transcription.
-
-## Source Citations
-
-| Concern | File:line |
-|---------|-----------|
-| Grammar rule (`replacement`) | `grammar/grammar.js:1341-1352` |
-| Word-with-replacement rule | `grammar/grammar.js:1063-1071` |
-| `ReplacedWord` struct | `crates/core/talkbank-model/src/model/annotation/replacement.rs` (search `pub struct ReplacedWord`) |
-| Per-domain alignment | `crates/core/talkbank-model/src/model/file/utterance/metadata/alignment/units.rs` (search `UtteranceContent::ReplacedWord`) |
-| Replacement validation | `crates/core/talkbank-model/src/model/annotation/replacement.rs` (search `impl ... Validate for ReplacementWords`) |
-| Reference corpus example | `resources/corpus/reference/annotation/errors-and-replacements.cha` |
-| CHAT manual | <https://talkbank.org/0info/manuals/CHAT.html#Replacement_Scope> |
 
 ## See Also
 

@@ -234,11 +234,6 @@ These tiers contain free-form text with optional embedded timing markers (`•ST
 | `%gpx` | Extended gesture position coding |
 | `%int` | Intonational contours and prosodic patterns |
 
-`%cod` remains bullet-content in the shared TalkBank AST, but current
-`clan-core` coding commands derive a semantic `%cod` item stream on top of
-that parsed content so selectors such as `<w4>` scope the following code
-instead of being counted as codes themselves.
-
 Example with timing:
 
 ```chat

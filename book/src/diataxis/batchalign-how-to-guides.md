@@ -5,6 +5,7 @@ Choose the task you want to complete.
 - [Install or update Batchalign](../batchalign/user-guide/installation.md)
 - [Transcribe a recording](../batchalign/user-guide/commands/transcribe.md)
 - [Align a transcript](../batchalign/user-guide/commands/align.md)
+- [Add phonetic transcription](../batchalign/user-guide/commands/phonetic.md)
 - [Add morphology and grammar](../batchalign/user-guide/commands/morphotag.md)
 - [Segment utterances](../batchalign/user-guide/commands/utseg.md)
 - [Add translation tiers](../batchalign/user-guide/commands/translate.md)

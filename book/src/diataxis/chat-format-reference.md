@@ -13,5 +13,4 @@ Look up syntax, contracts, and factual details.
 - [The %mor Tier](../chat-format/mor-tier.md)
 - [Phon Tiers](../chat-format/phon-tiers.md)
 - [Word Syntax](../chat-format/word-syntax.md)
-- [Word Internals](../chat-format/word-internals.md)
 - [Symbols](../chat-format/symbols.md)

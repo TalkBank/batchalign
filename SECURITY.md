@@ -32,8 +32,8 @@ For security triage, please report the issue against one of these:
 - the latest tagged release for the affected public surface
 
 The current public release lines are documented in
-[`book/src/operations/release-contract.md`](book/src/operations/release-contract.md) and
-[`book/src/operations/versioning.md`](book/src/operations/versioning.md). Older releases may still be
+[Release contract](book/src/batchalign/developer/release-contract.md) and
+[Versioning](book/src/batchalign/developer/python-versioning.md). Older releases may still be
 investigated, but maintainers may ask you to reproduce the issue on a current
 build before triage.
 

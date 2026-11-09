@@ -40,9 +40,8 @@ rust-version = "1.89.0"
 # (LSP, server, async workers). The CLAUDE.md standard is "no panics in
 # long-lived logic, recoverable conditions go through Result with thiserror
 # domain types." These warn-level lints make every new panic site visible
-# without one-shot breaking the existing tree (see
-# `book/src/operations/panic-audit/baseline.md` for the frozen baseline;
-# per-crate `[lints]` promote to `deny` as each crate finishes its audit).
+# without breaking existing builds. Individual crates can promote these
+# lints to `deny` as their error-handling audits are completed.
 #
 # Test code keeps panic discipline relaxed — assertion macros panic by
 # design, and `unwrap()` on a fixture that's known to parse is the standard

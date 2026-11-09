@@ -1,36 +1,9 @@
-# Symbols
+# CHAT symbols
 
-**Status:** Reference — partially inaccurate, see warning on the CA section
-**Last updated:** 2026-05-11 23:19 EDT
-
-> **WARNING:** The "CA (Conversation Analysis) Delimiters" section below
-> erases a parser-level distinction. The symbol registry
-> (`resources/spec/symbols/symbol_registry.json`) splits these characters into
-> three grammatical categories with different parser treatment:
-> `ca_delimiter_symbols`, `ca_element_symbols`, and
-> `word_segment_forbidden_*`. `↑` and `↓` *attach to a word*
-> (`book↑` is one token); `→`, `↗`, `↘` are *separators* that the
-> parser splits as their own nodes. Lumping them together as "CA
-> delimiters" with one semantic is misleading. Until this page is
-> rewritten to mirror the registry, trust the registry. See
-> `<workspace>/docs/architecture-review-2026-05-01.md` §6 stale-doc
-> entry for this page.
-
-CHAT uses a rich set of symbols for transcription conventions. This page documents the symbol categories and the symbol registry that drives both the grammar and the Rust crates.
-
-## Symbol Registry
-
-The authoritative symbol definitions live in `resources/spec/symbols/symbol_registry.json`. This JSON file is the single source of truth — it generates:
-
-- Character sets for the tree-sitter grammar (`grammar.js`)
-- Rust constants for the model and validation crates
-- Validation rules for the spec tool
-
-After any change to the symbol registry, run:
-
-```bash
-node resources/spec/symbols/validate_symbol_registry.js && node scripts/generate-symbol-sets.js && node resources/spec/symbols/generate_rust_symbol_sets.js
-```
+This reference summarizes notation used in transcripts. For the complete
+conventions, see the [CHAT manual](https://talkbank.org/0info/manuals/CHAT.html).
+Parser and symbol-registry development belong to
+[Chatter](../related-tools.md#chatter-and-chat-format-tools).
 
 ## Symbol Categories
 
@@ -51,7 +24,7 @@ Punctuation that ends an utterance:
 | `+!?` | Broken question | Exclamation-question |
 | `+"/.` | Quoted new line | Quotation continues on next line |
 
-### CA (Conversation Analysis) Delimiters
+### Conversation-analysis notation
 
 Symbols used in conversation analysis notation:
 
@@ -65,19 +38,10 @@ Symbols used in conversation analysis notation:
 | `≋` | Creaky voice |
 | `∙` | Micropause |
 
-### CA Elements
-
-Symbols that appear within conversation analysis annotations (prosodic marking, stress, etc.).
-
-### Word Segment Characters
-
-Characters that are forbidden at the start of words, forbidden in the rest of words, or forbidden throughout. These define the lexical boundaries of what constitutes a "word" in CHAT.
-
-The grammar uses these sets to construct the word-matching regex patterns. Characters like `[`, `]`, `<`, `>`, `(`, `)` are structural delimiters and cannot appear inside words.
-
-### Event Segment Characters
-
-Characters forbidden in event descriptions (`&=event` content). Events have slightly different lexical rules than words.
+These symbols do not all have the same word-boundary behavior. Pitch arrows
+`↑` and `↓` can attach to a word, as in `book↑`; separator symbols such as
+`→`, `↗`, and `↘` are separate content items. Do not strip or split all
+conversation-analysis symbols using a single punctuation rule.
 
 ## Language Codes
 

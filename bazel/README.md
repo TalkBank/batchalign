@@ -62,9 +62,8 @@ name `build/` is honest about what they are.
 - Every shell script starts with `set -euo pipefail`.
 - Scripts cd into `$BUILD_WORKSPACE_DIRECTORY` first so paths are
   workspace-relative regardless of where `bazel run` was invoked from.
-- Scripts assume their host tool (`uv`, `maturin`, `mdbook`, `npm`, or
-  `cargo`) is on `$PATH`. CI installs them
-  via setup actions; local developers install once.
+- Toolchains and documentation tools are managed by Bazel. Use the
+  repository recipes so local checks and CI resolve the same tools.
 - Scripts fail loudly with a readable error if the host tool is missing.
 - No script writes outside the workspace.
 
@@ -72,6 +71,6 @@ name `build/` is honest about what they are.
 
 - `CONTRIBUTING.md` (repo root) — quick start, common workflows, `bazel
   run` examples for every major binary
-- `book/src/operations/release-pipeline.md` — full chain from dev → CI
-  → published artifacts (PyPI, crates.io, Marketplace, GitHub Releases)
+- `book/src/batchalign/developer/release-contract.md` — Batchalign
+  Python wheels, desktop bundles, and release ownership
 - `MODULE.bazel` — module-level dep declarations

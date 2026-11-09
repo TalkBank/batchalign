@@ -33,6 +33,18 @@ The first run downloads the selected model. `--engine openai` selects the local
 `openai-whisper` package; it does not mean the hosted OpenAI transcription API.
 See [CLI reference](../cli-reference.md#transcribe) for the engine choices.
 
+## Pasketti for English child speech
+
+Install `batchalign[qwen3]`, then select the Pasketti word checkpoint:
+
+```bash
+batchalign transcribe recordings/ -o transcripts/ --lang eng --engine pasketti
+```
+
+This uses `drivendata/pasketti-word` through the local Qwen3 backend. The model
+and its companion word aligner download on first use. This engine is English-only.
+For IPA on an existing timed transcript, use [phonetic](phonetic.md).
+
 ## Request separate speaker diarization
 
 ```bash

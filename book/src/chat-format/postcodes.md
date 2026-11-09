@@ -132,92 +132,17 @@ Two consequences worth pinning down explicitly:
   postcode. A `[% exclude this]` after a word does not mean "exclude
   the utterance" to any consumer.
 
-## Not Postcodes: Quotation Markers
+## Not postcodes: quotation markers
 
-Quotation marking in CHAT is **not a postcode form**. The constructs
-`+"/.` (quotation end), `+"/`, and `+"` (quotation linkers /
-continuations) are tier-level **terminators and linkers**, not
-`[+ ...]` postcodes — the grammar rule `postcode` in
-`grammar/grammar.js` is strictly `[+ <text>]`, and the quotation
-forms live under separate grammar rules (`quoted_new_line`,
-`linker_quotation_follows`).
+Quotation terminators and linkers such as `+"` are separate from `[+ ...]`
+postcodes. See [Utterance terminators](utterances.md#terminators).
+Do not use a word annotation or a quotation marker as an utterance-level tag.
 
-See [Utterances → Terminators](utterances.md#terminators) for the
-syntactic forms, and the
-`talkbank-model::validation::cross_utterance` validator family
-(gated by `ValidationContext::enable_quotation_validation`) for the
-cross-utterance balance checks.
+## Preserving postcodes
 
-A walker in `talkbank-model::validation::utterance::quotation`
-(`check_quotation_balance`) does scan the postcode list for text
-`"/` and `"/.`, but a sweep over the data-json corpus mirror
-(101,414 files, 2026-05-11) returned zero such postcodes — that
-code path is effectively dead, retained presumably as defence
-against hand-edited oddities. The real quotation-balance work
-happens in the cross-utterance family above.
+Keep utterance-level postcodes when editing a transcript. Downstream analysis
+tools interpret the code values according to their own protocols; a Batchalign
+processing run is not a CLAN analysis command.
 
-## Position in the AST
-
-An utterance's main tier is `MainTier`, whose `content: TierContent`
-field carries the actual tier payload — including postcodes — as a
-typed list:
-
-```rust,ignore
-pub struct MainTier {
-    pub speaker: SpeakerCode,
-    pub content: TierContent,
-    // spans omitted for brevity
-}
-
-pub struct TierContent {
-    pub linkers: TierLinkers,                  // utterance-leading +<, ++, etc.
-    pub language_code: Option<LanguageCode>,   // [- code]
-    pub content: TierContentItems,             // word-level items (newtype over Vec<UtteranceContent>)
-    pub terminator: Option<Terminator>,        // ., ?, !, +..., etc.
-    pub postcodes: TierPostcodes,              // [+ ...] tokens after the terminator
-    pub bullet: Option<Bullet>,                // optional terminal media bullet
-    // content_span omitted for brevity
-}
-```
-
-(See `talkbank-model/src/model/content/main_tier.rs` and
-`tier_content.rs` for the exact shape; the same `TierContent` type is
-shared by dependent tiers, so the postcode slot exists on every tier
-even though only main-tier postcodes are conventional.)
-
-Because postcodes live at the utterance level, the per-word
-traversal helpers (`walk_words`, `walk_words_mut`) do not visit
-them. Code that needs to read or rewrite postcodes accesses the
-list directly.
-
-The model stores postcode text as `SmolStr` and preserves it
-verbatim through CHAT roundtrips. Downstream tooling — including
-CLAN command implementations such as `freq`, `mlu`, `kideval` — is
-responsible for interpreting individual postcode values per its own
-conventions.
-
-## Tooling Rules
-
-Tools that emit or consume CHAT must respect the scope distinction.
-
-- **Emitters:** when adding a researcher tag to an utterance, attach
-  a `Postcode` to the utterance's `MainTierContent`, not a
-  `ContentAnnotation` to a word. Both serialize, but only the former
-  reaches downstream consumers as utterance-level metadata.
-- **Consumers:** when reading utterance-level tags (e.g.,
-  implementing an "exclude" filter), iterate `main.content.postcodes`
-  on each utterance — not the word-level annotations in
-  `UtteranceContent`. The two lists are populated by different
-  parser branches and have different semantics.
-- **Round-trip preservers** (extract→modify→inject pipelines such as
-  the NLP injection passes in `crates/batchalign-*`): preserve the
-  postcode list unchanged. None of the standard NLP passes have a
-  reason to add, remove, or reorder postcodes.
-
-## References
-
-- CHAT manual: [Postcodes](https://talkbank.org/0info/manuals/CHAT.html#Postcodes)
-- CHAT manual: [Excluded Utterance Postcode](https://talkbank.org/0info/manuals/CHAT.html#ExcludedUtterancePostcode)
-- CHAT manual: [Included Utterance Postcode](https://talkbank.org/0info/manuals/CHAT.html#IncludedUtterancePostcode)
-- Model: `talkbank-model/src/model/content/postcode.rs`
-- Quotation validator: `talkbank-model/src/validation/utterance/quotation.rs`
+For parsing and validation implementation details, see
+[Chatter](../related-tools.md#chatter-and-chat-format-tools).

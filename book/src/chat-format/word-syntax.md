@@ -134,17 +134,10 @@ a full turn line:
 
 This says CHI was speaking and MOT briefly said "careful" mid-turn.
 If the intervention is substantial enough to constitute its own turn,
-transcribe it as a separate `*MOT:` utterance instead. Model:
-`crates/core/talkbank-model/src/model/content/other_spoken.rs`.
+transcribe it as a separate `*MOT:` utterance instead.
 
-(Note: `[^ text]` is a *freecode* — a standalone free-form
-researcher annotation that sits as its own content item on the main
-tier (variant of `UtteranceContent::Freecode`, sibling of `Word` and
-`Group` — it is NOT attached to any word). See `grammar/grammar.js`
-rule `freecode` and
-`crates/core/talkbank-model/src/model/content/utterance_content/`. Used
-for transcriber notes that are independent of any single word; for
-notes about a single word use `[% text]` or `[= text]` instead.)
+`[^ text]` is a standalone researcher annotation on the main tier.
+For notes about a single word, use `[% text]` or `[= text]` as appropriate.
 
 ## Pauses
 

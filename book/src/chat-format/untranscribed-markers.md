@@ -65,41 +65,10 @@ against the whole field.
 4. **Never delete a token to "fix" a validation failure.** Deletion
    loses data without any flag.
 
-## What ASR pipelines should do instead
+## Review ASR output
 
-The `transcript_from_asr_utterances` gate (defined in
-`crates/core/talkbank-transform/src/asr_postprocess/cleanup.rs`, exercised
-by the pipeline assembled in
-`crates/core/talkbank-transform/src/build_chat/`) demonstrates the right
-pattern:
-
-1. The pipeline silently fixes only orthographically inarguable
-   problems (Stage 2c boundary-quote strip).
-2. For tokens that fail language-level validation but are
-   structurally legal CHAT (e.g., `C-3PO` under English: tree-sitter
-   accepts the digit-hyphen compound but `Word::validate` fires E220
-   "numeric digits not allowed"), the gate falls back to the
-   structural-only construction path. The token ships verbatim. The
-   downstream full-file validator and `check` fire E220 on the same
-   word, the file ends up in the human review queue, and the
-   transcriber listens to the audio and decides what was actually
-   said.
-3. For tokens that fail *structural* parsing (tree-sitter rejects),
-   the gate fails loud — emitting malformed CHAT would corrupt the
-   file beyond the validator's ability to flag it.
-
-The division of labor is: ASR fixes only what's mechanically
-unambiguous; CHECK and the human transcriber handle everything that
-requires judgment about what the speaker said.
-
-## Related rules
-
-- `xxx` / `yyy` / `www` survive the transcript through all NLP passes
-  (morphotag, utseg, translate, coref) without re-interpretation.
-  Tools that walk the AST treat them as opaque tokens — they have no
-  POS tag, no lemma, no dependency parent, no translation.
-- `%wor` excludes all three (no phoneme sequence to align). `%pho`
-  may reference `yyy` directly because the phonetic content is the
-  whole point of the marker.
-- See `word-syntax.md` for grammar; this document is the policy
-  reference for *who is allowed to emit them and why*.
+An ASR error is not evidence that the original speech was unintelligible.
+Listen to the recording before introducing `xxx`, `yyy`, or `www`.
+See [Transcribe a recording](../batchalign/user-guide/commands/transcribe.md)
+and [ASR output processing](../batchalign/architecture/asr-token-pipeline.md)
+for Batchalign's current workflow.

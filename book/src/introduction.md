@@ -14,5 +14,6 @@ It walks you through opening a command window and processing your first files.
 | An understanding of how processing works | [Explanation](diataxis/batchalign-explanation.md) |
 
 For common clinical and research workflows, the [Batchalign guide](batchalign/introduction.md)
-helps you choose the next task. The sidebar also includes supporting CHAT-format,
-Chatter, CLAN, and editor material, grouped by the same kinds of help.
+helps you choose the next task. The sidebar also includes CHAT-format notation
+used by Batchalign. For Chatter, CLAN, and editors, see
+[Related tools](related-tools.md).
