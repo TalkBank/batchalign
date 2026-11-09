@@ -133,6 +133,9 @@ async function waitForUiBatch(timeoutMs) {
   throw new Error(`UI batch did not finish: ${await script('return document.body.innerText')}`);
 }
 async function windowsUiComparison(text) {
+  // Both commands load Stanza in this cleanroom's empty model cache. Compare
+  // requests morphology too, so its first download needs the same budget.
+  const modelTimeoutMs = 15 * 60_000;
   const folder = join(sidecarReport.root, 'native-ui-input');
   await mkdir(folder, { recursive: true });
   const fixture = process.env.BATCHALIGN_SMOKE_MODELS === '1' && process.env.BATCHALIGN_NATIVE_CHAT;
@@ -154,7 +157,7 @@ async function windowsUiComparison(text) {
     await clickXPath("//div[normalize-space(.)='morphotag' and not(*)]");
     await clickXPath("//*[normalize-space(.)='use cache' and not(*)]/parent::div/following-sibling::div/div");
     await clickXPath("//button[normalize-space(.)='start batch']");
-    await waitForUiBatch(15 * 60_000);
+    await waitForUiBatch(modelTimeoutMs);
     const morphology = await readFile(join(folder, 'é.cha'), 'utf8');
     assert.match(morphology, /%mor:/);
     assert.match(morphology, /%gra:/);
@@ -170,7 +173,7 @@ async function windowsUiComparison(text) {
   }
   await clickXPath("//div[normalize-space(.)='compare' and not(*)]");
   await clickXPath("//button[normalize-space(.)='start batch']");
-  await waitForUiBatch(120_000);
+  await waitForUiBatch(modelTimeoutMs);
   const chat = await readFile(join(folder, 'é.cha'), 'utf8');
   const csv = await readFile(join(folder, 'é.compare.csv'), 'utf8');
   const [header, row] = csv.trim().split(/\r?\n/).map(line => line.split(','));
