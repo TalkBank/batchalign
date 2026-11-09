@@ -208,6 +208,7 @@ jobs:
       - name: Native startup and process-lifetime regression tests
         run: |
           just batchalign bootstrap-progress
+          just batchalign runtime-distribution-test
           just batchalign gui native-environment
           just batchalign gui native-unit --target ${{ matrix.runner.target }}
 

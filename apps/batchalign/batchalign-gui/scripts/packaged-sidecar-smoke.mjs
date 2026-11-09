@@ -1,6 +1,7 @@
 // Run on disposable CI runners against the sidecar extracted from a bundle.
 // This proves cold/warm bootstrap + native comparison/output, not webview UI.
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
 import { mkdtemp, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -92,6 +93,21 @@ async function boot() {
 
 try {
   await boot();
+  if (!cli) {
+    const python = join(root, 'environment', 'python',
+      ...(process.platform === 'win32' ? ['python.exe'] : ['bin', 'python3']));
+    const { stdout } = await promisify(execFile)(python, ['-I', '-c', [
+      'import json, cryptography',
+      'from cryptography.hazmat.backends.openssl.backend import backend',
+      'from cryptography.hazmat.primitives.ciphers.aead import AESGCM',
+      "assert tuple(map(int, cryptography.__version__.split('.'))) >= (50, 0, 2), cryptography.__version__",
+      "a = AESGCM(bytes(16)); n = bytes(12); p = b'Batchalign bootstrap'",
+      'assert a.decrypt(n, a.encrypt(n, p, None), None) == p',
+      "print(json.dumps({'cryptography': cryptography.__version__, 'openssl': backend.openssl_version_text()}))",
+    ].join('\n')], { timeout: 30_000 });
+    results.runtimeDependencies = JSON.parse(stdout);
+    await checkpoint();
+  }
   await stop();
   const base = await boot();
   const input = join(root, 'input', 'nested space');

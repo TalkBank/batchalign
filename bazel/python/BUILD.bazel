@@ -12,12 +12,24 @@ PyPI uploads live exclusively in CI
 no local twine wrapper ships from here.
 """
 
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load("@rules_rust//rust:defs.bzl", "rust_test")
 load(":llvm_tool.bzl", "llvm_tool_file")
 
 # Only the //python package needs these scripts.
 package(default_visibility = ["//python:__subpackages__"])
+
+py_binary(
+    name = "prepare_intel_distribution",
+    srcs = ["pyapp_intel_distribution.py"],
+    main = "pyapp_intel_distribution.py",
+)
+
+py_test(
+    name = "intel_distribution_test",
+    srcs = ["pyapp_intel_distribution.py", "pyapp_intel_distribution_test.py"],
+    main = "pyapp_intel_distribution_test.py",
+)
 
 rust_test(
     name = "bootstrap_progress_test",
@@ -51,6 +63,7 @@ exports_files([
     "pyapp_build.sh",
     "pyapp_install.sh",
     "pyapp_bootstrap_progress.rs",
+    "pyapp_intel_distribution.py",
     "pytest.sh",
     "pytest_windows_wheel.sh",
     "pytest_windows_wheel.py",

@@ -356,6 +356,7 @@ genrule(
     ],
     tools = [
         "//bazel/python:pyapp_install.sh",
+        "//bazel/python:prepare_intel_distribution",
         # Bazel-provided cargo + rustc. PATH-injected by the script
         # via PYAPP_RUST_BIN_DIRS, so the inner `cargo install`
         # never touches host cargo.
@@ -376,6 +377,7 @@ genrule(
         "$(execpath //python/batchalign:batchalign.whl)",
         "$(execpath @pyapp_src//:Cargo.toml)",
         "$(COMPILATION_MODE)",
+        "$(execpath //bazel/python:prepare_intel_distribution)",
     ]),
     local = True,
 )

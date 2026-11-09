@@ -237,13 +237,24 @@ export PYAPP_EXEC_SPEC="batchalign.cli.daemon:run_pyapp_entry"
 export PYAPP_PYTHON_VERSION="${PYAPP_PYTHON_VERSION:-$pin_python}"
 export PYAPP_DISTRIBUTION_EMBED="${PYAPP_DISTRIBUTION_EMBED:-1}"
 export PYAPP_FULL_ISOLATION="${PYAPP_FULL_ISOLATION:-1}"
+if [[ "$(uname -s)" == Darwin && "$(uname -m)" == x86_64 && -z "${PYAPP_DISTRIBUTION_PATH:-}${PYAPP_DISTRIBUTION_SOURCE:-}" ]]; then
+    if [[ "$PYAPP_PYTHON_VERSION" != 3.12 ]]; then
+        echo "Intel macOS runtime builder is pinned to Python 3.12; supply a custom distribution for other versions" >&2
+        exit 2
+    fi
+    PYAPP_DISTRIBUTION_PATH="$("$UV" run --no-project --python 3.12 "$BUILD_WORKSPACE_DIRECTORY/bazel/python/pyapp_intel_distribution.py" "$BUILD_WORKSPACE_DIRECTORY/python/target/pyapp-distributions")"
+    export PYAPP_DISTRIBUTION_PATH
+    export PYAPP_DISTRIBUTION_PYTHON_PATH="python/bin/python3"
+    export PYAPP_DISTRIBUTION_SITE_PACKAGES_PATH="python/lib/python3.12/site-packages"
+    export PYAPP_DISTRIBUTION_PIP_AVAILABLE="1"
+fi
 # The bundled binary should install the [api] extra so uvicorn / fastapi
 # / sse-starlette are available at runtime without the operator picking
 # the right extra. PyApp passes this string straight to pip.
 export PYAPP_PROJECT_DEPENDENCY_FILE=""
 # Native dependencies must not require compilers on the user's machine.
-# New SentencePiece / Cryptography releases can omit Intel macOS wheels;
-# let pip select the newest compatible wheel instead of building from source.
+# Select a compatible SentencePiece wheel. Cryptography is preinstalled in the
+# Intel Mac distribution above; other platforms use current published wheels.
 export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:+$PYAPP_PIP_EXTRA_ARGS }--only-binary=python-mecab-ko,python-mecab-ko-dic,sentencepiece,cryptography"
 # Bundle every backend extra — see the matching comment in
 # pyapp_install.sh. Without `all` the sidecar's pip install at first

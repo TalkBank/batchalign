@@ -22,11 +22,12 @@
 #   $3 = pyapp Cargo.toml  (@pyapp_src//:Cargo.toml — we take dirname
 #                           for `cargo install --path`)
 #   $4 = compilation mode  (opt|dbg|fastbuild)
+#   $5 = Intel macOS distribution builder (Bazel Python executable)
 
 set -euo pipefail
 
-if [[ $# -lt 4 ]]; then
-    echo "pyapp_install.sh: usage: <output> <wheel> <pyapp_cargo_toml> <mode>" >&2
+if [[ $# -lt 5 ]]; then
+    echo "pyapp_install.sh: usage: <output> <wheel> <pyapp_cargo_toml> <mode> <intel_distribution_builder>" >&2
     exit 2
 fi
 case "$1" in /*) OUTPUT="$1" ;; *) OUTPUT="$PWD/$1" ;; esac
@@ -34,6 +35,7 @@ shift
 WHEEL="$1"; shift
 PYAPP_CARGO_TOML="$1"; shift
 COMPILATION_MODE="$1"; shift
+INTEL_DISTRIBUTION_BUILDER="$1"; shift
 
 case "$WHEEL"            in /*) ;; *) WHEEL="$PWD/$WHEEL" ;; esac
 case "$PYAPP_CARGO_TOML" in /*) ;; *) PYAPP_CARGO_TOML="$PWD/$PYAPP_CARGO_TOML" ;; esac
@@ -152,6 +154,16 @@ export PYAPP_EXEC_SPEC="batchalign.cli.daemon:run_pyapp_entry"
 export PYAPP_PYTHON_VERSION="3.12"
 export PYAPP_DISTRIBUTION_EMBED="1"
 export PYAPP_FULL_ISOLATION="1"
+# Current Cryptography no longer publishes Intel Mac wheels. Build it with
+# static OpenSSL before shipping, rather than compiling at first launch or
+# falling back to an older release with known security advisories.
+if [[ "$(uname -s)" == Darwin && "$(uname -m)" == x86_64 && -z "${PYAPP_DISTRIBUTION_PATH:-}${PYAPP_DISTRIBUTION_SOURCE:-}" ]]; then
+    PYAPP_DISTRIBUTION_PATH="$("$INTEL_DISTRIBUTION_BUILDER" "$ws/python/target/pyapp-distributions")"
+    export PYAPP_DISTRIBUTION_PATH
+    export PYAPP_DISTRIBUTION_PYTHON_PATH="python/bin/python3"
+    export PYAPP_DISTRIBUTION_SITE_PACKAGES_PATH="python/lib/python3.12/site-packages"
+    export PYAPP_DISTRIBUTION_PIP_AVAILABLE="1"
+fi
 # Bundle every backend extra so the shipped sidecar can service any
 # recipe — transcribe (whisper / openai / vllm / qwen3 / nllb / etc.),
 # align, morphotag (stanza), translate, compare — plus the api server
@@ -167,8 +179,8 @@ export PYAPP_FULL_ISOLATION="1"
 # environment.
 export PYAPP_PROJECT_FEATURES="api,all"
 # Native dependencies must not require compilers on the user's machine.
-# New SentencePiece / Cryptography releases can omit Intel macOS wheels;
-# let pip select the newest compatible wheel instead of building from source.
+# Select a compatible SentencePiece wheel. Cryptography is preinstalled in the
+# Intel Mac distribution above; other platforms use current published wheels.
 export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:+$PYAPP_PIP_EXTRA_ARGS }--only-binary=python-mecab-ko,python-mecab-ko-dic,sentencepiece,cryptography"
 
 echo "pyapp_install.sh: cargo=$(command -v cargo)"
