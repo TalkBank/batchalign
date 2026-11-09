@@ -222,7 +222,7 @@ jobs:
           TAURI_PROFILE: release
         run: |
           set -euo pipefail
-          # Tauri downloads WiX/linuxdeploy after compilation. GitHub release
+          # Tauri downloads WiX/linuxdeploy/AppImage runtimes after compilation. GitHub release
           # downloads can return 504; retry those transient HTTP failures while
           # preserving immediate failure for compiler and installer errors.
           log="$RUNNER_TEMP/batchalign-bundle.log"
@@ -232,7 +232,7 @@ jobs:
             else
               result=$?
             fi
-            if [[ "$attempt" == 3 ]] || ! grep -Eq 'failed to bundle project.*http status: (408|429|500|502|503|504)' "$log"; then
+            if [[ "$attempt" == 3 ]] || ! grep -Eq '(failed to bundle project.*http status: |Failed to download runtime: server returned status code )(408|429|500|502|503|504)' "$log"; then
               exit "$result"
             fi
             echo "Retrying transient packaging download failure (attempt $attempt of 3)" >&2
