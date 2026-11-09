@@ -175,7 +175,8 @@ jobs:
         run: |
           # Ubuntu 26.04 renamed the package; 24.04 ARM still uses the old name.
           driver_package=webkit2gtk-driver
-          if apt-cache show webkitgtk-webdriver >/dev/null 2>&1; then
+          # A package name can be known to apt without an installable version.
+          if LC_ALL=C apt-cache policy webkitgtk-webdriver | grep -E 'Candidate: [0-9]' >/dev/null; then
             driver_package=webkitgtk-webdriver
           fi
           sudo apt-get install -y "$driver_package" xvfb openbox wmctrl
