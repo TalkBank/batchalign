@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+from enum import Enum
 
 import typer
 
 from ._common import CHAT_EXTENSIONS, collect_chat_inputs, resolve_inputs, write_outcome
 from ._options import MediaOption, cli_options, inference_device
 from .tui import Interface, Task
+
+
+class PhoneticEngine(str, Enum):
+    phoneticxeus = "phoneticxeus"
+    pasketti = "pasketti"
 
 
 def register(app: typer.Typer) -> None:
@@ -35,6 +41,10 @@ def register(app: typer.Typer) -> None:
             help="UTF-8 CSV overrides with header word,ipa and one word or CHAT unit "
             "per row. Example row: wug,wʌɡ. Overrides the generated pronunciation for that unit.",
         ),
+        engine: PhoneticEngine = typer.Option(
+            PhoneticEngine.phoneticxeus, "--engine", case_sensitive=False,
+            help="Phonetic engine: phoneticxeus | pasketti (English child speech).",
+        ),
         force_cpu: bool = typer.Option(False, "--force-cpu", help="Use CPU inference."),
         batch_size: int | None = typer.Option(
             None, "--batch-size", min=1,
@@ -45,7 +55,8 @@ def register(app: typer.Typer) -> None:
         """Add observed IPA to `%pho`, preserving existing phonetic tiers.
 
         Requires utterance timing bullets (run utr first if absent).
-        Adjacent utterances share approximately 20-second inference windows.
+        PhoneticXeus shares approximately 20-second windows across utterances;
+        Pasketti processes each English utterance separately.
         Reference IPA uses Piper Plus for supported CHAT languages and Epitran
         otherwise. Requires Python 3.11+; English needs no system G2P executable.
 
@@ -72,13 +83,17 @@ def register(app: typer.Typer) -> None:
                 ) from error
         with Interface.open(
             command="phonetic",
-            params={"engine": "phoneticxeus"},
+            params={"engine": engine.value},
             output=out,
             verbosity=opts.verbosity,
             plain=opts.plain,
             quiet=opts.quiet,
         ) as ui:
-            backend = ba.PhoneticXeusBackend(
+            backend_type = (
+                ba.PaskettiPhoneticBackend
+                if engine is PhoneticEngine.pasketti else ba.PhoneticXeusBackend
+            )
+            backend = backend_type(
                 device=inference_device(force_cpu=force_cpu, allow_mps=False),
                 pronunciations=overrides,
                 batch_size=batch_size,

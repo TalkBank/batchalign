@@ -72,6 +72,7 @@ class AsrEngine(str, Enum):
     openai = "openai"      # openai-whisper package
     funaudio = "funaudio"  # FunASR SenseVoiceSmall / paraformer-zh (BA2 FunAudioEngine)
     tencent = "tencent"    # Tencent Cloud ASR (BA2 TencentEngine)
+    pasketti = "pasketti"  # DrivenData child-speech word ASR
     qwen3 = "qwen3"        # Qwen3-ASR (Alibaba open-weight; tbtbt parity)
     aliyun = "aliyun"      # Aliyun NLS Cloud ASR (BA2 AlibabaEngine)
     malayalam = "malayalam"  # gvs Wav2Vec2 XLSR Malayalam CTC
@@ -94,6 +95,7 @@ _DEFAULT_MODEL = {
     AsrEngine.whisper: "openai/whisper-large-v3",
     AsrEngine.openai: "turbo",
     AsrEngine.funaudio: "FunAudioLLM/SenseVoiceSmall",
+    AsrEngine.pasketti: "drivendata/pasketti-word",
     AsrEngine.qwen3: "Qwen/Qwen3-ASR-1.7B",
     AsrEngine.malayalam: "gvs/wav2vec2-large-xlsr-malayalam",
 }
@@ -119,7 +121,7 @@ def register(app: typer.Typer) -> None:
         ),
         engine: AsrEngine = typer.Option(
             AsrEngine.rev, "--engine", case_sensitive=False,
-            help="ASR engine: rev | google | whisper | chatwhisper | openai | funaudio | tencent | qwen3 | malayalam.",
+            help="ASR engine: rev | google | whisper | chatwhisper | openai | funaudio | tencent | qwen3 | pasketti | malayalam.",
         ),
         lang: str = typer.Option(
             ...,
@@ -294,6 +296,13 @@ def _build_asr(
     if engine is AsrEngine.tencent:
         # Tencent Cloud does its own diarization; the UtSeg pairing still applies.
         return ba.TencentAsrBackend(language=lang, num_speakers=num_speakers), True
+    if engine is AsrEngine.pasketti:
+        if lang.alpha_3 != "eng":
+            raise typer.BadParameter("Pasketti supports English (--lang eng).")
+        return ba.Qwen3AsrBackend(
+            language=lang, model_id=m or "drivendata/pasketti-word",
+            device=device or "cpu",
+        ), False
     if engine is AsrEngine.qwen3:
         # Qwen3-ASR (Alibaba); single-speaker output (no diarization). tbtbt
         # pins device default to CPU on Apple Silicon (MPS degraded on 1.7B);

@@ -138,3 +138,20 @@ This package is one slice of the `talkbank-tools` monorepo:
 For repo conventions, build commands, and the BA3 cutover plan, see
 `CLAUDE.md` at the repo root and
 `book/src/batchalign/developer/landing-status.md`.
+
+Pasketti child-speech engines (English):
+
+```sh
+pip install 'batchalign[qwen3]'    # word ASR, via the Qwen3 backend
+batchalign transcribe input_dir -o output_dir --lang eng --engine pasketti
+pip install 'batchalign[phonetic]' # observed IPA, via WavLM CTC
+batchalign phonetic timed_chat_dir -o output_dir --engine pasketti
+```
+
+These select [pasketti-word](https://huggingface.co/drivendata/pasketti-word)
+and [pasketti-phonetic](https://huggingface.co/drivendata/pasketti-phonetic),
+respectively. Phonetic transcription requires timed CHAT and matching audio;
+it uses the same pronunciation overrides and observed-phone projection as
+PhoneticXeus. The phonetic checkpoint runs in full precision. Word ASR uses
+the existing Qwen3 Transformers runtime and companion word aligner; DrivenData's
+published word-model example instead uses vLLM on Linux/NVIDIA.

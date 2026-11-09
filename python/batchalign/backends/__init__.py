@@ -25,7 +25,7 @@ from batchalign.backends.base import (
     Coref,
     declared_tasks,
 )
-from batchalign.backends.phonetic import PhoneticXeusBackend
+from batchalign.backends.phonetic import PhoneticXeusBackend, PaskettiPhoneticBackend
 from batchalign.backends.ai import DspyAIBackend
 from batchalign.backends.asr import (
     AliyunAsrBackend,
@@ -68,6 +68,7 @@ __all__ = [
     "FA",
     "Phonetic",
     "PhoneticXeusBackend",
+    "PaskettiPhoneticBackend",
     "Speaker",
     "UtSeg",
     "Morphosyntax",

@@ -62,14 +62,29 @@ class PhoneticXeusBackend(Phonetic):
     def batch_policy(self) -> BatchPolicy:
         return BatchPolicy.one()
 
+    def _group_utterances(self, utterances: list[Any]) -> list[list[int]]:
+        return group_utterances(utterances)
+
+    def _load_model(self, device: str) -> None:
+        from huggingface_hub import snapshot_download
+        from transformers import AutoModel
+
+        # A local snapshot pins the wrapper's internal pxeus import.
+        path = snapshot_download(
+            self.model_id, revision=self.revision,
+            allow_patterns=["*.json", "*.py", "model.safetensors", "pxeus/**"],
+        )
+        self._model = AutoModel.from_pretrained(path, trust_remote_code=True).to(device).eval()
+
+    def _transcribe_batch(self, audio_batch: list[Any]) -> list[list[str]]:
+        return transcribe_batch(self._model, audio_batch)
+
     def call(
         self, batch: list[Any], *, progress: Any = None, **_kwargs: Any
     ) -> list[Any]:
         import numpy as np
         import torch
         import torchaudio.functional as audio_ops
-        from huggingface_hub import snapshot_download
-        from transformers import AutoModel
         from batchalign._core.proto import PhoneticOutput, PhoneticResult
 
         outputs = []
@@ -80,7 +95,7 @@ class PhoneticXeusBackend(Phonetic):
                 sample_rate = int(item.audio.sample_rate)
                 if sample_rate <= 0:
                     raise ValueError(
-                        "PhoneticXeus requires a positive audio sample rate"
+                        "Phonetic transcription requires a positive audio sample rate"
                     )
                 waveform = np.frombuffer(item.audio.pcm_f32le, dtype="<f4")
                 results = [
@@ -98,7 +113,7 @@ class PhoneticXeusBackend(Phonetic):
 
                 # Keep original utterance/unit ownership through grouping and
                 # length sorting; the output CHAT order never changes.
-                groups = group_utterances(item.utterances)
+                groups = self._group_utterances(item.utterances)
                 jobs = []
                 for group in groups:
                     owners = [
@@ -112,12 +127,7 @@ class PhoneticXeusBackend(Phonetic):
                         jobs.append((start, end, owners))
                 jobs.sort(key=lambda job: job[1] - job[0])
                 if jobs and self._model is None:
-                    # A local snapshot pins the wrapper's internal pxeus import.
-                    path = snapshot_download(
-                        self.model_id, revision=self.revision,
-                        allow_patterns=["*.json", "*.py", "model.safetensors", "pxeus/**"],
-                    )
-                    self._model = AutoModel.from_pretrained(path, trust_remote_code=True).to(device).eval()
+                    self._load_model(device)
                 for offset in range(0, len(jobs), batch_size):
                     current = jobs[offset:offset + batch_size]
                     audio_batch, references = [], []
@@ -132,9 +142,9 @@ class PhoneticXeusBackend(Phonetic):
                             self.pronunciations(item.utterances[u].units[w].text, item.language)
                             for u, w in owners
                         ])
-                    phone_batch = transcribe_batch(self._model, audio_batch)
+                    phone_batch = self._transcribe_batch(audio_batch)
                     if len(phone_batch) != len(current):
-                        raise ValueError("PhoneticXeus returned the wrong number of windows")
+                        raise ValueError("Phonetic model returned the wrong number of windows")
                     for (_, _, owners), phones, reference in zip(current, phone_batch, references):
                         for (u, w), value in zip(owners, project_phones(phones, reference)):
                             results[u].ipa[w] = value
