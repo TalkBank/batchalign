@@ -3,6 +3,7 @@
 [Home](index.md)
 [Start here](introduction.md)
 [Batchalign documentation](batchalign/introduction.md)
+[Release notes](batchalign/release-notes.md)
 
 # Tutorials
 
