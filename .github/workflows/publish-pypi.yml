@@ -34,18 +34,25 @@ on:
         description: "Wheel version (must match python/pyproject.toml [project].version)"
         required: true
         type: string
+      platform:
+        description: "Platform to build (select one to recover a failed artifact)"
+        type: choice
+        default: all
+        options: [all, macos-arm64, macos-x86_64, linux-x86_64, linux-aarch64, windows-x86_64]
       publish:
         description: "Upload to PyPI? (false → artifact only)"
         type: boolean
         default: false
 
 concurrency:
-  group: publish-pypi-${{ github.ref }}
+  group: publish-pypi-${{ github.ref }}-${{ inputs.platform }}
   cancel-in-progress: false
 
 jobs:
   verify-version:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.platforms.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Assert pyproject.toml version matches input tag
@@ -57,23 +64,49 @@ jobs:
             exit 1
           fi
 
+
+      - name: Select wheel platforms
+        id: platforms
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          platforms = [
+              {"runner": "macos-15", "platform": "macos-arm64"},
+              {"runner": "macos-15-intel", "platform": "macos-x86_64"},
+              {"runner": "ubuntu-latest", "platform": "linux-x86_64"},
+              {"runner": "ubuntu-24.04-arm", "platform": "linux-aarch64"},
+              {"runner": "windows-latest", "platform": "windows-x86_64"},
+          ]
+          selected = os.environ["PLATFORM"] or "all"
+          if selected != "all":
+              if os.environ["PUBLISH"] == "true":
+                  raise SystemExit("Single-platform recovery is artifact-only; publish a complete release separately")
+              platforms = [p for p in platforms if p["platform"] == selected]
+          if not platforms:
+              raise SystemExit("Unknown wheel platform")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print("matrix=" + json.dumps({"include": platforms}), file=output)
+          PYTHON
+
   build:
     needs: [verify-version]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # Every cell is a NATIVE build -- runner arch == target arch.
-          # No MATURIN_TARGET, no cross-compile sysroot. Maturin tags the
-          # wheel with the runner's platform automatically.
-          - { runner: macos-15,         platform: macos-arm64 }
-          - { runner: macos-15-intel,   platform: macos-x86_64 }
-          - { runner: ubuntu-latest,    platform: linux-x86_64 }
-          - { runner: ubuntu-24.04-arm, platform: linux-aarch64 }
-          - { runner: windows-latest,   platform: windows-x86_64 }
+      matrix: ${{ fromJSON(needs.verify-version.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Allow bounded retries for dependency downloads
+        shell: bash
+        run: |
+          cat >> .bazelrc.user <<'EOF'
+          common --http_connector_attempts=12
+          common --http_connector_retry_max_timeout=30s
+          EOF
 
       - uses: bazel-contrib/setup-bazel@0.19.0
         with:
