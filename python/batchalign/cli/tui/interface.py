@@ -408,8 +408,12 @@ class Interface:
             self._dashboard.start()
 
     def _render_command_header(self) -> None:
-        dest = "in-place" if self.output is None else f"→ {self.output}"
-        line1 = f"batchalign {self.command} · {dest}"
+        # Plain output also goes to legacy Windows pipes (e.g. cp1252),
+        # which cannot encode the decorative arrow used by the TUI.
+        arrow = "->" if self.plain else "→"
+        separator = " | " if self.plain else " · "
+        dest = "in-place" if self.output is None else f"{arrow} {self.output}"
+        line1 = f"batchalign {self.command}{separator}{dest}"
         params_bits: list[str] = []
         for k, v in self.params.items():
             if v is None:
@@ -418,7 +422,7 @@ class Interface:
                 params_bits.append(f"{k} {'on' if v else 'off'}")
             else:
                 params_bits.append(f"{k} {v}")
-        line2 = " · ".join(params_bits) if params_bits else ""
+        line2 = separator.join(params_bits) if params_bits else ""
         if self.plain:
             self.console.print(line1)
             if line2:

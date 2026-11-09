@@ -13,6 +13,9 @@ from __future__ import annotations
 
 import io
 import re
+from pathlib import Path
+
+import pytest
 
 from rich.console import Console
 
@@ -30,6 +33,22 @@ def _capture_console() -> tuple[Console, io.StringIO]:
 
 def _strip_ansi(s: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", s)
+
+
+@pytest.mark.parametrize("encoding", ["cp1252", "ascii"])
+def test_plain_header_on_legacy_encoded_output(encoding):
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding=encoding)
+    console = Console(file=stream, force_terminal=False, no_color=True, width=120)
+    with Interface.open(
+        command="avqi", params={"engine": "praat", "workers": 2},
+        output=Path("results"), plain=True, console=console,
+    ):
+        pass
+    stream.flush()
+    output = raw.getvalue().decode(encoding)
+    assert "batchalign avqi | -> results" in output
+    assert "engine praat | workers 2" in output
 
 
 def test_all_ok_exit_zero_and_done_line(fake_progress_core):
