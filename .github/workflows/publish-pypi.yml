@@ -138,7 +138,7 @@ jobs:
             fi
             # Keep successful downloads on this runner between attempts.
             # Compiler, packaging, and validation errors are never retried.
-            if [[ "$attempt" == 3 ]] || ! grep -Eq '(GET returned|HTTP status (client|server) error \()(408|429|500|502|503|504)( |\))' "$log"; then
+            if [[ "$attempt" == 3 ]] || ! grep -Eq '(GET returned |HTTP status (client|server) error \()(408|429|500|502|503|504)( |\))' "$log"; then
               exit "$result"
             fi
             echo "Retrying transient wheel dependency download failure (attempt $attempt of 3)" >&2
