@@ -166,8 +166,10 @@ export PYAPP_FULL_ISOLATION="1"
 # desktop bundle that does NOT ask the user to manage a Python
 # environment.
 export PYAPP_PROJECT_FEATURES="api,all"
-# Korean tokenization must not require a C++ compiler on the user's machine.
-export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:+$PYAPP_PIP_EXTRA_ARGS }--only-binary=python-mecab-ko,python-mecab-ko-dic"
+# Native dependencies must not require compilers on the user's machine.
+# New SentencePiece / Cryptography releases can omit Intel macOS wheels;
+# let pip select the newest compatible wheel instead of building from source.
+export PYAPP_PIP_EXTRA_ARGS="${PYAPP_PIP_EXTRA_ARGS:+$PYAPP_PIP_EXTRA_ARGS }--only-binary=python-mecab-ko,python-mecab-ko-dic,sentencepiece,cryptography"
 
 echo "pyapp_install.sh: cargo=$(command -v cargo)"
 echo "pyapp_install.sh: pyapp source = $PYAPP_SRC_DIR"
