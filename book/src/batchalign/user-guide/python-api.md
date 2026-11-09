@@ -32,6 +32,19 @@ returned list. File concurrency alone therefore does not bound total memory for
 a large API call. The CLI uses the callback path to convert inputs within its
 dispatch window and write completed outcomes without retaining the full result set.
 
+## Paired acoustic measurements
+
+`ba.AvqiMediaInput(sustained_vowel=..., continuous_speech=..., source_id=...)`
+supplies the two recordings to `ba.recipes.avqi(avqi_backend=ba.AvqiBackend())`.
+The backend requires the `avqi` installation extra.
+
+Successful AVQI outcomes have `kind == "Metrics"`. Read
+`outcome.metrics["rows"][0]["columns"]` to access the measurements without
+consuming the outcome. `outcome.metrics` is `None` for other kinds or after an
+outcome has been consumed by `write()`. Check `outcome.is_failed` and
+`outcome.error` before reading measurements.
+See [AVQI](commands/avqi.md) for its input and measurement contract.
+
 ## Cache policy
 
 Recipes forward pipeline options such as `cache`:

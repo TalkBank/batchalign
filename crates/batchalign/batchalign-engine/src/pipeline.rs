@@ -20,7 +20,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 use batchalign_core::{
-    AiChatInput, BAError, BAValue, Chat, ChatInput, DynTaskRunner, MediaInput, Paired, PairedInput,
+    AvqiMediaInput, AiChatInput, BAError, BAValue, Chat, ChatInput, DynTaskRunner, MediaInput, Paired, PairedInput,
     ProgressEvent, ProgressKind, ProgressSink, SourceId, Task,
 };
 use futures::stream::{self, StreamExt};
@@ -327,6 +327,9 @@ fn convert_input_or_failure(
 /// can take `ChatInput` to skip ASR.
 fn convert_py_input(py: Python<'_>, obj: Py<PyAny>) -> PyResult<BAValue> {
     let bound = obj.bind(py);
+    if let Ok(pair) = bound.extract::<AvqiMediaInput>() {
+        return Ok(BAValue::AvqiMedia(pair));
+    }
     if let Ok(m) = bound.extract::<MediaInput>() {
         return Ok(BAValue::Media(m));
     }
@@ -434,6 +437,9 @@ fn recover_source_id(py: Python<'_>, obj: &Py<PyAny>) -> Option<SourceId> {
         }
     }
     // 2. Typed extractions carry their own validated source_id.
+    if let Ok(pair) = bound.extract::<AvqiMediaInput>() {
+        return Some(pair.source_id);
+    }
     if let Ok(m) = bound.extract::<MediaInput>() {
         return Some(m.source_id);
     }
@@ -895,6 +901,7 @@ fn validate_value_for_stage(value: &BAValue, task: Task, gate: StageGate) -> Res
             validate_value_for_stage(tail, task, gate)
         }
         BAValue::Media(_)
+        | BAValue::AvqiMedia(_)
         | BAValue::MediaOutput(_)
         | BAValue::Metrics(_)
         | BAValue::Nil

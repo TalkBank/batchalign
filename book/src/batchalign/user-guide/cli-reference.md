@@ -64,6 +64,7 @@ beside transcripts. Transcript headers and output locations are preserved.
 |---|---|
 | `transcribe` | Recording to CHAT transcript |
 | `align` | Forced alignment of CHAT against audio |
+| `avqi` | Measure paired sustained-vowel and continuous-speech audio; write `avqi.csv` |
 | `phonetic` | Add observed IPA to `%pho` using audio and phone-sequence DP |
 | `morphotag` | Add `%mor` and `%gra` |
 | `utseg` | Revise utterance segmentation |
@@ -157,6 +158,20 @@ Accepts the shared input selection and `-o/--out` options above.
 |---|---|---|
 | `--engine` | pyannote-ai | Choices: `pyannote-ai`, `pyannote`. Diarization engine: pyannote-ai (cloud) or pyannote (local). |
 | `--num-speakers`, `-n` | 0 | Expected speaker count; zero auto-detects. |
+
+## avqi
+
+```bash
+batchalign [--parallel N] avqi SUSTAINED_VOWEL CONTINUOUS_SPEECH [-o DIRECTORY]
+```
+
+Both arguments must be files or both must be directories. Directory pairing uses
+mirrored relative stems, optionally stripping terminal `.sv` / `.cs` markers.
+The output is one `avqi.csv` in `DIRECTORY` (the current directory by default).
+This command does not use CHAT inputs, `--media`, or `--input-list`.
+Install `batchalign[avqi]`; inputs need at least 20 kHz audio and the vowel must
+be at least three seconds. See [AVQI](commands/avqi.md) for measurement details,
+CSV columns, and failure behavior.
 
 ## phonetic
 

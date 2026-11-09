@@ -261,6 +261,7 @@ fn call_py_backend(
             .iter()
             .map(|t| match t {
                 TaskInput::Ai(_) => "Ai",
+                TaskInput::Avqi(_) => "Avqi",
                 TaskInput::Asr(_) => "Asr",
                 TaskInput::Fa(_) => "Fa",
                 TaskInput::Phonetic(_) => "Phonetic",

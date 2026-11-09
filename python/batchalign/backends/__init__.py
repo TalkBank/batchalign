@@ -15,6 +15,7 @@ from __future__ import annotations
 from batchalign.backends.base import (
     Backend,
     AI,
+    AVQI,
     ASR,
     FA,
     Phonetic,
@@ -25,6 +26,7 @@ from batchalign.backends.base import (
     Coref,
     declared_tasks,
 )
+from batchalign.backends.avqi import AvqiBackend
 from batchalign.backends.phonetic import PhoneticXeusBackend, PaskettiPhoneticBackend
 from batchalign.backends.ai import DspyAIBackend
 from batchalign.backends.asr import (
@@ -64,6 +66,8 @@ __all__ = [
     # Marker ABCs
     "Backend",
     "AI",
+    "AVQI",
+    "AvqiBackend",
     "ASR",
     "FA",
     "Phonetic",

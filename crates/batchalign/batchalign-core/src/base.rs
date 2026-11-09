@@ -6,6 +6,7 @@
 //! `paired.rs`, `chat.rs`, and `progress.rs` per the spec2.md reorg.
 
 use crate::metrics::MetricsArtifact;
+use crate::proto::avqi::{AvqiInput, AvqiOutput};
 use crate::proto::ai::{AiInput, AiOutput};
 use crate::proto::asr::{AsrInput, AsrOutput};
 use crate::proto::compare::{CompareInput, CompareOutput};
@@ -18,7 +19,7 @@ use crate::proto::speaker::{SpeakerInput, SpeakerOutput};
 use crate::proto::translate::{TranslateInput, TranslateOutput};
 use crate::proto::utr::{UtrInput, UtrOutput};
 use crate::proto::utseg::{UtSegInput, UtSegOutput};
-use crate::utils::{BAError, BAResult, MediaInput, SourceId};
+use crate::utils::{BAError, BAResult, AvqiMediaInput, MediaInput, SourceId};
 use async_trait::async_trait;
 use futures::future::BoxFuture;
 use schemars::JsonSchema;
@@ -72,6 +73,8 @@ pub enum Task {
     Convert,
     /// Acoustic phonetic transcription into `%pho`.
     Phonetic,
+    /// Acoustic Voice Quality Index from a pair of recordings.
+    Avqi,
 }
 
 impl Task {
@@ -98,7 +101,7 @@ impl Task {
             Task::Coref => &[Task::Morphosyntax],
             Task::Translate => &[Task::Morphosyntax],
             Task::Compare => &[],
-            Task::Convert => &[],
+            Task::Convert | Task::Avqi => &[],
         }
     }
 
@@ -117,11 +120,12 @@ impl Task {
             Task::Coref => "coref",
             Task::Compare => "compare",
             Task::Convert => "convert",
+            Task::Avqi => "avqi",
         }
     }
 
     /// Every variant — useful for iteration in tests and codegen.
-    pub const ALL: [Task; 12] = [
+    pub const ALL: [Task; 13] = [
         Task::Ai,
         Task::Asr,
         Task::Fa,
@@ -134,6 +138,7 @@ impl Task {
         Task::Coref,
         Task::Compare,
         Task::Convert,
+        Task::Avqi,
     ];
 }
 
@@ -204,6 +209,7 @@ macro_rules! union_input_output {
 union_input_output! {
     input {
         Ai(AiInput) => Ai,
+        Avqi(AvqiInput) => Avqi,
         Asr(AsrInput) => Asr,
         Fa(FaInput) => Fa,
         Phonetic(PhoneticInput) => Phonetic,
@@ -222,6 +228,7 @@ union_input_output! {
     }
     output {
         Ai(AiOutput),
+        Avqi(AvqiOutput),
         Asr(AsrOutput),
         Fa(FaOutput),
         Phonetic(PhoneticOutput),
@@ -258,6 +265,7 @@ macro_rules! try_from_output {
 
 try_from_output! {
     Ai(AiOutput),
+    Avqi(AvqiOutput),
     Asr(AsrOutput),
     Fa(FaOutput),
     Phonetic(PhoneticOutput),
@@ -520,6 +528,8 @@ impl Paired {
 pub enum BAValue {
     /// A reference to media on disk (the typical pipeline input).
     Media(MediaInput),
+    /// Continuous speech and sustained vowel audio paths.
+    AvqiMedia(AvqiMediaInput),
     /// Newly encoded media bytes. Unlike `Media`, this is a writable output.
     MediaOutput(MediaOutput),
     /// A validated CHAT document.
@@ -571,6 +581,7 @@ impl BAValue {
     pub fn source_id(&self) -> SourceId {
         match self {
             BAValue::Media(m) => m.source_id.clone(),
+            BAValue::AvqiMedia(m) => m.source_id.clone(),
             BAValue::MediaOutput(m) => m.source_id.clone(),
             BAValue::Chat(c) => c.source_id().clone(),
             BAValue::Ai { chat, .. } => chat.source_id().clone(),
@@ -600,6 +611,7 @@ impl BAValue {
     pub fn kind(&self) -> &'static str {
         match self {
             BAValue::Media(_) => "Media",
+            BAValue::AvqiMedia(_) => "AvqiMedia",
             BAValue::MediaOutput(_) => "MediaOutput",
             BAValue::Chat(_) => "Chat",
             BAValue::Ai { .. } => "Ai",
@@ -620,7 +632,7 @@ impl BAValue {
             BAValue::Ai { chat, .. } => chat.write(path),
             BAValue::Paired(p) => p.main().write(path),
             BAValue::Metrics(m) => write_metrics_csv(m, path),
-            BAValue::Media(_) => Err(BAError::Internal(
+            BAValue::Media(_) | BAValue::AvqiMedia(_) => Err(BAError::Internal(
                 "pipeline did not process media into a writable output".into(),
             )),
             BAValue::MediaOutput(output) => output.write(path),

@@ -44,6 +44,7 @@ except ImportError:
         still type-checks.
         """
 
+        Avqi = "Avqi"
         Ai = "Ai"
         Asr = "Asr"
         Fa = "Fa"
@@ -151,6 +152,10 @@ class AI(Backend):
     """Marker: this backend handles `Task.Ai` inputs."""
 
 
+class AVQI(Backend):
+    """Marker: paired-audio acoustic voice quality measurements."""
+
+
 class ASR(Backend):
     """Marker: this backend handles `Task.Asr` inputs."""
 
@@ -205,6 +210,7 @@ class Coref(Backend):
 
 _TASK_BY_ABC: dict[type, Task] = {
     AI: Task.Ai,
+    AVQI: Task.Avqi,
     ASR: Task.Asr,
     FA: Task.Fa,
     Phonetic: Task.Phonetic,
@@ -230,6 +236,7 @@ def declared_tasks(backend: Backend) -> list[Task]:
 __all__ = [
     "Backend",
     "AI",
+    "AVQI",
     "ASR",
     "FA",
     "Phonetic",

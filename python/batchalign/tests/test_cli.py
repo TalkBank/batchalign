@@ -10,6 +10,7 @@ from batchalign.cli import app
 
 
 SUBCOMMANDS = [
+    "avqi",
     "transcribe",
     "align",
     "morphotag",

@@ -43,6 +43,7 @@ from ._options import CLIOptions, cli_options
 # duplicated from the subcommand modules' docstrings so the top-level
 # `--help` panel can render without loading them. Keep in sync.
 _LAZY_SUBCOMMANDS: dict[str, tuple[str, str]] = {
+    "avqi": ("batchalign.cli.avqi", "Measure voice quality from paired speech and vowel recordings."),
     "transcribe": (
         "batchalign.cli.transcribe",
         "Transcribe media into CHAT (.cha) files.",

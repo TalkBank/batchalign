@@ -127,6 +127,12 @@ def utr(*, utr_backend: Any, **opts: Any) -> Any:
     return Pipeline(tasks=[Task.Utr], backends=[utr_backend], **opts)
 
 
+def avqi(*, avqi_backend: Any, **opts: Any) -> Any:
+    """Measure paired speech and sustained-vowel audio, yielding metrics."""
+    Task, Pipeline = _core()
+    return Pipeline(tasks=[Task.Avqi], backends=[avqi_backend], **opts)
+
+
 def phonetic(
     *, phonetic_backend: Any, utr_backend: Any | None = None, **opts: Any
 ) -> Any:
@@ -227,6 +233,7 @@ __all__ = [
     "utr",
     "morphotag",
     "phonetic",
+    "avqi",
     "translate",
     "ai",
     "coref",

@@ -188,6 +188,15 @@ impl MediaInput {
     }
 }
 
+/// The two audio recordings required for AVQI.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(feature = "python", pyo3::pyclass(get_all))]
+pub struct AvqiMediaInput {
+    pub source_id: SourceId,
+    pub sustained_vowel: PathBuf,
+    pub continuous_speech: PathBuf,
+}
+
 /// A reference to an existing CHAT file on disk. Compare-, FA-, morphotag-,
 /// translate-style pipelines start here instead of from `MediaInput`.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

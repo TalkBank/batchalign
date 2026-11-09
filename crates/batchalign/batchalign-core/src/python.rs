@@ -8,7 +8,7 @@ use crate::backends::BatchPolicy;
 use crate::base::Task;
 use crate::base::{ProgressEvent, ProgressKind};
 use crate::utils::SourceId;
-use crate::utils::{AiChatInput, ChatInput, MediaInput, PairedInput, PreparedAudio, prepare_pcm};
+use crate::utils::{AvqiMediaInput, AiChatInput, ChatInput, MediaInput, PairedInput, PreparedAudio, prepare_pcm};
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 
@@ -18,6 +18,7 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Task>()?;
     m.add_class::<BatchPolicy>()?;
     m.add_class::<MediaInput>()?;
+    m.add_class::<AvqiMediaInput>()?;
     m.add_class::<ChatInput>()?;
     m.add_class::<AiChatInput>()?;
     m.add_class::<PairedInput>()?;
@@ -32,7 +33,7 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-/// Decode one media path through the same 16 kHz mono seam used by ASR/FA.
+/// Decode one media path to native-rate mono PCM, as used by task runners.
 #[pyfunction]
 fn prepare_audio(input: &MediaInput) -> PyResult<PreparedAudio> {
     prepare_pcm(input).map_err(|err| pyo3::exceptions::PyRuntimeError::new_err(err.to_string()))
@@ -136,5 +137,18 @@ impl PairedInput {
         source_id: &Bound<'_, PyAny>,
     ) -> PyResult<Self> {
         Ok(Self::new(coerce_source_id(source_id)?, main, gold))
+    }
+}
+
+#[pymethods]
+impl AvqiMediaInput {
+    #[new]
+    #[pyo3(signature = (sustained_vowel, continuous_speech, source_id))]
+    fn py_new(
+        sustained_vowel: std::path::PathBuf,
+        continuous_speech: std::path::PathBuf,
+        source_id: &Bound<'_, PyAny>,
+    ) -> PyResult<Self> {
+        Ok(Self { source_id: coerce_source_id(source_id)?, sustained_vowel, continuous_speech })
     }
 }

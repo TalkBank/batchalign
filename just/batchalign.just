@@ -156,6 +156,11 @@ lint:
 wheel:
     bazel run --jobs={{ bazel_jobs }} -c opt //python/batchalign:wheel
 
+# Install a built wheel's AVQI extra into a disposable blank virtualenv.
+# The installed console script is tested outside the checkout intentionally.
+avqi-install-test wheel python="python3":
+    cd "{{ invocation_directory() }}" && "{{ python }}" "{{ justfile_directory() }}/bazel/python/smoke_avqi_wheel.py" "{{ wheel }}"
+
 # Standalone production daemon sidecar binary via PyApp.
 #
 # Output: bazel-bin/python/batchalign/sidecar. Self-contained —

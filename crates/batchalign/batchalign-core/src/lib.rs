@@ -45,6 +45,6 @@ pub use proto::phonetic::{
     PhoneticInput, PhoneticOutput, PhoneticResult, PhoneticUnit, PhoneticUtterance,
 };
 pub use utils::{
-    AiChatInput, AudioError, BAError, BAResult, ChatInput, MediaInput, PairedInput, PreparedAudio,
+    AvqiMediaInput, AiChatInput, AudioError, BAError, BAResult, ChatInput, MediaInput, PairedInput, PreparedAudio,
     SourceId, SpeakerLabel, prepare_pcm, prepare_pcm_interleaved,
 };

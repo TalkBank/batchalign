@@ -65,6 +65,7 @@ pip install 'batchalign[pyannote]'     # optional local Pyannote backend API
 pip install 'batchalign[revai]'        # Rev.AI cloud ASR
 pip install 'batchalign[google]'       # Gemini cloud ASR + diarization
 pip install 'batchalign[cantonese]'    # Cantonese pipeline (FunASR, Tencent)
+pip install 'batchalign[avqi]'         # Acoustic voice quality measurements
 pip install 'batchalign[qwen3]'        # Qwen3 ASR + forced aligner
 pip install 'batchalign[nllb]'         # NLLB translation
 pip install 'batchalign[api]'          # FastAPI daemon (`batchalign daemon`)
@@ -155,3 +156,17 @@ it uses the same pronunciation overrides and observed-phone projection as
 PhoneticXeus. The phonetic checkpoint runs in full precision. Word ASR uses
 the existing Qwen3 Transformers runtime and companion word aligner; DrivenData's
 published word-model example instead uses vLLM on Linux/NVIDIA.
+
+AVQI measurements from paired sustained-vowel and continuous-speech recordings:
+
+```sh
+pip install 'batchalign[avqi]'
+batchalign avqi vowels/ speech/ -o measurements/
+```
+
+This writes `measurements/avqi.csv`. Mirrored relative filenames (optionally
+`.sv`/`.cs`) identify pairs. The backend uses AVQI 03.01 coefficients with a
+versioned energy-window speech selector; it does not claim equivalence to the
+original clinical script. See the
+[AVQI guide](../../book/src/batchalign/user-guide/commands/avqi.md) for input
+requirements, component measurements, and failed-row behavior.

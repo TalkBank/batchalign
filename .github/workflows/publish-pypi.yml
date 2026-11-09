@@ -100,6 +100,14 @@ jobs:
         shell: bash
         run: python bazel/python/verify_wheel.py python/target/wheels/batchalign-*.whl
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify clean AVQI installation and processing
+        shell: bash
+        run: python bazel/python/smoke_avqi_wheel.py python/target/wheels/batchalign-*.whl
+
       - uses: actions/upload-artifact@v4
         with:
           name: batchalign-wheel-${{ matrix.platform }}

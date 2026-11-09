@@ -77,6 +77,21 @@ impl PyOutcome {
         }
     }
 
+    /// Structured metrics without consuming the outcome; None for non-metrics values.
+    #[getter]
+    fn metrics(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let guard = self.inner.lock()
+            .map_err(|_| PyRuntimeError::new_err("outcome lock poisoned"))?;
+        match guard.as_ref() {
+            Some(BAValue::Metrics(artifact)) => {
+                let json = serde_json::to_string(&artifact.table)
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                Ok(py.import("json")?.call_method1("loads", (json,))?.unbind())
+            }
+            _ => Ok(py.None()),
+        }
+    }
+
     /// Write the outcome to disk. Consumes the outcome (calling twice raises).
     #[pyo3(signature = (path, *, strip_word_timing=false))]
     fn write(&self, path: PathBuf, strip_word_timing: bool) -> PyResult<()> {

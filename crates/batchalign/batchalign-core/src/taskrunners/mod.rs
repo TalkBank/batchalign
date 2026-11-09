@@ -4,6 +4,7 @@
 //! See `spec2.md` §24 for the phasing.
 
 pub mod ai;
+pub mod avqi;
 pub mod asr;
 pub mod compare;
 pub mod convert;
@@ -30,6 +31,7 @@ use crate::base::Task;
 pub fn canonical(task: Task) -> Box<dyn DynTaskRunner> {
     match task {
         Task::Ai => Box::new(ai::AiTaskRunner::default()),
+        Task::Avqi => Box::new(avqi::AvqiTaskRunner),
         Task::Asr => Box::new(asr::AsrTaskRunner),
         Task::Fa => Box::new(fa::FaTaskRunner),
         Task::Phonetic => Box::new(phonetic::PhoneticTaskRunner),

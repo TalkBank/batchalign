@@ -39,6 +39,8 @@ from batchalign._core._proto_generated import (  # noqa: F401
     LanguageSpecCode,
     LanguageSpecPerFile,
     PreparedAudio,
+    AvqiInput,
+    AvqiOutput,
     # ASR
     AsrInput,
     AsrOptions,
@@ -119,6 +121,7 @@ LanguageSpec = (LanguageSpecAuto, LanguageSpecCode, LanguageSpecPerFile)
 # receives one item at a time, not a wrapped list.
 _TAG_TO_INPUT: dict[str, type] = {
     "Ai": AiInput,
+    "Avqi": AvqiInput,
     "Asr": AsrInput,
     "Fa": FaInput,
     "Phonetic": PhoneticInput,
@@ -139,6 +142,7 @@ _TAG_TO_INPUT: dict[str, type] = {
 
 _OUTPUT_TO_TAG: dict[type, str] = {
     AiOutput: "Ai",
+    AvqiOutput: "Avqi",
     AsrOutput: "Asr",
     FaOutput: "Fa",
     PhoneticOutput: "Phonetic",
