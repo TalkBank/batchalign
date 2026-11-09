@@ -1,5 +1,6 @@
 name: bazel · wheels (PR matrix)
 
+# Revalidate 0.10.9 after the 2026-11-09 release-download failures.
 # Multi-platform wheel verification on every PR + main push. Produces
 # the same set of wheels as `publish-pypi.yml` but doesn't upload them
 # anywhere — artifacts are downloadable from the workflow run for ~30

@@ -1,5 +1,6 @@
 name: bazel · python
 
+# Revalidate 0.10.9 after the 2026-11-09 release-download failures.
 # Bazel-native dev / test path for the batchalign Python package.
 # The cdylib is built by `rust_shared_library` + macOS dynamic_lookup
 # link flags + a static pyo3-config.txt (see crates/batchalign/

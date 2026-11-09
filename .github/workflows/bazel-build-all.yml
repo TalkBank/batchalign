@@ -1,5 +1,6 @@
 name: bazel · build-all (nightly)
 
+# Revalidate 0.10.9 after the 2026-11-09 release-download failures.
 # Slow, exhaustive build across every Bazel target. Runs on a cron
 # rather than on every push so PR latency stays sane. Also runnable
 # on-demand via workflow_dispatch.

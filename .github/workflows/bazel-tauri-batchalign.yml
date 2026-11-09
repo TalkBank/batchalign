@@ -1,5 +1,6 @@
 name: bazel · tauri-batchalign
 
+# Revalidate 0.10.9 after the 2026-11-09 release-download failures.
 # Per-platform bundle for the Batchalign desktop GUI
 # (apps/batchalign/batchalign-gui).
 #
