@@ -22,6 +22,28 @@ def _command(mode: str, directory: Path) -> list[str]:
     return [sys.executable, "-m", "batchalign.desktop_process", mode, str(directory)]
 
 
+def _signal_worker_group(pgid: int, sig: int) -> bool:
+    try:
+        os.killpg(pgid, sig)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        if sys.platform != "darwin":
+            raise
+        # XNU's killpg skips zombies and returns EPERM when no signalable
+        # members remain. A model's resource tracker can briefly leave such
+        # a group after successful inference. Confirm that every member has
+        # exited; a genuine permission failure must still fail cleanup.
+        snapshot = subprocess.run(["/bin/ps", "-axo", "pgid=,stat="],
+                                  capture_output=True, text=True, check=True, timeout=5)
+        for line in snapshot.stdout.splitlines():
+            group, state = line.split()
+            if int(group) == pgid and not state.startswith("Z"):
+                raise
+        return False
+    return True
+
+
 def _stop_worker(worker: subprocess.Popen) -> None:
     if os.name == "nt":
         if worker.poll() is not None:
@@ -30,9 +52,7 @@ def _stop_worker(worker: subprocess.Popen) -> None:
                        capture_output=True, timeout=10, check=False,
                        creationflags=subprocess.CREATE_NO_WINDOW)
     else:
-        try:
-            os.killpg(worker.pid, signal.SIGTERM)
-        except ProcessLookupError:
+        if not _signal_worker_group(worker.pid, signal.SIGTERM):
             return
         try:
             worker.wait(timeout=3)
@@ -40,10 +60,7 @@ def _stop_worker(worker: subprocess.Popen) -> None:
             pass
         # A child may ignore SIGTERM even if the main worker already exited.
         # This group belongs exclusively to this job's model process tree.
-        try:
-            os.killpg(worker.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        _signal_worker_group(worker.pid, signal.SIGKILL)
     worker.wait(timeout=10)
 
 

@@ -4,6 +4,7 @@ import signal
 import subprocess
 import sys
 import time
+from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 import psutil
@@ -49,6 +50,83 @@ def process_stopped(pid):
         return psutil.Process(pid).status() == psutil.STATUS_ZOMBIE
     except psutil.NoSuchProcess:
         return True
+
+
+@pytest.mark.parametrize("sig", [signal.SIGTERM, 9])
+@pytest.mark.parametrize("snapshot", ["", "912 Z\n913 S\n", "912 Z+\n912 Z\n"])
+def test_macos_cleanup_accepts_only_exited_process_groups(monkeypatch, sig, snapshot):
+    monkeypatch.setattr(desktop_process.sys, "platform", "darwin")
+    monkeypatch.setattr(desktop_process.os, "killpg", Mock(side_effect=PermissionError(1, "denied")),
+                        raising=False)
+    inspect = Mock(return_value=subprocess.CompletedProcess([], 0, stdout=snapshot))
+    monkeypatch.setattr(desktop_process.subprocess, "run", inspect)
+    assert desktop_process._signal_worker_group(912, sig) is False
+    inspect.assert_called_once_with(["/bin/ps", "-axo", "pgid=,stat="],
+                                    capture_output=True, text=True, check=True, timeout=5)
+
+
+@pytest.mark.parametrize("platform,snapshot", [
+    ("darwin", "912 Z\n912 S\n"), ("darwin", "912 R+\n"), ("linux", "912 Z\n"),
+])
+def test_group_cleanup_preserves_genuine_permission_errors(monkeypatch, platform, snapshot):
+    monkeypatch.setattr(desktop_process.sys, "platform", platform)
+    denied = PermissionError(1, "denied")
+    monkeypatch.setattr(desktop_process.os, "killpg", Mock(side_effect=denied), raising=False)
+    monkeypatch.setattr(desktop_process.subprocess, "run",
+                        Mock(return_value=subprocess.CompletedProcess([], 0, stdout=snapshot)))
+    with pytest.raises(PermissionError) as error:
+        desktop_process._signal_worker_group(912, signal.SIGTERM)
+    assert error.value is denied
+
+
+def test_macos_group_cleanup_requires_a_successful_process_snapshot(monkeypatch):
+    monkeypatch.setattr(desktop_process.sys, "platform", "darwin")
+    monkeypatch.setattr(desktop_process.os, "killpg", Mock(side_effect=PermissionError(1, "denied")),
+                        raising=False)
+    monkeypatch.setattr(desktop_process.subprocess, "run",
+                        Mock(side_effect=subprocess.CalledProcessError(1, "/bin/ps")))
+    with pytest.raises(subprocess.CalledProcessError):
+        desktop_process._signal_worker_group(912, signal.SIGTERM)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix zombie process groups")
+def test_signal_zombie_only_group():
+    # Leave the session leader unreaped to exercise Darwin's real EPERM path.
+    worker = subprocess.Popen([sys.executable, "-c", "pass"], start_new_session=True)
+    try:
+        wait_for(lambda: psutil.Process(worker.pid).status() == psutil.STATUS_ZOMBIE)
+        desktop_process._signal_worker_group(worker.pid, signal.SIGTERM)
+        desktop_process._signal_worker_group(worker.pid, signal.SIGKILL)
+        assert worker.wait(timeout=10) == 0
+    finally:
+        worker.wait(timeout=10)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix process-group shutdown")
+def test_successful_worker_exit_still_cleans_live_descendants(tmp_path):
+    worker = tmp_path / "finished_worker.py"
+    worker.write_text(
+        "import subprocess, sys, time\nfrom pathlib import Path\n"
+        "directory = Path(sys.argv[1])\n"
+        "child = subprocess.Popen([sys.executable, '-c', "
+        "'import signal,sys,time; from pathlib import Path; '"
+        "'signal.signal(signal.SIGTERM, signal.SIG_IGN); '"
+        "'Path(sys.argv[1]).touch(); time.sleep(60)', str(directory / 'ready')])\n"
+        "(directory / 'grandchild.pid').write_text(str(child.pid))\n"
+        "while not (directory / 'ready').exists(): time.sleep(0.01)\n")
+    supervisor = subprocess.Popen(supervisor_command(tmp_path, worker), stdin=subprocess.PIPE,
+                                  env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
+    try:
+        wait_for(lambda: (tmp_path / "grandchild.pid").exists())
+        descendant = int((tmp_path / "grandchild.pid").read_text())
+        assert supervisor.wait(timeout=15) == 0
+        wait_for(lambda: process_stopped(descendant))
+    finally:
+        supervisor.stdin.close()
+        supervisor.wait(timeout=15)
+        pid_file = tmp_path / "grandchild.pid"
+        if pid_file.exists() and not process_stopped(int(pid_file.read_text())):
+            psutil.Process(int(pid_file.read_text())).kill()
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows process exit status")
