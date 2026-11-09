@@ -121,6 +121,7 @@ jobs:
     concurrency:
       # Preserve an active platform's costly cleanroom evidence, while
       # letting completed platforms advance without waiting for the slowest.
+      # Network-recovery pushes must leave real-model and native UI tests running.
       group: bazel-tauri-batchalign-${{ github.ref }}-${{ matrix.runner.target }}
       cancel-in-progress: false
     timeout-minutes: 180
