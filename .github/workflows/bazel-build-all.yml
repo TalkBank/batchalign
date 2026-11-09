@@ -25,6 +25,13 @@ jobs:
         os: [ubuntu-latest, macos-15]
     steps:
       - uses: actions/checkout@v4
+      - name: Allow bounded retries for dependency downloads
+        run: |
+          # Match desktop CI's backoff for intermittent release-server 504s.
+          cat >> .bazelrc.user <<'EOF'
+          common --http_connector_attempts=12
+          common --http_connector_retry_max_timeout=30s
+          EOF
       - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
