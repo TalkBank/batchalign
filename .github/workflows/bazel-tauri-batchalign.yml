@@ -203,7 +203,24 @@ jobs:
         id: desktop_bundle
         env:
           TAURI_PROFILE: release
-        run: just batchalign gui build release --target ${{ matrix.runner.target }} --verbose
+        run: |
+          set -euo pipefail
+          # Tauri downloads WiX/linuxdeploy after compilation. GitHub release
+          # downloads can return 504; retry those transient HTTP failures while
+          # preserving immediate failure for compiler and installer errors.
+          log="$RUNNER_TEMP/batchalign-bundle.log"
+          for attempt in 1 2 3; do
+            if just batchalign gui build release --target ${{ matrix.runner.target }} --verbose 2>&1 | tee "$log"; then
+              exit 0
+            else
+              result=$?
+            fi
+            if [[ "$attempt" == 3 ]] || ! grep -Eq 'failed to bundle project.*http status: (408|429|500|502|503|504)' "$log"; then
+              exit "$result"
+            fi
+            echo "Retrying transient packaging download failure (attempt $attempt of 3)" >&2
+            sleep "$((attempt * 15))"
+          done
 
       - name: Native startup and process-lifetime regression tests
         run: |
