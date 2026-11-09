@@ -44,7 +44,11 @@ export async function testRealPipelines(base, root, repository, results, checkpo
     });
     const job = await submitted.json();
     assert.equal(submitted.status, 200, JSON.stringify(job));
-    const deadline = Date.now() + 30 * 60_000;
+    // A fresh Windows runner has spent 16 minutes downloading Whisper alone;
+    // CPU inference then needs its own time within this end-to-end budget.
+    // Untimed alignment later reuses this Whisper download.
+    const timeoutMs = (recipe === 'transcribe' ? 45 : 30) * 60_000;
+    const deadline = Date.now() + timeoutMs;
     let status;
     while (Date.now() < deadline) {
       status = await readRuntimeStatus(`${base}/jobs/${job.job_id}`, deadline, retry => {
@@ -57,7 +61,7 @@ export async function testRealPipelines(base, root, repository, results, checkpo
       }
       await delay(1000);
     }
-    results.realPipelines[evidenceKey] = { kwargs, status, durationMs: Date.now() - started };
+    results.realPipelines[evidenceKey] = { kwargs, status, timeoutMs, durationMs: Date.now() - started };
     assert.equal(status?.state, 'completed', `${recipe}: ${JSON.stringify(status)}`);
     const chat = await readFile(join(output, source.replace(/\.wav$/, '.cha')), 'utf8');
     await writeFile(join(root, `${evidenceKey}-evidence.cha`), chat);
