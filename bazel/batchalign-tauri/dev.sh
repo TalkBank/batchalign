@@ -47,6 +47,9 @@ case "$TRIPLE" in
 esac
 cp -f "$SIDECAR_BIN" "$TARGET"
 chmod +x "$TARGET"
+case "$TRIPLE" in
+    *windows*) chmod u+w "$TARGET" ;;
+esac
 
 if [[ ! -d node_modules ]]; then
     echo "dev.sh: node_modules missing → npm install"

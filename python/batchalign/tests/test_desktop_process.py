@@ -51,6 +51,25 @@ def process_stopped(pid):
         return True
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows process exit status")
+@pytest.mark.parametrize("code", [23, 0xC0000005])
+def test_supervisor_preserves_windows_worker_exit_status(tmp_path, code):
+    worker = tmp_path / "exit_worker.py"
+    worker.write_text("import ctypes\n"
+                      "ctypes.windll.kernel32.ExitProcess.argtypes = [ctypes.c_uint32]\n"
+                      f"ctypes.windll.kernel32.ExitProcess({code})\n")
+    process = subprocess.Popen(supervisor_command(tmp_path, worker),
+                               stdin=subprocess.PIPE,
+                               env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
+    try:
+        assert process.wait(timeout=15) == code
+    finally:
+        process.stdin.close()
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=10)
+
+
 def test_owner_pipe_closure_stops_native_worker_tree(tmp_path, native_blocker):
     directory = tmp_path / "work"
     directory.mkdir()

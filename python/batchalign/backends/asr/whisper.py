@@ -31,6 +31,11 @@ def _cpu_dtype(torch):
     version = tuple(int(part) for part in torch.__version__.split(".")[:2])
     if sys.platform == "darwin" and platform.machine() == "arm64" and version >= (2, 5):
         return torch.float16
+    if sys.platform == "win32" and version >= (2, 5):
+        # Word timestamps retain attention matrices for every encoder layer.
+        # float32 can exhaust commit on 16 GB Windows hosts. bfloat16 reduces
+        # memory without the slow float16 matmul fallback on older Intel CPUs.
+        return torch.bfloat16
     return torch.float32
 
 

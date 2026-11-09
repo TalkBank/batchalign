@@ -52,6 +52,8 @@ exports_files([
     "pyapp_install.sh",
     "pyapp_bootstrap_progress.rs",
     "pytest.sh",
+    "pytest_windows_wheel.sh",
+    "pytest_windows_wheel.py",
     "lint.sh",
     "hermeticity_guard.sh",
     "runfiles_resolve.sh",

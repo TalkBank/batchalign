@@ -59,6 +59,9 @@ class NllbTranslateBackend(Translate):
             AutoModelForSeq2SeqLM,
             AutoTokenizer,
         )
+        from batchalign.backends._transformers import configure_windows_loading
+
+        configure_windows_loading()
 
         self._target = target
         self._target_flores = _TARGET_TO_FLORES.get(target)

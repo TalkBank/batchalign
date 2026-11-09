@@ -120,6 +120,11 @@ pytest *args:
     for arg in "$@"; do test_args+=(--test_arg="$arg"); done; \
     bazel test --jobs={{ bazel_jobs }} "${test_args[@]}" //python/batchalign:pytest
 
+# Windows tests use the production wheel; native :pytest is Unix-only.
+# This installs into the explicitly supplied disposable sidecar interpreter.
+pytest-wheel python *args:
+    bazel run --jobs={{ bazel_jobs }} -c opt //python/batchalign:pytest_windows_wheel -- "$@"
+
 # mypy + ruff.
 lint:
     bazel run --jobs={{ bazel_jobs }} //python/batchalign:lint

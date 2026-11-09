@@ -60,6 +60,7 @@ lcov*.info
 **/.build/
 **/.tmp-review-venv/
 /bazel-*
+/.bazelrc.user
 
 # Compiled native extensions — built by maturin (host wheel) or
 # Bazel's rust_shared_library (dev-loop cdylib); never source.

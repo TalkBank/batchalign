@@ -70,6 +70,11 @@ def _supervise(directory: Path) -> int:
     if owner_closed.is_set() or os.name != "nt":
         _stop_worker(worker)
     code = worker.wait()
+    if os.name == "nt" and code >= 0x80000000:
+        # Popen exposes Windows NTSTATUS as an unsigned DWORD. SystemExit
+        # accepts a signed C long on Windows; passing the unsigned value
+        # overflows and turns every native crash into the unhelpful -1.
+        return code - 0x100000000
     return code if code >= 0 else 128 - code
 
 

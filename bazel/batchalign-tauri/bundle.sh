@@ -62,6 +62,11 @@ case "$TRIPLE" in
 esac
 cp -f "$SIDECAR_BIN" "$TARGET"
 chmod +x "$TARGET"
+case "$TRIPLE" in
+    # Bazel outputs are read-only. Tauri preserves that attribute when copying
+    # external binaries, then cannot overwrite them during Windows bundling.
+    *windows*) chmod u+w "$TARGET" ;;
+esac
 
 # Profile selection. Bazel propagates COMPILATION_MODE; TAURI_PROFILE
 # overrides if set directly (the justfile passes it).

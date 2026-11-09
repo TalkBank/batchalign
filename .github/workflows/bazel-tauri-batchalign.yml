@@ -233,12 +233,30 @@ jobs:
           test -n "$sidecar"
           node apps/batchalign/batchalign-gui/scripts/packaged-sidecar-smoke.mjs "$sidecar"
 
+      - name: Windows installed-wheel regression tests
+        if: ${{ !cancelled() && steps.desktop_bundle.outcome == 'success' && runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $report = Get-Content packaged-sidecar-report.json -Raw | ConvertFrom-Json
+          $python = Join-Path $report.root 'environment/python/python.exe'
+          if (!(Test-Path $python)) { throw "packaged test interpreter missing: $python" }
+          # Mutate only the disposable packaged-test runtime. Native acceptance
+          # below still bootstraps a separate, unmodified installed application.
+          try {
+            just batchalign pytest-wheel $python -k 'whisper_cpu or windows_model_loading or desktop_process' --junitxml="$env:GITHUB_WORKSPACE/windows-wheel-regressions.xml"
+            if ($LASTEXITCODE -ne 0) { throw "Windows wheel regressions failed" }
+          } finally {
+            just batchalign shutdown
+          }
+
       - name: Upload packaged runtime report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: packaged-runtime-${{ matrix.runner.target }}
-          path: packaged-sidecar-report.json
+          path: |
+            packaged-sidecar-report.json
+            windows-wheel-regressions.xml
           retention-days: 7
 
       - name: Install native WebKit test driver

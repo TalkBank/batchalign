@@ -125,6 +125,13 @@ hermeticity_guard() {
         }
     fi
 
+    # On Windows, probing tools must not undo --no-install-project above.
+    # An implicit editable build writes _core.pyd into the wheel's source tree.
+    local run_flags=()
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) run_flags=(--no-sync) ;;
+    esac
+
     local pin_uv pin_maturin pin_python pin_rust
     pin_uv=$(_guard_pin uv "$pyproject")
     pin_maturin=$(_guard_pin maturin "$pyproject")
@@ -154,7 +161,7 @@ hermeticity_guard() {
     if ! _guard_skip maturin; then
         local live_maturin
         live_maturin="$( (cd "$BUILD_WORKSPACE_DIRECTORY/python" \
-            && "$uv" run --quiet maturin --version 2>/dev/null) \
+            && "$uv" run "${run_flags[@]+"${run_flags[@]}"}" --quiet maturin --version 2>/dev/null) \
             | awk '{print $2}' || true)"
         if [[ "$live_maturin" != "$pin_maturin" ]]; then
             echo "hermeticity_guard: maturin version mismatch (pinned=$pin_maturin, live=${live_maturin:-<missing>})" >&2
@@ -167,7 +174,7 @@ hermeticity_guard() {
     if ! _guard_skip python; then
         local live_python
         live_python="$( (cd "$BUILD_WORKSPACE_DIRECTORY/python" \
-            && "$uv" run --quiet python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null) || true)"
+            && "$uv" run "${run_flags[@]+"${run_flags[@]}"}" --quiet python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null) || true)"
         if [[ "$live_python" != "$pin_python" ]]; then
             echo "hermeticity_guard: python version mismatch (pinned=$pin_python, live=${live_python:-<missing>})" >&2
             echo "  fix: update MODULE.bazel python.toolchain(python_version=...) AND .bazelrc python_version setting" >&2

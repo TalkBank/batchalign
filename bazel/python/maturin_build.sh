@@ -45,6 +45,7 @@ esac
 source "${BUILD_WORKSPACE_DIRECTORY}/bazel/python/hermeticity_guard.sh"
 hermeticity_guard "$UV"
 UV="$HERMETIC_UV"
+uv_run_flags=()
 
 # C toolchain wiring -- see pyapp_build.sh header for the full rationale.
 # macOS uses Xcode's clang paired with its SDK. Linux resolves the Bazel LLVM
@@ -73,6 +74,9 @@ case "$(uname -s)" in
         platform_flags=()
         ;;
     MINGW*|MSYS*|CYGWIN*)
+        # The guard already installed the build tools without the project.
+        # Keep uv from recreating an editable _core.pyd before packaging.
+        uv_run_flags=(--no-sync)
         if [[ "$TOOLCHAIN_MODE" != "host" ]]; then
             echo "maturin_build.sh: Windows requires host C toolchain mode" >&2
             exit 2
@@ -208,7 +212,7 @@ fi
 # `[tool.maturin].manifest-path` field in pyproject.toml supplies the
 # Cargo.toml path while keeping pyproject as the metadata source of
 # truth, which produces `batchalign-<version>-<tag>.whl`.
-"$UV" run maturin build \
+"$UV" run "${uv_run_flags[@]+"${uv_run_flags[@]}"}" maturin build \
     "${target_flag[@]+"${target_flag[@]}"}" \
     "${platform_flags[@]+"${platform_flags[@]}"}" \
     --out target/wheels \

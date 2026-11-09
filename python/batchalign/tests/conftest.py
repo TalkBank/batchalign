@@ -6,6 +6,7 @@ test depends on the .so, it should `pytest.importorskip("batchalign._core")`.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -20,7 +21,13 @@ import pytest
 # present. For a direct source-tree pytest invocation, the unresolved path is
 # already the ordinary `python/` package root.
 _PYTHON_ROOT = Path(__file__).absolute().parents[2]
-if str(_PYTHON_ROOT) not in sys.path:
+if os.environ.get("BATCHALIGN_TEST_INSTALLED_WHEEL") == "1":
+    import batchalign
+
+    if Path(batchalign.__file__).resolve().is_relative_to(_PYTHON_ROOT.resolve()):
+        raise RuntimeError("Wheel tests imported the source checkout instead of the installed wheel")
+    import batchalign._core
+elif str(_PYTHON_ROOT) not in sys.path:
     sys.path.insert(0, str(_PYTHON_ROOT))
 
 

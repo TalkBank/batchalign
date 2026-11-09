@@ -54,12 +54,14 @@ def test_whisper_cpu_selects_supported_dtype_before_inference(monkeypatch, devic
     ('darwin', 'x86_64', '2.8.0', 'single'),
     ('linux', 'aarch64', '2.8.0', 'single'),
     ('linux', 'x86_64', '2.8.0', 'single'),
-    ('win32', 'AMD64', '2.8.0', 'single'),
+    ('win32', 'AMD64', '2.8.0', 'bfloat'),
+    ('win32', 'AMD64', '2.5.0', 'bfloat'),
+    ('win32', 'AMD64', '2.4.1', 'single'),
 ])
 def test_cpu_precision_compatibility_policy(monkeypatch, system, machine, version, expected):
     from batchalign.backends.asr import whisper
 
     monkeypatch.setattr(whisper.sys, 'platform', system)
     monkeypatch.setattr(whisper.platform, 'machine', lambda: machine)
-    torch = SimpleNamespace(__version__=version, float16='half', float32='single')
+    torch = SimpleNamespace(__version__=version, float16='half', bfloat16='bfloat', float32='single')
     assert whisper._cpu_dtype(torch) == expected

@@ -295,6 +295,26 @@ sh_binary(
     ],
 )
 
+sh_binary(
+    name = "pytest_windows_wheel",
+    srcs = ["//bazel/python:pytest_windows_wheel.sh"],
+    args = [
+        "$(rootpath @multitool//tools/uv)",
+        "$(rootpath :batchalign.whl)",
+        "$(rootpath :wheel_tag.txt)",
+    ],
+    data = [
+        "@multitool//tools/uv",
+        ":batchalign.whl",
+        ":wheel_tag.txt",
+        "//bazel/python:pytest_windows_wheel.py",
+    ],
+    target_compatible_with = select({
+        ":windows": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+)
+
 # Standalone production-daemon sidecar binary built via PyApp.
 #
 # `bazel build //python/batchalign:sidecar` produces a self-contained
