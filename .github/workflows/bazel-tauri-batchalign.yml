@@ -208,7 +208,6 @@ jobs:
           # Tauri downloads WiX/linuxdeploy after compilation. GitHub release
           # downloads can return 504; retry those transient HTTP failures while
           # preserving immediate failure for compiler and installer errors.
-          # A retry reuses compiled outputs and attempts packaging again.
           log="$RUNNER_TEMP/batchalign-bundle.log"
           for attempt in 1 2 3; do
             if just batchalign gui build release --target ${{ matrix.runner.target }} --verbose 2>&1 | tee "$log"; then
