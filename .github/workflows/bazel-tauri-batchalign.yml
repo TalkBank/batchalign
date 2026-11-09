@@ -68,7 +68,7 @@ jobs:
         run: |
           node <<'JS'
           const runners = [
-            { os: 'macos-14', target: 'aarch64-apple-darwin' },
+            { os: 'macos-15', target: 'aarch64-apple-darwin' },
             { os: 'macos-15-intel', target: 'x86_64-apple-darwin' },
             { os: 'ubuntu-latest', target: 'x86_64-unknown-linux-gnu' },
             { os: 'ubuntu-24.04-arm', target: 'aarch64-unknown-linux-gnu' },
