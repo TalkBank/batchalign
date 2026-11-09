@@ -127,7 +127,23 @@ jobs:
         env:
           BAZELISK_SKIP_WRAPPER: true
           CARGO_NET_GIT_FETCH_WITH_CLI: ${{ runner.os == 'Windows' && 'true' || 'false' }}
-        run: bazel run -c opt //python/batchalign:wheel
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/batchalign-wheel-build.log"
+          for attempt in 1 2 3; do
+            if bazel run -c opt //python/batchalign:wheel 2>&1 | tee "$log"; then
+              exit 0
+            else
+              result=$?
+            fi
+            # Keep successful downloads on this runner between attempts.
+            # Compiler, packaging, and validation errors are never retried.
+            if [[ "$attempt" == 3 ]] || ! grep -Eq '(GET returned|HTTP status (client|server) error \()(408|429|500|502|503|504)( |\))' "$log"; then
+              exit "$result"
+            fi
+            echo "Retrying transient wheel dependency download failure (attempt $attempt of 3)" >&2
+            sleep "$((attempt * 15))"
+          done
 
       - name: Verify wheel contents
         shell: bash
