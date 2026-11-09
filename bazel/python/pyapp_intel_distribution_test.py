@@ -8,10 +8,42 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from bazel.python.pyapp_intel_distribution import build, digest, download, extract, pack
+from bazel.python.pyapp_intel_distribution import (
+    build, digest, download, extract, pack, validate_linked_libraries,
+)
 
 
 class DistributionTests(unittest.TestCase):
+    def test_extension_install_name_is_not_an_external_dependency(self):
+        validate_linked_libraries("""/tmp/_rust.abi3.so:
+Load command 0
+          cmd LC_ID_DYLIB
+      cmdsize 80
+         name @rpath/cryptography.hazmat.bindings._rust.abi3.so (offset 24)
+Load command 1
+          cmd LC_LOAD_DYLIB
+      cmdsize 56
+         name /usr/lib/libSystem.B.dylib (offset 24)
+Load command 2
+          cmd LC_LOAD_WEAK_DYLIB
+      cmdsize 96
+         name /System/Library/Frameworks/Security.framework/Versions/A/Security (offset 24)
+""")
+
+    def test_actual_non_system_dependencies_are_rejected(self):
+        for command in ("LC_LOAD_DYLIB", "LC_LOAD_WEAK_DYLIB", "LC_REEXPORT_DYLIB",
+                        "LC_LAZY_LOAD_DYLIB", "LC_LOAD_UPWARD_DYLIB"):
+            for library in ("@rpath/cryptography.hazmat.bindings._rust.abi3.so",
+                            "@rpath/libcrypto.3.dylib", "/usr/local/opt/openssl/lib/libcrypto.3.dylib"):
+                with self.subTest(command=command, library=library):
+                    with self.assertRaisesRegex(RuntimeError, "non-system library"):
+                        validate_linked_libraries(
+                            f"Load command 0\n cmd {command}\n name {library} (offset 24)\n")
+
+    def test_dependency_without_a_readable_name_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "Cannot read library name"):
+            validate_linked_libraries("Load command 0\n cmd LC_LOAD_DYLIB\n")
+
     def test_runtime_archive_round_trip_and_reproducibility(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

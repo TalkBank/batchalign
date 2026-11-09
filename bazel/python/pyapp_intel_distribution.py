@@ -77,6 +77,25 @@ def run(command: list[str | Path], *, cwd: Path, env: dict[str, str]) -> None:
     subprocess.run(command, cwd=cwd, env=env, check=True, stdout=sys.stderr)
 
 
+def validate_linked_libraries(commands: str) -> None:
+    # otool -L includes LC_ID_DYLIB (the extension's own install name).
+    # Inspect load commands instead so only actual dependencies are checked.
+    dependency_commands = {
+        "LC_LOAD_DYLIB", "LC_LOAD_WEAK_DYLIB", "LC_REEXPORT_DYLIB",
+        "LC_LAZY_LOAD_DYLIB", "LC_LOAD_UPWARD_DYLIB",
+    }
+    for block in re.split(r"(?m)^Load command \d+\s*$", commands):
+        command = re.search(r"(?m)^\s*cmd\s+(\S+)\s*$", block)
+        if not command or command[1] not in dependency_commands:
+            continue
+        name = re.search(r"(?m)^\s*name (.+) \(offset \d+\)\s*$", block)
+        if not name:
+            raise RuntimeError(f"Cannot read library name in {command[1]}")
+        library = name[1]
+        if not library.startswith(("/usr/lib/", "/System/Library/")):
+            raise RuntimeError(f"Cryptography depends on a non-system library: {library}")
+
+
 def build(cache: Path) -> Path:
     if sys.platform != "darwin" or platform.machine() != "x86_64":
         raise RuntimeError("This distribution must be built natively on Intel macOS")
@@ -119,12 +138,8 @@ def build(cache: Path) -> Path:
         wheel, = wheels.glob("cryptography-*.whl")
         run([python, "-m", "pip", "install", "--no-compile", "--only-binary=:all:", wheel], cwd=work, env=env)
         extension, = (runtime / "python/lib/python3.12/site-packages/cryptography/hazmat/bindings").glob("_rust*.so")
-        linked = subprocess.check_output(["otool", "-L", str(extension)], text=True)
-        for line in linked.splitlines()[1:]:
-            library = line.strip().split(" (", 1)[0]
-            if not library.startswith(("/usr/lib/", "/System/Library/")):
-                raise RuntimeError(f"Cryptography depends on a non-system library: {library}")
         commands = subprocess.check_output(["otool", "-l", str(extension)], text=True)
+        validate_linked_libraries(commands)
         minimums = re.findall(r"(?:minos|version)\s+(\d+\.\d+)(?:\.\d+)?", commands)
         # LC_BUILD_VERSION uses minos; older Mach-O headers use LC_VERSION_MIN_MACOSX.
         minimum = re.search(r"\bminos\s+(\d+)\.(\d+)", commands)

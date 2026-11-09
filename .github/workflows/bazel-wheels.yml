@@ -37,7 +37,9 @@ on:
 
 concurrency:
   group: bazel-wheels-${{ github.ref }}
-  cancel-in-progress: true
+  # Native Intel builds can outlast routine main pushes. Finish their validation;
+  # GitHub still replaces superseded pending runs with the latest commit.
+  cancel-in-progress: false
 
 jobs:
   build:
