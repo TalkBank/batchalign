@@ -15,10 +15,16 @@ and specification-generator scripts were removed with their product crates.
 
 | Task | Entrypoint |
 |---|---|
-| Build or repackage, sign, and notarize the ARM64 macOS app and DMG | `./scripts/bundle.sh [--dmg PATH] --identity SHA1 --profile NAME --output DIR` |
+| Build or repackage, sign, and notarize the macOS app and DMG | `./scripts/bundle.sh [--dmg PATH] [--arch ARCH] --identity SHA1 --profile NAME --output DIR` |
 | Install the local push guard | `ln -sf ../../scripts/pre-push.sh .git/hooks/pre-push` |
 | Check generated dashboard API files | `bash scripts/check_dashboard_api_drift.sh` |
 | Check IPC schema files | `bash scripts/check_ipc_type_drift.sh` |
+
+The macOS CI bundles are unsigned build artifacts. Before attaching them to a
+public release, run `bundle.sh --dmg PATH` for each architecture (`--arch arm64`
+or `--arch x86_64`). Publish only the resulting DMGs after Apple accepts both
+the app and DMG submissions and the script passes stapler and Gatekeeper checks.
+Regenerate the release checksums after replacing signed assets.
 | Check runtime constants | `python3 scripts/check_runtime_drift.py` |
 | Run Stanza drift probes | `bash scripts/run-drift-probes.sh` |
 | Prepare a minimal CHAT/media fixture | `python3 scripts/prepare_corpus_media_fixture.py ...` |

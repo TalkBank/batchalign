@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build or reuse a CI DMG, then sign and notarize the ARM64 app and final DMG.
+# Build or reuse a CI DMG, then sign and notarize the macOS app and final DMG.
 # One-time notarization credential setup (prompts securely for an app-specific
 # password generated at account.apple.com; this is separate from the signing key):
 #   xcrun notarytool store-credentials batchalign-notary \
@@ -13,9 +13,10 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: ./scripts/bundle.sh [--dmg PATH] --identity SHA1 --profile NAME --output DIR
+Usage: ./scripts/bundle.sh [--dmg PATH] [--arch arm64|x86_64] --identity SHA1 --profile NAME --output DIR
 
   --dmg       Reuse an existing CI DMG instead of building from source.
+  --arch      Expected architecture (default arm64); x86_64 requires --dmg.
   --identity  Developer ID Application certificate's 40-character SHA-1 fingerprint.
   --profile   Existing notarytool Keychain credential profile.
   --output    New directory in an existing parent; retains artifacts and Apple logs.
@@ -24,7 +25,7 @@ By default, builds through just batchalign gui build using the Python version.
 With --dmg, mounts the input read-only, copies Batchalign.app out, and detaches.
 The input DMG is preserved; a new DMG contains the stapled app and Applications link.
 The script signs a copy, notarizes/staples the app, then creates, signs, notarizes,
-and staples a DMG. Both executables must be ARM64 and the version must match Python.
+and staples a DMG. Both executables must match --arch and the version must match Python.
 
 One-time Keychain credential setup (securely prompts for an app-specific password
 generated at account.apple.com, not your regular Apple account password):
@@ -60,7 +61,7 @@ validate_app() {
     for executable in "$bundle/Contents/MacOS/Batchalign" "$bundle/Contents/MacOS/sidecar"; do
         [[ -f "$executable" && ! -L "$executable" ]] || die "missing executable: $executable"
         architectures="$(lipo -archs "$executable")"
-        [[ "$architectures" == arm64 ]] || die "ARM64 only: $executable contains $architectures"
+        [[ "$architectures" == "$architecture" ]] || die "expected $architecture: $executable contains $architectures"
     done
     # This release layout contains two Mach-O files. Additional native components
     # need an explicit signing policy, including any framework bundle resources.
@@ -97,14 +98,15 @@ notarize_archive() {
         || die "Apple status is $status for $submission_id; inspect $output/logs before continuing"
 }
 
-input_dmg='' identity='' profile='' output=''
+input_dmg='' identity='' profile='' output='' architecture=arm64
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help) usage; exit 0 ;;
-        --dmg|--identity|--profile|--output)
+        --dmg|--arch|--identity|--profile|--output)
             [[ $# -ge 2 && -n "$2" ]] || die "missing value for $1"
             case "$1" in
                 --dmg) input_dmg="$2" ;;
+                --arch) architecture="$2" ;;
                 --identity) identity="$2" ;;
                 --profile) profile="$2" ;;
                 --output) output="$2" ;;
@@ -124,7 +126,13 @@ identity="$(printf '%s' "$identity" | tr '[:lower:]' '[:upper:]')"
 for tool in git security codesign openssl python3 lipo file ditto hdiutil xcrun spctl shasum; do
     command -v "$tool" >/dev/null || die "required tool is missing: $tool"
 done
+case "$architecture" in
+    arm64) asset_arch=aarch64 ;;
+    x86_64) asset_arch=x64 ;;
+    *) die "unsupported architecture: $architecture" ;;
+esac
 if [[ -z "$input_dmg" ]]; then
+    [[ "$architecture" == arm64 ]] || die "x86_64 requires an existing --dmg"
     [[ "$(uname -m)" == arm64 ]] || die 'build on a native Apple Silicon Mac (without Rosetta)'
     command -v just >/dev/null || die 'required tool is missing: just'
     command -v rustc >/dev/null || die 'required tool is missing: rustc'
@@ -226,8 +234,8 @@ PY
     ) 2>&1 | tee "$output/logs/build.log"
 fi
 validate_app "$app" "$expected_version"
-printf 'version=%s\narchitecture=arm64\nidentity=%s\nsource_app=%s\nsource_dmg=%s\n' \
-    "$expected_version" "$identity" "$app" "$input_dmg" > "$output/logs/release.txt"
+printf 'version=%s\narchitecture=%s\nidentity=%s\nsource_app=%s\nsource_dmg=%s\n' \
+    "$expected_version" "$architecture" "$identity" "$app" "$input_dmg" > "$output/logs/release.txt"
 shasum -a 256 "$app/Contents/Info.plist" "$app/Contents/MacOS/Batchalign" \
     "$app/Contents/MacOS/sidecar" > "$output/logs/source-sha256.txt"
 xcrun notarytool --version > "$output/logs/notarytool-version.txt"
@@ -246,13 +254,13 @@ notarize_archive "$output/logs/app-upload.zip" app
 xcrun stapler staple "$working_app"
 xcrun stapler validate "$working_app"
 spctl --assess --type execute --verbose=2 "$working_app" 2> "$output/logs/app-gatekeeper.txt"
-ditto -c -k --keepParent "$working_app" "$output/Batchalign_${expected_version}_aarch64.app.zip"
+ditto -c -k --keepParent "$working_app" "$output/Batchalign_${expected_version}_${asset_arch}.app.zip"
 
 # Package the stapled app, then give the outer disk image its own signature/ticket.
 mkdir "$scratch/dmg-root"
 ditto "$working_app" "$scratch/dmg-root/Batchalign.app"
 ln -s /Applications "$scratch/dmg-root/Applications"
-dmg="$output/Batchalign_${expected_version}_aarch64.dmg"
+dmg="$output/Batchalign_${expected_version}_${asset_arch}.dmg"
 hdiutil create -volname Batchalign -srcfolder "$scratch/dmg-root" -fs HFS+ -format UDZO "$dmg"
 codesign --sign "$identity" --timestamp "$dmg"
 codesign --verify --strict --verbose=2 "$dmg"
@@ -264,7 +272,7 @@ spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg
     2> "$output/logs/dmg-gatekeeper.txt"
 (
     cd "$output"
-    shasum -a 256 "Batchalign_${expected_version}_aarch64.app.zip" "Batchalign_${expected_version}_aarch64.dmg" \
+    shasum -a 256 "Batchalign_${expected_version}_${asset_arch}.app.zip" "Batchalign_${expected_version}_${asset_arch}.dmg" \
         > SHA256SUMS
 )
-printf 'Verified ARM64 app and DMG: %s\n' "$output"
+printf 'Verified %s app and DMG: %s\n' "$architecture" "$output"
