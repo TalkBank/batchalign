@@ -21,6 +21,7 @@ use tokio::sync::watch;
 #[cfg(windows)]
 use crate::daemon_environment::windows_environment;
 use crate::daemon_protocol::{parse_port, push_tail};
+use crate::installation_activity::{self, InstallationActivity};
 use crate::protocol::{DaemonFailedPayload, DaemonProgressPayload, DaemonReadyPayload, events};
 use crate::state::{AppState, DaemonHandle};
 
@@ -123,6 +124,11 @@ async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
         invalidate_installation(&environment)?;
     }
 
+    let activity = installation_activity::watch(&environment).unwrap_or_else(|error| {
+        eprintln!("Could not observe runtime installation progress: {error}");
+        None
+    });
+
     // Build the sidecar command. `Command::new_sidecar` resolves to the
     // platform-suffixed binary that the Tauri bundler placed in the
     // app resources (e.g. `binaries/sidecar-aarch64-apple-darwin`).
@@ -158,7 +164,7 @@ async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
 
     // Read the daemon's stdout until "DAEMON_PORT=<n>" appears or it dies.
     app.state::<AppState>().set_child(child);
-    let port = match wait_for_port(app, &mut rx).await {
+    let port = match wait_for_port(app, &mut rx, activity.as_ref()).await {
         Ok(port) => port,
         Err(error) => {
             app.state::<AppState>().stop_child();
@@ -192,6 +198,7 @@ async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
 async fn wait_for_port(
     app: &AppHandle,
     rx: &mut tauri::async_runtime::Receiver<CommandEvent>,
+    activity: Option<&InstallationActivity>,
 ) -> Result<u16, DaemonError> {
     // To keep the user from thinking the app froze during that window,
     // every stderr line is forwarded to the frontend as a
@@ -201,10 +208,23 @@ async fn wait_for_port(
     // Active downloads may take longer than 15 minutes. Bound both a stalled
     // installer and the total attempt, instead of killing a progressing one.
     let started = std::time::Instant::now();
-    let mut last_output = started;
+    let mut last_progress = started;
+    let mut last_file_progress_message = started;
     let mut tail: Vec<String> = Vec::new();
-    while started.elapsed() < std::time::Duration::from_secs(3600)
-        && last_output.elapsed() < std::time::Duration::from_secs(900) {
+    loop {
+        if activity.is_some_and(InstallationActivity::take_change) {
+            last_progress = std::time::Instant::now();
+            if last_file_progress_message.elapsed() >= std::time::Duration::from_secs(30) {
+                let _ = app.emit(events::DAEMON_PROGRESS, DaemonProgressPayload {
+                    line: "Preparing Batchalign dependencies…".to_owned(),
+                });
+                last_file_progress_message = last_progress;
+            }
+        }
+        if started.elapsed() >= std::time::Duration::from_secs(3600)
+            || last_progress.elapsed() >= std::time::Duration::from_secs(900) {
+            break;
+        }
         let evt = match tokio::time::timeout(std::time::Duration::from_millis(500), rx.recv()).await
         {
             Ok(Some(evt)) => evt,
@@ -218,7 +238,7 @@ async fn wait_for_port(
         };
         match evt {
             CommandEvent::Stdout(line) => {
-                last_output = std::time::Instant::now();
+                last_progress = std::time::Instant::now();
                 let text = String::from_utf8_lossy(&line).into_owned();
                 let trimmed = text.trim();
                 eprintln!("[daemon stdout] {trimmed}");
@@ -236,7 +256,7 @@ async fn wait_for_port(
                 }
             }
             CommandEvent::Stderr(line) => {
-                last_output = std::time::Instant::now();
+                last_progress = std::time::Instant::now();
                 let text = String::from_utf8_lossy(&line).into_owned();
                 let trimmed = text.trim_end();
                 eprintln!("[daemon stderr] {trimmed}");

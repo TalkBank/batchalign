@@ -1,6 +1,6 @@
 [package]
 name = "batchalign-gui"
-version = "0.10.11"
+version = "0.10.12"
 edition = "2024"
 rust-version = "1.89.0"
 description = "Desktop GUI for the Batchalign CHAT pipeline (experimental)"
@@ -15,6 +15,9 @@ webdriver = ["dep:tauri-plugin-wdio-webdriver"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-plugin-wdio-webdriver = { version = "=1.4.0", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+notify = { version = "8.2", default-features = false }
 
 [[bin]]
 name = "batchalign-gui"

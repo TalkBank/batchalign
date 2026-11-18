@@ -14,6 +14,7 @@ mod daemon;
 mod daemon_environment;
 mod daemon_http;
 mod daemon_protocol;
+mod installation_activity;
 mod events;
 mod protocol;
 mod state;
