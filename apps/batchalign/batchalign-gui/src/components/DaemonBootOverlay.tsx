@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function DaemonBootOverlay() {
   const { daemon } = useStore();
@@ -42,9 +43,6 @@ export default function DaemonBootOverlay() {
       aria-modal="true"
       aria-busy={!hasError}
       aria-label={hasError ? "Loading failed" : "Loading"}
-      onMouseDownCapture={swallow}
-      onClickCapture={swallow}
-      onKeyDownCapture={swallow}
       style={{
         position: "fixed",
         inset: 0,
@@ -188,6 +186,12 @@ function BootingBody({
 }
 
 function ErrorBody({ reason }: { reason: string }) {
+  const { dispatch } = useStore();
+  async function retry(repair: boolean) {
+    dispatch({ type: "DAEMON_STARTING" });
+    try { await invoke("retry_daemon", { repair }); }
+    catch (error) { dispatch({ type: "DAEMON_FAILED", reason: String(error) }); }
+  }
   return (
     <>
       <div
@@ -240,31 +244,12 @@ function ErrorBody({ reason }: { reason: string }) {
           lineHeight: 1.5,
         }}
       >
-        relaunching the app is the easiest first step. if it keeps
-        failing, the terminal window has the application&rsquo;s
-        stdout/stderr prefixed with{" "}
-        <code
-          className="ba-mono"
-          style={{
-            background: "var(--bg-sunken)",
-            padding: "0 4px",
-            borderRadius: 2,
-          }}
-        >
-          [daemon stdout]
-        </code>{" "}
-        /{" "}
-        <code
-          className="ba-mono"
-          style={{
-            background: "var(--bg-sunken)",
-            padding: "0 4px",
-            borderRadius: 2,
-          }}
-        >
-          [daemon stderr]
-        </code>
-        .
+        Check your internet connection and available disk space, then retry.
+        Repair reinstalls the runtime while keeping your API keys, models and transcripts.
+      </div>
+      <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+        <button type="button" className="ba-btn" onClick={() => void retry(false)}>Retry</button>
+        <button type="button" className="ba-btn" onClick={() => void retry(true)}>Repair installation</button>
       </div>
     </>
   );
@@ -275,9 +260,4 @@ function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}m ${s.toString().padStart(2, "0")}s`;
-}
-
-function swallow(e: React.SyntheticEvent) {
-  e.stopPropagation();
-  e.preventDefault();
 }

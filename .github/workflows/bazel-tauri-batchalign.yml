@@ -296,7 +296,7 @@ jobs:
           # Mutate only the disposable packaged-test runtime. Native acceptance
           # below still bootstraps a separate, unmodified installed application.
           try {
-            just batchalign pytest-wheel $python -k 'whisper_cpu or windows_model_loading or desktop_process' --junitxml="$env:GITHUB_WORKSPACE/windows-wheel-regressions.xml"
+            just batchalign pytest-wheel $python -k 'whisper_cpu or windows_model_loading or desktop_process or desktop_settings' --junitxml="$env:GITHUB_WORKSPACE/windows-wheel-regressions.xml"
             if ($LASTEXITCODE -ne 0) { throw "Windows wheel regressions failed" }
           } finally {
             just batchalign shutdown

@@ -82,6 +82,18 @@ def run(client, request):
     return client.get(f"/jobs/{job_id}").json(), stream.text, job_id
 
 
+def test_model_download_failure_is_visible_and_does_not_replace_input(desktop, monkeypatch):
+    client, request, source = desktop
+    def failed_download(spec):
+        raise ConnectionError("model download unavailable")
+    monkeypatch.setattr(api, "build_backend", failed_download)
+    state, events, _ = run(client, request)
+    assert state["state"] == "failed"
+    assert "model download unavailable" in state["error"]
+    assert events.index("Preparing models") < events.index("StageFailed")
+    assert source.read_text() == "original"
+
+
 def recipe(name, seen, fail=False):
     class Pipeline:
         def run(self, inputs, callbacks, outcome_callback, retain_outcomes):

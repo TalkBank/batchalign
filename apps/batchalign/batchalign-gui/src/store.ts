@@ -140,6 +140,7 @@ export interface AppState {
 }
 
 export type Action =
+  | { type: "DAEMON_STARTING" }
   | { type: "DAEMON_READY"; port: number }
   | { type: "DAEMON_FAILED"; reason: string }
   | { type: "DAEMON_PROGRESS"; line: string }
@@ -215,6 +216,9 @@ function recomputeFileStatus(file: FileRow): FileStatus {
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case "DAEMON_STARTING":
+      return { ...state, capabilities: null,
+        daemon: { port: null, ready: false, error: null, progressLine: null } };
     case "DAEMON_READY":
       return {
         ...state,

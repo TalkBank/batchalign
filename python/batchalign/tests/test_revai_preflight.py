@@ -19,6 +19,18 @@ def _audio():
     )
 
 
+def test_missing_key_fails_before_downloading_utterance_model(monkeypatch):
+    from batchalign.backends.asr import chatwhisper
+    from batchalign.backends.asr.rev import RevAI
+    from batchalign.lang import LanguageCode
+
+    def unexpected_download(*args, **kwargs):
+        pytest.fail("A missing credential must fail before downloading models")
+    monkeypatch.setattr(chatwhisper, "BertUtteranceModel", unexpected_download)
+    with pytest.raises(RuntimeError, match="Settings > ASR engines"):
+        RevAI(api_key="", language=LanguageCode.from_str("eng"))
+
+
 def test_revai_large_batch_submits_every_unique_job_before_polling():
     from batchalign._core.proto import AsrInput, AsrOptions, SpeakerInput
     from batchalign.backends.asr.rev import RevAI

@@ -423,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "batchalign-gui"
-version = "0.10.10"
+version = "0.10.11"
 dependencies = [
  "arc-swap",
  "dirs 5.0.1",

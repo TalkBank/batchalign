@@ -348,6 +348,7 @@ genrule(
     srcs = [
         ":batchalign.whl",
         "//bazel/python:pyapp_bootstrap_progress.rs",
+        "//bazel/python:pyapp_bootstrap_state.rs",
         # pyapp source is fetched lazily via git_repository in
         # MODULE.bazel — Bazel only clones when this target is
         # actually built.

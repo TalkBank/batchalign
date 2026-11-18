@@ -42,9 +42,28 @@ pub fn spawn(app: AppHandle) {
     {
         return;
     }
-    state.clear_startup_error();
+    launch(app, false);
+}
+
+pub fn retry(app: AppHandle, repair: bool) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    if let Some(port) = state.daemon_port() {
+        if repair {
+            return Err("The runtime is already running. Close the app before repairing it.".into());
+        }
+        let _ = app.emit(events::DAEMON_READY, DaemonReadyPayload { port });
+        return Ok(());
+    }
+    state.daemon_spawning.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .map_err(|_| "Installation is already in progress".to_string())?;
+    launch(app, repair);
+    Ok(())
+}
+
+fn launch(app: AppHandle, repair: bool) {
+    app.state::<AppState>().clear_startup_error();
     tauri::async_runtime::spawn(async move {
-        match start(&app).await {
+        match start(&app, repair).await {
             Ok(_) => {}
             Err(e) => {
                 app.state::<AppState>().failed(e.to_string());
@@ -59,7 +78,7 @@ pub fn spawn(app: AppHandle) {
     });
 }
 
-async fn start(app: &AppHandle) -> Result<(), DaemonError> {
+async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
     let environment = std::env::var_os("PYAPP_INSTALL_DIR_BATCHALIGN")
         .filter(|path| !path.is_empty())
         .map(std::path::PathBuf::from)
@@ -76,6 +95,16 @@ async fn start(app: &AppHandle) -> Result<(), DaemonError> {
                 .map(|root| root.join("environments").join(SIDECAR_ID))
         })
         .map_err(|e| DaemonError::Spawn(e.to_string()))?;
+
+    if repair {
+        // The launcher's installation lock owns the actual rebuild. Invalidating
+        // its completion record preserves configuration, transcripts and models.
+        match std::fs::remove_file(environment.join(".batchalign-install-complete")) {
+            Ok(()) => {},
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+            Err(error) => return Err(DaemonError::Spawn(format!("Could not prepare runtime repair: {error}"))),
+        }
+    }
 
     // Build the sidecar command. `Command::new_sidecar` resolves to the
     // platform-suffixed binary that the Tauri bundler placed in the
@@ -147,21 +176,18 @@ async fn wait_for_port(
     app: &AppHandle,
     rx: &mut tauri::async_runtime::Receiver<CommandEvent>,
 ) -> Result<u16, DaemonError> {
-    // Cold-start budget. First-ever launch downloads ~several GB worth
-    // of wheels (torch, transformers, stanza, pyannote, openai-whisper
-    // …) and pip-installs them all. On a quiet machine with a good
-    // connection that's 3–6 minutes; on a slow one it can be 10+. We
-    // pick 15 minutes — long enough to cover almost any cold install
-    // without hiding a genuine hang forever.
-    //
     // To keep the user from thinking the app froze during that window,
     // every stderr line is forwarded to the frontend as a
     // `daemon-progress` event; the overlay surfaces the latest line
     // (e.g. "Collecting torch", "Installing collected packages …") so
     // there's visible motion the whole time.
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(900);
+    // Active downloads may take longer than 15 minutes. Bound both a stalled
+    // installer and the total attempt, instead of killing a progressing one.
+    let started = std::time::Instant::now();
+    let mut last_output = started;
     let mut tail: Vec<String> = Vec::new();
-    while std::time::Instant::now() < deadline {
+    while started.elapsed() < std::time::Duration::from_secs(3600)
+        && last_output.elapsed() < std::time::Duration::from_secs(900) {
         let evt = match tokio::time::timeout(std::time::Duration::from_millis(500), rx.recv()).await
         {
             Ok(Some(evt)) => evt,
@@ -175,6 +201,7 @@ async fn wait_for_port(
         };
         match evt {
             CommandEvent::Stdout(line) => {
+                last_output = std::time::Instant::now();
                 let text = String::from_utf8_lossy(&line).into_owned();
                 let trimmed = text.trim();
                 eprintln!("[daemon stdout] {trimmed}");
@@ -192,6 +219,7 @@ async fn wait_for_port(
                 }
             }
             CommandEvent::Stderr(line) => {
+                last_output = std::time::Instant::now();
                 let text = String::from_utf8_lossy(&line).into_owned();
                 let trimmed = text.trim_end();
                 eprintln!("[daemon stderr] {trimmed}");
@@ -321,6 +349,6 @@ pub enum DaemonError {
     Spawn(String),
     #[error("daemon exited before announcing port: {0}")]
     EarlyExit(String),
-    #[error("daemon did not announce port within 15 minutes. Last output:\n{0}")]
+    #[error("Setup stopped after 15 minutes without progress or one hour overall. Check your internet connection and free disk space, then retry. If setup remains broken, choose Repair installation. Last output:\n{0}")]
     PortTimeout(String),
 }

@@ -49,6 +49,14 @@ export async function fetchCapabilities(): Promise<CapabilitiesJson> {
   return request<CapabilitiesJson>("GET", "/capabilities");
 }
 
+export interface RevKeyStatus { configured: boolean; from_environment: boolean }
+export function fetchRevKeyStatus(): Promise<RevKeyStatus> {
+  return request("GET", "/desktop/settings/revai");
+}
+export function saveRevKey(key: string): Promise<RevKeyStatus> {
+  return request("PUT", "/desktop/settings/revai", { key });
+}
+
 /** Submit a job for `recipe`; returns the daemon's job id. */
 export async function submitRecipe(
   recipe: string,

@@ -118,6 +118,25 @@ awk '
 ' "$build_src/src/process.rs" > "$build_src/src/process.rs.progress"
 mv "$build_src/src/process.rs.progress" "$build_src/src/process.rs"
 
+# Keep the upstream installation lock around cleanup, install and commit.
+cp "$ws/bazel/python/pyapp_bootstrap_state.rs" "$build_src/src/pyapp_bootstrap_state.rs"
+awk '
+    BEGIN { print "include!(\"pyapp_bootstrap_state.rs\");" }
+    { sub(/\r$/, "") }
+    $0 == "    if !app::install_dir().is_dir() {" {
+        print "    ensure_complete_installation(app::install_dir(), &app::python_path(), || {"
+        replacing = 1; count++; next
+    }
+    replacing && $0 == "    }" {
+        print "        Ok(())"
+        print "    })?;"
+        replacing = 0; next
+    }
+    { print }
+    END { if (count != 1 || replacing) exit 1 }
+' "$build_src/src/distribution.rs" > "$build_src/src/distribution.rs.recovery"
+mv "$build_src/src/distribution.rs.recovery" "$build_src/src/distribution.rs"
+
 # PyApp's build.rs parses the wheel filename per PEP 427
 # (`{name}-{version}(-{build})?-{python}-{abi}-{platform}.whl`). The
 # Bazel genrule output is a fixed `batchalign.whl` — Bazel doesn't

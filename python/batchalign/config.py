@@ -61,12 +61,15 @@ from __future__ import annotations
 import configparser
 import os
 import sys
+import tempfile
+import threading
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, ContextManager, Mapping
 
 CONFIG_PATH = Path.home() / ".batchalign.ini"
+_WRITE_LOCK = threading.Lock()
 
 # Map of provider names (used in `get_api_key`) to the (section, option)
 # pair in BA2's ini layout. New providers go here.
@@ -331,18 +334,28 @@ def _persist(path: Path, section: str, option: str, value: str) -> None:
 
     Creates the file and section as needed; preserves other keys.
     """
-    cfg = configparser.ConfigParser()
-    if path.exists():
+    with _WRITE_LOCK:
+        cfg = configparser.ConfigParser()
+        if path.exists():
+            # Never replace an unreadable configuration with an empty one.
+            with path.open(encoding="utf-8") as fh:
+                cfg.read_file(fh)
+        if not cfg.has_section(section):
+            cfg.add_section(section)
+        cfg.set(section, option, value)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = None
         try:
-            cfg.read(path)
-        except (configparser.Error, OSError):
-            cfg = configparser.ConfigParser()
-    if not cfg.has_section(section):
-        cfg.add_section(section)
-    cfg.set(section, option, value)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as fh:
-        cfg.write(fh)
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+                                             dir=path.parent, delete=False) as fh:
+                temporary = Path(fh.name)
+                cfg.write(fh)
+                fh.flush()
+                os.fsync(fh.fileno())
+            temporary.replace(path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
 
 def _render_header(provider: str, intro: str) -> None:

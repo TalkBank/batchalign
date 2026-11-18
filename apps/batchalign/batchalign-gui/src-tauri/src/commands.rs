@@ -49,6 +49,11 @@ pub async fn ensure_daemon(app: AppHandle) -> Result<u16, String> {
 }
 
 #[tauri::command]
+pub fn retry_daemon(app: AppHandle, repair: bool) -> Result<(), String> {
+    daemon::retry(app, repair)
+}
+
+#[tauri::command]
 pub async fn daemon_port(state: State<'_, AppState>) -> Result<Option<u16>, String> {
     Ok(state.daemon_port())
 }

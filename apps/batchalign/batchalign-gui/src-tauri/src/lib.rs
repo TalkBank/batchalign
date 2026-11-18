@@ -39,6 +39,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::ensure_daemon,
+            commands::retry_daemon,
             commands::daemon_port,
             commands::daemon_request,
             commands::list_folder_files,

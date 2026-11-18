@@ -38,6 +38,14 @@ rust_test(
     edition = "2021",
 )
 
+rust_test(
+    name = "bootstrap_state_test",
+    srcs = ["pyapp_bootstrap_state.rs"],
+    crate_root = "pyapp_bootstrap_state.rs",
+    edition = "2021",
+    deps = ["@crates//:anyhow", "@crates//:tempfile"],
+)
+
 llvm_tool_file(
     name = "llvm_clang",
     executable_names = ["clang", "clang.exe"],
@@ -63,6 +71,7 @@ exports_files([
     "pyapp_build.sh",
     "pyapp_install.sh",
     "pyapp_bootstrap_progress.rs",
+    "pyapp_bootstrap_state.rs",
     "pyapp_intel_distribution.py",
     "pytest.sh",
     "pytest_windows_wheel.sh",

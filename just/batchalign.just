@@ -73,7 +73,7 @@ shutdown:
 
 # Verify streaming installer output without building a sidecar or ML env.
 bootstrap-progress:
-    bazel test --jobs=1 //bazel/python:bootstrap_progress_test
+    bazel test --jobs=1 //bazel/python:bootstrap_progress_test //bazel/python:bootstrap_state_test
 
 # Check runtime archive integrity and layout without compiling native packages.
 runtime-distribution-test:

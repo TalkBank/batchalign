@@ -1,7 +1,8 @@
 // Full-screen settings view. Left nav lists sections; right body shows
 // the currently-selected section.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchRevKeyStatus, saveRevKey, type RevKeyStatus } from "../api";
 import { useStore } from "../store";
 import FieldRow from "../components/FieldRow";
 import Toggle from "../components/Toggle";
@@ -145,6 +146,27 @@ function GeneralSection() {
 
 function AsrSection() {
   const { capabilities } = useStore();
+  const [key, setKey] = useState("");
+  const [status, setStatus] = useState<RevKeyStatus | null>(null);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    let disposed = false;
+    fetchRevKeyStatus().then(value => { if (!disposed) setStatus(value); })
+      .catch(() => { if (!disposed) setMessage("Could not read credential status."); });
+    return () => { disposed = true; };
+  }, []);
+  async function save() {
+    setSaving(true);
+    setMessage("");
+    try {
+      setStatus(await saveRevKey(key.trim()));
+      setKey("");
+      setMessage("Saved. New transcription jobs will use this key.");
+    } catch {
+      setMessage("Could not save the key. Check that your local configuration file is writable.");
+    } finally { setSaving(false); }
+  }
   const asrEngines =
     capabilities?.backends_by_task["ASR"] ?? ["WhisperXBackend", "RevAI"];
   return (
@@ -160,15 +182,22 @@ function AsrSection() {
       </FieldRow>
       <FieldRow
         label="rev.ai api key"
-        sub="stored locally; configure via ~/.batchalign.ini for now"
+        sub={status?.from_environment ? "supplied by BATCHALIGN_REVAI_KEY" : "saved locally in ~/.batchalign.ini"}
       >
         <input
           className="ba-input ba-input--mono"
           type="password"
-          placeholder="not set"
-          defaultValue=""
+          aria-label="Rev.AI API key"
+          autoComplete="off"
+          placeholder={status?.configured ? "key configured" : "not set"}
+          value={key}
+          onChange={event => setKey(event.target.value)}
+          disabled={saving || status?.from_environment}
           style={{ width: 280 }}
         />
+        <button type="button" className="ba-btn" disabled={!status || !key.trim() || saving || status.from_environment}
+          onClick={() => void save()}>{saving ? "saving…" : "save key"}</button>
+        <div role="status">{message}</div>
       </FieldRow>
     </Section>
   );

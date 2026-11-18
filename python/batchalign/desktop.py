@@ -210,6 +210,9 @@ def _run(job, req: DesktopRequest, root: Path, sources: dict[str, Path], loop) -
         for index, (step, recipe, final_stage) in enumerate(stages):
             if job.state == api.JobState.CANCELLED or not current:
                 break
+            for sid in current:
+                emit(sid, "StageStarted", step,
+                     "Preparing models. First use may download required files.")
             kwargs = dict(step.kwargs)
             if recipe == "utr":
                 kwargs = {"utr_backend": kwargs["utr_backend"]} if "utr_backend" in kwargs else {}

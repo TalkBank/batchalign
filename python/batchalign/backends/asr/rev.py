@@ -47,7 +47,11 @@ class RevAI(ASR, UTR, Speaker):
             raise ValueError("timeouts must be positive")
         key = api_key if api_key is not None else config.get_api_key("revai", interactive=True)
         if not key:
-            self._client = None
+            raise RuntimeError(
+                "Rev.AI needs an API key. Save it in Settings > ASR engines, "
+                "set BATCHALIGN_REVAI_KEY, or configure [asr] engine.rev.key "
+                "in ~/.batchalign.ini."
+            )
         else:
             from rev_ai import apiclient  # type: ignore[import-not-found]
 

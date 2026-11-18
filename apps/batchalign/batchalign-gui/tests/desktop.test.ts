@@ -223,10 +223,10 @@ test('rediscovery ignores stale scans and running jobs, then restores newly elig
 });
 
 
-test('ASR requires a selection and recognition defaults to cloud with explicit overrides', () => {
+test('local ASR defaults to local recognition without requiring a second cloud key', () => {
   expect(buildRecipeKwargs('transcribe', { lang: 'eng', engine: 'ChatWhisperBackend' })).toMatchObject({
     asr_backend: { kind: 'ChatWhisperBackend' },
-    speaker_backend: { kind: 'PyannoteAIBackend' },
+    speaker_backend: { kind: 'PyannoteBackend' },
   });
   expect(buildRecipeKwargs('diarize', {})).toMatchObject({
     speaker_backend: { kind: 'PyannoteAIBackend' },

@@ -39,7 +39,56 @@ function install(mode: string) {
       if (mode === 'warm') return 43210;
       throw 'daemon still starting; listen for `daemon-ready`';
     }
-    if (command === 'daemon_request') return { recipes: {}, backend_kinds: {}, languages: [] };
+    if (command === 'daemon_request') return { recipes: {}, backend_kinds: {}, backends_by_task: {}, languages: [] };
     return original(command, args);
   };
 }
+
+for (const repair of [false, true]) {
+  test(`failed startup can ${repair ? 'repair' : 'retry'} without relaunch`, async ({ page }) => {
+    await page.addInitScript({ content: stub + `\n(${install.toString()})('failure');` });
+    await page.goto('/');
+    await expect(page.getByRole('dialog', { name: 'Loading', exact: true })).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as any;
+      const original = w.__TAURI_INTERNALS__.invoke;
+      w.__TAURI_INTERNALS__.invoke = async (command: string, args: any) => {
+        if (command === 'retry_daemon') {
+          w.__REPAIR_REQUEST__ = args.repair;
+          w.__E2E_EMIT__('daemon-ready', { port: 43210 });
+          return;
+        }
+        return original(command, args);
+      };
+      w.__E2E_EMIT__('daemon-failed', { reason: 'installation interrupted' });
+    });
+    await page.getByRole('button', { name: repair ? 'Repair installation' : 'Retry', exact: true }).click();
+    await expect(page.getByRole('dialog')).toBeHidden();
+    expect(await page.evaluate(() => (window as any).__REPAIR_REQUEST__)).toBe(repair);
+  });
+}
+
+test('Rev key is saved, cleared from the field, and configured on reopening Settings', async ({ page }) => {
+  await page.addInitScript({ content: stub + `\n(${install.toString()})('warm');
+    const invoke = window.__TAURI_INTERNALS__.invoke;
+    let configured = false;
+    window.__TAURI_INTERNALS__.invoke = async (command, args) => {
+      if (command === 'daemon_request' && args.path === '/desktop/settings/revai') {
+        if (args.method === 'PUT') configured = args.body.key === 'test-secret';
+        return { configured, from_environment: false };
+      }
+      return invoke(command, args);
+    };` });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'settings', exact: true }).click();
+  await page.getByText('asr engines', { exact: true }).first().click();
+  const input = page.getByLabel('Rev.AI API key');
+  await input.fill('test-secret');
+  await page.getByRole('button', { name: 'save key', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Saved.');
+  await expect(input).toHaveValue('');
+  await page.getByRole('button', { name: 'close', exact: true }).click();
+  await page.getByRole('button', { name: 'settings', exact: true }).click();
+  await page.getByText('asr engines', { exact: true }).first().click();
+  await expect(page.getByLabel('Rev.AI API key')).toHaveAttribute('placeholder', 'key configured');
+});

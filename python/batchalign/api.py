@@ -901,3 +901,5 @@ __all__ = [
 # Local desktop orchestration shares the job/status/event contract above.
 from batchalign.desktop import router as desktop_router
 app.include_router(desktop_router)
+from batchalign.desktop_settings import router as desktop_settings_router
+app.include_router(desktop_settings_router)
