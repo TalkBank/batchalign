@@ -1,0 +1,108 @@
+name: Recheck tagged macOS native app
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to validate
+        required: true
+        default: v0.10.11
+      artifact_id:
+        description: Original Intel Mac bundle artifact ID
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  native:
+    runs-on: macos-15-intel
+    timeout-minutes: 150
+    env:
+      BAZELISK_SKIP_WRAPPER: true
+      TARGET: x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ci/prepare-macos-native-recheck.mjs
+          sparse-checkout-cone-mode: false
+          path: validation-tools
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          path: release-source
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: extractions/setup-just@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: bazel · tauri-batchalign-x86_64-apple-darwin
+          repository-cache: true
+          cache-version: 2-x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop-x86_64-apple-darwin
+          workspaces: release-source -> target
+          cache-on-failure: true
+      - name: Verify and extract the original tagged bundle
+        working-directory: release-source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ inputs.artifact_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID" > "$RUNNER_TEMP/artifact.json"
+          test "$(jq -r .name "$RUNNER_TEMP/artifact.json")" = "batchalign-$TARGET"
+          test "$(jq -r .workflow_run.head_sha "$RUNNER_TEMP/artifact.json")" = "$(git rev-parse HEAD)"
+          gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/bundle.zip"
+          expected=$(jq -r '.digest | sub("^sha256:"; "")' "$RUNNER_TEMP/artifact.json")
+          test "$(shasum -a 256 "$RUNNER_TEMP/bundle.zip" | cut -d ' ' -f 1)" = "$expected"
+          mkdir "$RUNNER_TEMP/original-bundle"
+          unzip -q "$RUNNER_TEMP/bundle.zip" -d "$RUNNER_TEMP/original-bundle"
+          cp "$RUNNER_TEMP/artifact.json" "$GITHUB_WORKSPACE/artifact-provenance.json"
+      - name: Build test instrumentation from the exact release tag
+        working-directory: release-source
+        run: |
+          set -euo pipefail
+          cat >> .bazelrc.user <<'EOF'
+          common --http_connector_attempts=12
+          common --http_connector_retry_max_timeout=30s
+          EOF
+          npm ci --prefix apps/batchalign/batchalign-gui
+          just batchalign gui build release --target "$TARGET" --features webdriver --no-bundle --config src-tauri/tauri.webdriver.conf.json
+          just batchalign shutdown
+      - name: Check the original payload with bounded window registration
+        working-directory: release-source
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          original=$(find "$RUNNER_TEMP/original-bundle" -type d -name Batchalign.app -print -quit)
+          test -n "$original"
+          installed="$RUNNER_TEMP/Batchalign QA.app"
+          ditto "$original" "$installed"
+          cp "target/$TARGET/release/Batchalign" "$installed/Contents/MacOS/Batchalign"
+          cmp "$original/Contents/MacOS/sidecar" "$installed/Contents/MacOS/sidecar"
+          xattr -cr "$installed"
+          codesign --force --sign - "$installed"
+          cmp "$original/Contents/MacOS/sidecar" "$installed/Contents/MacOS/sidecar"
+          node "$GITHUB_WORKSPACE/validation-tools/scripts/ci/prepare-macos-native-recheck.mjs" apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs
+          export QA_ROOT="$RUNNER_TEMP/native-recheck" QA_SIDECAR="$installed/Contents/MacOS/sidecar"
+          mkdir "$QA_ROOT"
+          node -e 'require("fs").writeFileSync("sidecar-input.json",JSON.stringify({root:process.env.QA_ROOT,binary:process.env.QA_SIDECAR}))'
+          node apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs "$installed/Contents/MacOS/Batchalign" sidecar-input.json --embedded
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tagged-macos-native-recheck
+          path: |
+            release-source/native-webview-evidence/
+            artifact-provenance.json
+          retention-days: 7
