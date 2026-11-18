@@ -79,6 +79,15 @@ jobs:
           npm ci --prefix apps/batchalign/batchalign-gui
           just batchalign gui build release --target "$TARGET" --features webdriver --no-bundle --config src-tauri/tauri.webdriver.conf.json
           just batchalign shutdown
+          git rev-parse HEAD > qa-source-commit.txt
+      - name: Preserve the test-only GUI binary for diagnosis
+        uses: actions/upload-artifact@v4
+        with:
+          name: tagged-macos-qa-instrumentation
+          path: |
+            release-source/target/x86_64-apple-darwin/release/Batchalign
+            release-source/qa-source-commit.txt
+          retention-days: 7
       - name: Check the original payload with bounded window registration
         working-directory: release-source
         timeout-minutes: 30
@@ -91,7 +100,11 @@ jobs:
           cp "target/$TARGET/release/Batchalign" "$installed/Contents/MacOS/Batchalign"
           cmp "$original/Contents/MacOS/sidecar" "$installed/Contents/MacOS/sidecar"
           xattr -cr "$installed"
-          codesign --force --sign - "$installed"
+          # This Intel-only diagnostic launches the executable directly. Sign
+          # that replacement executable, preserving the original unsigned
+          # sidecar byte-for-byte instead of signing the whole QA bundle.
+          codesign --force --sign - "$installed/Contents/MacOS/Batchalign"
+          codesign --verify --strict "$installed/Contents/MacOS/Batchalign"
           cmp "$original/Contents/MacOS/sidecar" "$installed/Contents/MacOS/sidecar"
           node "$GITHUB_WORKSPACE/validation-tools/scripts/ci/prepare-macos-native-recheck.mjs" apps/batchalign/batchalign-gui/scripts/native-webview-smoke.mjs
           export QA_ROOT="$RUNNER_TEMP/native-recheck" QA_SIDECAR="$installed/Contents/MacOS/sidecar"
