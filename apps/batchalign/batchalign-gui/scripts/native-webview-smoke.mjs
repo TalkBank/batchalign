@@ -6,7 +6,7 @@ import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { access, mkdtemp, mkdir, readFile, readlink, realpath, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdtemp, mkdir, readFile, readlink, realpath, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
@@ -38,10 +38,17 @@ if (process.platform === 'win32') {
   environment = join(await mkdtemp(join(sidecarReport.root, 'native-cleanroom-')), 'environment');
 }
 const report = { application, environment, initiallyCold: !warm, launches: [], startupProgress: [] };
+const revKey = process.env.BATCHALIGN_NATIVE_REV_KEY_FILE
+  ? (await readFile(process.env.BATCHALIGN_NATIVE_REV_KEY_FILE, 'utf8')).trim() : '';
+function safeReport() {
+  const text = JSON.stringify(report, null, 2);
+  return revKey ? text.replaceAll(revKey, '[REDACTED]') : text;
+}
+const redact = text => revKey ? String(text).replaceAll(revKey, '[REDACTED]') : String(text);
 const cleanroom = process.platform === 'win32' ? await prepareWindowsCleanroom() : null;
 if (cleanroom) report.cleanroom = cleanroom.evidence;
 async function checkpoint() {
-  if (cleanroom) await writeFile(join(evidence, 'report.json'), JSON.stringify(report, null, 2));
+  if (cleanroom) await writeFile(join(evidence, 'report.json'), safeReport());
 }
 await checkpoint();
 let tail = '';
@@ -185,6 +192,68 @@ async function windowsUiComparison(text) {
   await screenshot('windows-ui-completed.png');
   await checkpoint();
 }
+async function windowsUiTranscription() {
+  const setInput = async (selector, value) => script(`
+    const input = document.querySelector(arguments[0]);
+    if (!input) throw new Error('Input not found');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, arguments[1]);
+    input.dispatchEvent(new Event('input', { bubbles: true }));`, [selector, value]);
+  // The comparison tab is complete. Open settings and exercise its real save
+  // button before a fresh worker attempts to read the persisted credential.
+  await clickXPath("//button[normalize-space(.)='close']");
+  if (revKey) {
+    await clickXPath("//button[normalize-space(.)='settings']");
+    await clickXPath("//div[normalize-space(.)='asr engines' and not(*)]");
+    await setInput('input[aria-label="Rev.AI API key"]', revKey);
+    let canSave = false;
+    for (let i = 0; i < 100; i++) {
+      canSave = await script(`return [...document.querySelectorAll('button')].some(button =>
+        button.textContent === 'save key' && !button.disabled);`);
+      if (canSave) break;
+      await delay(100);
+    }
+    assert(canSave, 'Credential save button did not become available');
+    await clickXPath("//button[normalize-space(.)='save key']");
+    let saved = false;
+    for (let i = 0; i < 100; i++) {
+      saved = await script(`return document.querySelector('[role="status"]')?.textContent.includes('Saved.');`);
+      if (saved) break;
+      await delay(100);
+    }
+    assert(saved, 'Credential save did not succeed');
+    assert(await script(`return document.querySelector('input[type="password"]').value === '';`),
+      'Credential field was not cleared after save');
+    report.revCredentialSaved = true;
+    await clickXPath("//button[normalize-space(.)='close']");
+  }
+  for (const [name, label] of [
+    ...(revKey ? [['rev', 'Rev.AI (cloud)']] : []),
+    ['whisper', 'OpenAI Whisper (local)'],
+  ]) {
+    const folder = join(sidecarReport.root, `native-ui-${name}`);
+    await mkdir(folder, { recursive: true });
+    await copyFile(fileURLToPath(new URL('../../../../scripts/parity/fixtures/align/en.wav', import.meta.url)), join(folder, 'en.wav'));
+    await clickXPath("//button[contains(., 'open folder')]");
+    await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
+      fileURLToPath(new URL('./windows-folder-picker.ps1', import.meta.url)),
+      '-Application', application, '-Folder', folder], { timeout: 60_000 });
+    await clickXPath("//button[normalize-space(.)='+ add command']");
+    await clickXPath("//div[normalize-space(.)='transcribe' and not(*)]");
+    await setInput('input[aria-label="language"]', 'eng');
+    await clickXPath(`//input[@type='radio' and @aria-label='${label}']`);
+    await clickXPath("//button[normalize-space(.)='start batch']");
+    await waitForUiBatch(45 * 60_000);
+    const transcript = await readFile(join(folder, 'en.cha'), 'utf8');
+    assert.match(transcript, /^\*[^:]+:/m);
+    assert.match(transcript, /\x15\d+_\d+\x15/);
+    await writeFile(join(evidence, `windows-ui-${name}.cha`), transcript);
+    (report.uiTranscription ||= {})[name] = { completed: true, folder };
+    await screenshot(`windows-ui-${name}-completed.png`);
+    await checkpoint();
+    await clickXPath("//button[normalize-space(.)='close']");
+  }
+}
+
 async function closeWindowsApplication() {
   // Edge's WebDriver window is the WebView2 target, not necessarily the host
   // HWND. Send the same WM_CLOSE as the native title-bar button and establish
@@ -327,6 +396,7 @@ try {
       await writeFile(join(evidence, 'comparison.csv'), csv);
       report.comparison = status;
       if (cleanroom) await windowsUiComparison(text);
+      if (cleanroom && process.env.BATCHALIGN_SMOKE_TRANSCRIBE === '1') await windowsUiTranscription();
       if (cleanroom && process.env.BATCHALIGN_SMOKE_MODELS === '1') {
         const repository = fileURLToPath(new URL('../../../../', import.meta.url));
         await testRealPipelines(`http://127.0.0.1:${port}`, sidecarReport.root, repository, report, checkpoint);
@@ -358,7 +428,7 @@ try {
     if (cleanroom) { report.launches.at(-1).daemonStoppedAfterClose = true; await checkpoint(); }
   }
 } catch (error) {
-  report.error = String(error);
+  report.error = redact(error);
   if (session) await screenshot('failure.png').catch(() => {});
   process.exitCode = 1;
 } finally {
@@ -376,6 +446,6 @@ try {
       process.exitCode = 1;
     }
   }
-  await writeFile(join(evidence, 'report.json'), JSON.stringify(report, null, 2));
+  await writeFile(join(evidence, 'report.json'), safeReport());
   assert(!report.error, report.error);
 }

@@ -2,7 +2,7 @@
 // This proves cold/warm bootstrap + native comparison/output, not webview UI.
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { once } from 'node:events';
@@ -38,6 +38,7 @@ async function stop() {
   if (process.platform === 'win32') {
     const killer = spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']);
     await once(killer, 'exit');
+    await exited;
   } else {
     try { process.kill(-child.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
     const timer = setTimeout(() => {
@@ -48,7 +49,7 @@ async function stop() {
   }
 }
 
-async function boot() {
+async function boot(interrupt = false) {
   const started = Date.now();
   tail = '';
   const prefix = cli ? ['--justfile', join(repository, 'justfile'), 'batchalign', 'cli', 'daemon'] : [];
@@ -63,15 +64,24 @@ async function boot() {
   exited = once(child, 'exit');
   // Install error handlers immediately, including executable/spawn failures.
   exited.catch(() => {});
+  let interrupted = false;
   const port = await new Promise((accept, reject) => {
     let stdout = '';
     const timeout = setTimeout(() => reject(new Error(`bootstrap exceeded 20 minutes\n${tail}`)), 20 * 60_000);
     const settle = callback => value => { clearTimeout(timeout); callback(value); };
     child.once('error', settle(reject));
-    child.once('exit', (code, signal) => settle(reject)(new Error(`sidecar exited ${code}/${signal}\n${tail}`)));
+    child.once('exit', (code, signal) => interrupted
+      ? settle(accept)(null)
+      : settle(reject)(new Error(`sidecar exited ${code}/${signal}\n${tail}`)));
     for (const pipe of [child.stdout, child.stderr]) pipe.on('data', chunk => {
       tail = (tail + chunk.toString()).slice(-32_768);
       process.stdout.write(chunk);
+      if (interrupt && !interrupted && tail.includes('Installing collected packages:')) {
+        interrupted = true;
+        // Kill the actual launcher and installer after extraction/download,
+        // while the runtime directory exists but dependency copying is pending.
+        stop().catch(settle(reject));
+      }
     });
     child.stdout.on('data', chunk => {
       stdout = (stdout + chunk.toString()).slice(-4096);
@@ -79,6 +89,16 @@ async function boot() {
       if (match && Number(match[1]) > 0) settle(accept)(Number(match[1]));
     });
   });
+  if (interrupt) {
+    assert(interrupted && port === null, 'cold installer did not reach the fault injection point');
+    await access(env.PYAPP_INSTALL_DIR_BATCHALIGN);
+    await assert.rejects(access(join(env.PYAPP_INSTALL_DIR_BATCHALIGN, '.batchalign-install-complete')),
+      { code: 'ENOENT' }, 'interrupted setup must not be marked complete');
+    results.interruptedInstallation = { at: new Date().toISOString(), directoryExists: true, completionRecordAbsent: true };
+    await checkpoint();
+    return null;
+  }
+  if (!cli) await access(join(env.PYAPP_INSTALL_DIR_BATCHALIGN, '.batchalign-install-complete'));
   const base = `http://127.0.0.1:${port}`;
   const response = await fetch(`${base}/capabilities`, { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`capabilities: ${response.status} ${await response.text()}`);
@@ -92,7 +112,12 @@ async function boot() {
 }
 
 try {
+  if (!cli && process.platform === 'win32') await boot(true);
   await boot();
+  if (results.interruptedInstallation) {
+    results.interruptedInstallation.recovered = true;
+    await checkpoint();
+  }
   if (!cli) {
     const python = join(root, 'environment', 'python',
       ...(process.platform === 'win32' ? ['python.exe'] : ['bin', 'python3']));
