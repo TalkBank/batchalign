@@ -2,6 +2,7 @@
 // the currently-selected section.
 
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { fetchRevKeyStatus, saveRevKey, type RevKeyStatus } from "../api";
 import { useStore } from "../store";
 import FieldRow from "../components/FieldRow";
@@ -216,6 +217,16 @@ function DefaultsSection() {
 }
 
 function PathsSection() {
+  const { batches } = useStore();
+  const running = Object.values(batches).some(batch => batch.state === "running");
+  const [repairing, setRepairing] = useState(false);
+  const [error, setError] = useState("");
+  async function repair() {
+    setError("");
+    setRepairing(true);
+    try { await invoke("repair_runtime"); }
+    catch (error) { setError(String(error)); setRepairing(false); }
+  }
   return (
     <Section eyebrow="paths" title="cache & config">
       <FieldRow
@@ -225,6 +236,13 @@ function PathsSection() {
         <span className="ba-mono" style={{ fontSize: "var(--fs-sm)" }}>
           $XDG_CACHE_HOME/batchalign-api
         </span>
+      </FieldRow>
+      <FieldRow label="repair installation"
+        sub="Reinstalls the runtime and restarts Batchalign. Keeps API keys, downloaded models and transcripts.">
+        <button type="button" className="ba-btn" disabled={running || repairing}
+          onClick={() => void repair()}>{repairing ? "restarting…" : "Repair and restart"}</button>
+        {running && <div role="status">Finish or stop running jobs before repairing.</div>}
+        {error && <div role="alert">{error}</div>}
       </FieldRow>
     </Section>
   );

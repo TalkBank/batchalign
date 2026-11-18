@@ -20,7 +20,41 @@ installations on GitHub runners; local tests use one worker.
   tests that stub Tauri. Pipeline correctness requires real model/provider tests.
 - Retain CI logs, reports and screenshots/traces for review.
 
-## Current verification status (2026-09-21)
+## 0.10.11 recovery and transcription acceptance (in progress)
+
+The 0.10.10 Windows runtime reproduced an interrupted installation that exited
+with `ModuleNotFoundError: batchalign` on every launch. The launcher had treated
+the runtime directory's existence as completion. The new launcher writes a
+completion record only after installation succeeds, and rebuilds incomplete
+environments under its installation lock. The packaged Windows smoke test now
+kills the installer during dependency installation and requires recovery on
+relaunch, followed by a successful warm start.
+
+Native acceptance must exercise both failure-screen Retry/Repair and Settings
+→ paths → Repair and restart. The latter covers environments whose daemon
+starts but whose model dependencies are damaged. Credentials, model caches and
+transcripts live outside the replaced runtime. A stalled bootstrap must surface
+its diagnostic tail and recovery controls; active installation output extends
+the startup allowance up to one hour.
+
+Real local tests reproduced the OpenAI Whisper import of the removed `vllm`
+module. Passing decoded PCM directly also removes its dependence on a system
+FFmpeg executable. After the fix, the default model completed the fixture with
+4.4% word error and 52 timing spans. A real Rev job completed with zero word
+error and 50 timing spans. Those diagnostic runs used the restored 0.10.10
+runtime, with the Whisper module patched for the second test; they are not
+acceptance evidence for the new installer.
+
+For new installed Windows bundles, set `BATCHALIGN_SMOKE_TRANSCRIBE=1` when
+running `scripts/native-webview-smoke.mjs`. Set `BATCHALIGN_NATIVE_REV_KEY_FILE`
+to a local key file to include saving the key through Settings and subsequent
+Rev transcription in a fresh worker. The report redacts the key. Without that
+file the test exercises local OpenAI Whisper only. Packaged inference tests
+also exercise the desktop's OpenAI Whisper choice and, on Windows, CHATWhisper.
+Never publish solely on the basis of mocked browser tests or a daemon health
+check: require the built installer's recovery and real transcription evidence.
+
+## Historical verification status (2026-09-21)
 
 Revision `61fff110` passes the five-target validation using
 [bundle run 35609354627](https://github.com/TalkBank/batchalign/actions/runs/35609354627).

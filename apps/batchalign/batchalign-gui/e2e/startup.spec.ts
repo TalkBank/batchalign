@@ -92,3 +92,19 @@ test('Rev key is saved, cleared from the field, and configured on reopening Sett
   await page.getByText('asr engines', { exact: true }).first().click();
   await expect(page.getByLabel('Rev.AI API key')).toHaveAttribute('placeholder', 'key configured');
 });
+
+test('a running runtime can be repaired from Settings and reports a preparation failure', async ({ page }) => {
+  await page.addInitScript({ content: stub + `\n(${install.toString()})('warm');
+    const invoke = window.__TAURI_INTERNALS__.invoke;
+    window.__TAURI_INTERNALS__.invoke = async (command, args) => {
+      if (command === 'repair_runtime') throw 'Could not prepare runtime repair: access denied';
+      return invoke(command, args);
+    };` });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'settings', exact: true }).click();
+  await page.getByText('paths', { exact: true }).click();
+  const repair = page.getByRole('button', { name: 'Repair and restart', exact: true });
+  await repair.click();
+  await expect(page.getByRole('alert')).toContainText('access denied');
+  await expect(repair).toBeEnabled();
+});

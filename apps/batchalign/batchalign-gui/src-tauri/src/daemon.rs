@@ -78,8 +78,8 @@ fn launch(app: AppHandle, repair: bool) {
     });
 }
 
-async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
-    let environment = std::env::var_os("PYAPP_INSTALL_DIR_BATCHALIGN")
+fn environment(app: &AppHandle) -> Result<std::path::PathBuf, DaemonError> {
+    std::env::var_os("PYAPP_INSTALL_DIR_BATCHALIGN")
         .filter(|path| !path.is_empty())
         .map(std::path::PathBuf::from)
         .map(Ok)
@@ -94,16 +94,33 @@ async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
                 .app_local_data_dir()
                 .map(|root| root.join("environments").join(SIDECAR_ID))
         })
-        .map_err(|e| DaemonError::Spawn(e.to_string()))?;
+        .map_err(|e| DaemonError::Spawn(e.to_string()))
+}
+
+fn invalidate_installation(environment: &std::path::Path) -> Result<(), DaemonError> {
+    // The launcher's installation lock owns the actual rebuild. Invalidating
+    // its completion record preserves configuration, transcripts and models.
+    match std::fs::remove_file(environment.join(".batchalign-install-complete")) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(DaemonError::Spawn(format!("Could not prepare runtime repair: {error}"))),
+    }
+}
+
+pub fn repair_and_restart(app: AppHandle) -> Result<(), String> {
+    let root = environment(&app).map_err(|error| error.to_string())?;
+    invalidate_installation(&root).map_err(|error| error.to_string())?;
+    app.state::<AppState>().stop_child();
+    // A new application process owns the replacement runtime. No old pipe
+    // watcher can mistake intentional shutdown for failure of that runtime.
+    app.restart()
+}
+
+async fn start(app: &AppHandle, repair: bool) -> Result<(), DaemonError> {
+    let environment = environment(app)?;
 
     if repair {
-        // The launcher's installation lock owns the actual rebuild. Invalidating
-        // its completion record preserves configuration, transcripts and models.
-        match std::fs::remove_file(environment.join(".batchalign-install-complete")) {
-            Ok(()) => {},
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
-            Err(error) => return Err(DaemonError::Spawn(format!("Could not prepare runtime repair: {error}"))),
-        }
+        invalidate_installation(&environment)?;
     }
 
     // Build the sidecar command. `Command::new_sidecar` resolves to the
@@ -351,4 +368,27 @@ pub enum DaemonError {
     EarlyExit(String),
     #[error("Setup stopped after 15 minutes without progress or one hour overall. Check your internet connection and free disk space, then retry. If setup remains broken, choose Repair installation. Last output:\n{0}")]
     PortTimeout(String),
+}
+
+#[cfg(test)]
+mod recovery_tests {
+    use super::invalidate_installation;
+
+    #[test]
+    fn repair_invalidates_only_completion_and_can_be_repeated() {
+        let root = std::env::temp_dir().join(format!("batchalign-repair-{}-{}",
+            std::process::id(), std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let runtime = root.join("runtime");
+        std::fs::create_dir_all(&runtime).unwrap();
+        std::fs::write(runtime.join(".batchalign-install-complete"), b"complete").unwrap();
+        std::fs::write(runtime.join("python.exe"), b"runtime").unwrap();
+        std::fs::write(root.join("credentials.ini"), b"preserve").unwrap();
+        invalidate_installation(&runtime).unwrap();
+        invalidate_installation(&runtime).unwrap();
+        assert!(!runtime.join(".batchalign-install-complete").exists());
+        assert_eq!(std::fs::read(runtime.join("python.exe")).unwrap(), b"runtime");
+        assert_eq!(std::fs::read(root.join("credentials.ini")).unwrap(), b"preserve");
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
