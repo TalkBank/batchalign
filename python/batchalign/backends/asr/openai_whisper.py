@@ -8,8 +8,6 @@ emits word-level timestamps via ``word_timestamps=True``.
 
 from __future__ import annotations
 
-import os
-import tempfile
 from typing import Any
 
 from batchalign.backends.base import ASR, BatchPolicy
@@ -44,13 +42,13 @@ class OpenAIWhisperBackend(ASR):
         self._model_id = model
         # The runner ships `Auto` per-call; this constructor-pinned
         # name is the one the package actually receives.
-        self._language = language.name
+        self._language = language.alpha_2 or language.name
         self._policy = BatchPolicy(max_size=batch_size, window_ms=batch_window_ms)
 
     @property
     def name(self) -> str:
         # v2: one AsrSegment per Whisper segment (was a single joined blob).
-        return f"openai-whisper:{self._model_id}:v2"
+        return f"openai-whisper:{self._model_id}:v3"
 
     @property
     def batch_policy(self) -> BatchPolicy:
@@ -58,7 +56,7 @@ class OpenAIWhisperBackend(ASR):
 
     def call(self, batch: list[Any], *, progress: Any = None, **_kwargs: Any) -> list[Any]:
         from batchalign._core.proto import AsrInput, AsrOutput, AsrSegment, AsrWord
-        from batchalign.backends.asr.vllm import pcm_to_wav_bytes
+        import numpy as np
 
         outputs: list[Any] = []
         for item in batch:
@@ -66,27 +64,23 @@ class OpenAIWhisperBackend(ASR):
                 raise TypeError(
                     f"OpenAIWhisperBackend does not handle: {type(item).__name__}"
                 )
-            wav_bytes = pcm_to_wav_bytes(item.audio)
-            # openai-whisper expects a file path or numpy array; write a
-            # temp WAV for path-based load (handles arbitrary sample rates).
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                tmp.write(wav_bytes)
-                tmp_path = tmp.name
-            try:
-                kwargs: dict[str, Any] = {"word_timestamps": True}
-                lang = (
-                    item.language.value
-                    if item.language.kind == "code" and item.language.value
-                    else self._language
-                )
-                if lang:
-                    kwargs["language"] = lang
-                result = self._model.transcribe(tmp_path, **kwargs)
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
+            # The media decoder already supplies PCM. A filename makes Whisper
+            # launch a system ffmpeg executable, absent on clean desktops.
+            audio = np.frombuffer(item.audio.pcm_f32le, dtype="<f4").copy()
+            if item.audio.channels > 1:
+                audio = audio.reshape(-1, item.audio.channels).mean(axis=1)
+            if item.audio.sample_rate != 16000:
+                import torch
+                from torchaudio.functional import resample
+                audio = resample(torch.from_numpy(audio), item.audio.sample_rate, 16000).numpy()
+            kwargs: dict[str, Any] = {"word_timestamps": True}
+            lang = self._language
+            if item.language.kind == "code" and item.language.value:
+                resolved = LanguageCode.from_str(item.language.value)
+                lang = resolved.alpha_2 or resolved.name
+            if lang:
+                kwargs["language"] = lang
+            result = self._model.transcribe(audio, **kwargs)
 
             # BA2's OAIWhisperEngine builds ONE turn per Whisper segment
             # (`for i in res["segments"]: turns.append(...)`), so each Whisper
@@ -108,7 +102,12 @@ class OpenAIWhisperBackend(ASR):
                         end_ms=int((seg.get("end") or 0.0) * 1000),
                         text=text,
                         speaker=None,
-                        words=[],
+                        words=[AsrWord(
+                            text=word["word"].strip(),
+                            start_ms=round(word["start"] * 1000),
+                            end_ms=round(word["end"] * 1000),
+                            confidence=word.get("probability"),
+                        ) for word in seg.get("words", []) if word.get("word", "").strip()],
                     )
                 )
             outputs.append(AsrOutput(source_id=item.source_id, segments=segments_out))
