@@ -53,7 +53,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 # The build-time interpreter pin (MODULE.bazel python.toolchain,
 # pyproject's [tool.batchalign.pinned_tools].python) stays at 3.12 --
 # abi3 only constrains the runtime floor, not the build machine.
-pyo3 = { version = "0.28", features = ["macros", "abi3", "abi3-py310"] }
+pyo3 = { version = "0.29", features = ["macros", "abi3", "abi3-py310"] }
 
 [build-dependencies]
 # Used by `build.rs` to walk the proto-schema inventory and emit
