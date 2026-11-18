@@ -65,6 +65,7 @@ async function boot(interrupt = false) {
   // Install error handlers immediately, including executable/spawn failures.
   exited.catch(() => {});
   let interrupted = false;
+  let interruptionStopped;
   const port = await new Promise((accept, reject) => {
     let stdout = '';
     const timeout = setTimeout(() => reject(new Error(`bootstrap exceeded 20 minutes\n${tail}`)), 20 * 60_000);
@@ -80,7 +81,8 @@ async function boot(interrupt = false) {
         interrupted = true;
         // Kill the actual launcher and installer after extraction/download,
         // while the runtime directory exists but dependency copying is pending.
-        stop().catch(settle(reject));
+        interruptionStopped = stop();
+        interruptionStopped.catch(settle(reject));
       }
     });
     child.stdout.on('data', chunk => {
@@ -91,6 +93,9 @@ async function boot(interrupt = false) {
   });
   if (interrupt) {
     assert(interrupted && port === null, 'cold installer did not reach the fault injection point');
+    // The launcher's exit can arrive before taskkill finishes terminating its
+    // Python descendants. Do not race the next launch against that shutdown.
+    await interruptionStopped;
     await access(env.PYAPP_INSTALL_DIR_BATCHALIGN);
     await assert.rejects(access(join(env.PYAPP_INSTALL_DIR_BATCHALIGN, '.batchalign-install-complete')),
       { code: 'ENOENT' }, 'interrupted setup must not be marked complete');

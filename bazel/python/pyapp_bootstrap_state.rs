@@ -23,7 +23,7 @@ fn ensure_complete_installation(
         eprintln!("Recovering an incomplete installation. Downloaded packages will be reused.");
         // pip can leave partially copied packages with installed metadata.
         // Installing over that tree can incorrectly report them satisfied.
-        std::fs::remove_dir_all(root)?;
+        remove_incomplete_installation(root)?;
     }
     std::fs::create_dir_all(root)?;
     let mut owner = std::fs::File::create(&ownership)?;
@@ -36,6 +36,32 @@ fn ensure_complete_installation(
     record.write_all(b"complete\n")?;
     record.sync_all()?;
     Ok(())
+}
+
+fn remove_incomplete_installation(root: &std::path::Path) -> anyhow::Result<()> {
+    use anyhow::Context;
+    // Windows can retain executable/DLL handles briefly after the installer
+    // process exits. Keep the installation lock while those handles drain.
+    let started = std::time::Instant::now();
+    loop {
+        match std::fs::remove_dir_all(root) {
+            Ok(()) => return Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && !root.exists() => return Ok(()),
+            Err(error) => {
+                if cfg!(windows)
+                    && matches!(error.raw_os_error(), Some(5 | 32 | 33 | 145))
+                    && started.elapsed() < std::time::Duration::from_secs(10)
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    continue;
+                }
+                return Err(error).with_context(|| format!(
+                    "Could not remove the incomplete runtime at {}. Close other Batchalign processes and retry installation.",
+                    root.display(),
+                ));
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -78,5 +104,48 @@ mod bootstrap_state_tests {
             || panic!("must not install into an unrelated directory"));
         assert!(result.is_err());
         assert_eq!(std::fs::read(root.join("transcript.cha")).unwrap(), b"user data");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn recovery_waits_for_an_interrupted_installers_windows_file_handle() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("runtime");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(directory.path().join("runtime.batchalign-owned"), b"owned").unwrap();
+        let partial = root.join("partial.dll");
+        let locked = std::fs::OpenOptions::new().write(true).create_new(true)
+            .share_mode(0).open(&partial).unwrap();
+        let release = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(350));
+            drop(locked);
+        });
+        let python = root.join("python.exe");
+        ensure_complete_installation(&root, &python, || {
+            assert!(!partial.exists());
+            std::fs::write(&python, b"complete")?;
+            Ok(())
+        }).unwrap();
+        release.join().unwrap();
+        assert!(root.join(".batchalign-install-complete").is_file());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_persistently_locked_runtime_reports_recovery_instructions() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().join("runtime");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(directory.path().join("runtime.batchalign-owned"), b"owned").unwrap();
+        let locked = std::fs::OpenOptions::new().write(true).create_new(true)
+            .share_mode(0).open(root.join("partial.dll")).unwrap();
+        let error = ensure_complete_installation(&root, &root.join("python.exe"),
+            || panic!("must not install over the locked partial runtime")).unwrap_err();
+        assert!(error.to_string().contains(&root.display().to_string()));
+        assert!(error.to_string().contains("Close other Batchalign processes and retry"));
+        assert!(!root.join(".batchalign-install-complete").exists());
+        drop(locked);
     }
 }
