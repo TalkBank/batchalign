@@ -107,6 +107,25 @@ export async function testRealPipelines(base, root, repository, results, checkpo
 
   });
 
+  // Exercise the choices actually exposed by the desktop. The HF Whisper
+  // backend above does not exercise openai-whisper's decoder or CHATWhisper.
+  const desktopWhisperEngines = ['OpenAIWhisperBackend',
+    ...(process.platform === 'win32' ? ['ChatWhisperBackend'] : [])];
+  for (const kind of desktopWhisperEngines) {
+    const key = `transcribe-${kind}`;
+    await check(key, async () => {
+      const transcript = await run('transcribe', 'en.wav', {
+        asr_backend: { kind, kwargs: { language: 'eng' } },
+        speaker_backend: { kind: 'PyannoteBackend', kwargs: { num_speakers: 1 } },
+      }, key);
+      const wer = wordErrorRate(words(gold), words(transcript));
+      results.realPipelines[key].wer = wer;
+      assert(words(transcript).length > 20, `${kind}: missing spoken content`);
+      assert(wer <= 0.3, `${kind}: WER=${wer}`);
+      assert.match(transcript, /\x15\d+_\d+\x15/, `${kind}: missing timing`);
+    });
+  }
+
   await check('align', async () => {
   const aligned = await run('align', 'en.cha', {
     fa_backend: { kind: 'Wav2Vec2FaBackend', kwargs: {} },
