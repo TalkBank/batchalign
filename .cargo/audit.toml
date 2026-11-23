@@ -8,12 +8,7 @@
 
 [advisories]
 ignore = [
-    # rsa crate timing sidechannel (Marvin Attack). No patch available.
-    # Transitive dep — not exploitable in our context.
-    "RUSTSEC-2023-0071",
     # bincode unmaintained. Transitive via syntect → comrak (dev-only).
     # bincode 1.3.3 is considered complete by its authors.
     "RUSTSEC-2025-0141",
-    # yaml-rust unmaintained. Transitive via syntect → comrak (dev-only).
-    "RUSTSEC-2024-0320",
 ]
