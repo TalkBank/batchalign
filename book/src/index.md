@@ -8,8 +8,8 @@ Welcome to Batchalign. Batchalign is an audio and ML pipeline for producing and 
 
 User guides for getting started are available via the following links:
 
-- [basic usage](./assets/BA-usage.pdf)
-- [cleanup](./assets/BA-cleanup.pdf)
+- <a href="./assets/BA-usage.pdf" target="_blank">basic usage</a>
+- <a href="./assets/BA-cleanup.pdf" target="_blank">cleanup</a>
 
 ## Installation
 
